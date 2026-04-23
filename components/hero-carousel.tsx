@@ -6,6 +6,7 @@ import Autoplay from "embla-carousel-autoplay"
 import { Play, Info, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useLanguage } from "@/contexts/language-context"
 
 const featuredAnime = [
   {
@@ -38,6 +39,7 @@ const featuredAnime = [
 ]
 
 export function HeroCarousel() {
+  const { t } = useLanguage()
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 6000, stopOnInteraction: false }),
   ])
@@ -115,7 +117,7 @@ export function HeroCarousel() {
                     </div>
                     <span className="text-foreground-muted">•</span>
                     <span className="text-foreground-muted">
-                      {anime.episodes} Episodes
+                      {anime.episodes} {t.hero.episodes}
                     </span>
                   </div>
 
@@ -128,11 +130,11 @@ export function HeroCarousel() {
                   <div className="flex flex-wrap gap-4">
                     <button className="group flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:shadow-[var(--glow-primary)] transition-all duration-300">
                       <Play className="w-5 h-5 fill-current" />
-                      Watch Now
+                      {t.hero.watchNow}
                     </button>
                     <button className="flex items-center gap-2 px-8 py-3 bg-transparent border border-secondary/50 text-foreground font-semibold rounded-lg hover:bg-secondary/10 hover:border-secondary transition-all duration-300">
                       <Info className="w-5 h-5" />
-                      More Info
+                      {t.hero.moreInfo}
                     </button>
                   </div>
                 </div>

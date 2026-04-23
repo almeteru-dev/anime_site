@@ -1,8 +1,11 @@
 "use client"
 
 import { MessageCircle, Send } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 export function Footer() {
+  const { t } = useLanguage()
+  
   return (
     <footer className="bg-background-secondary border-t border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -19,7 +22,7 @@ export function Footer() {
               </span>
             </a>
             <p className="text-foreground-muted text-sm mt-2">
-              Your gateway to endless anime adventures
+              {t.footer.tagline}
             </p>
           </div>
 
@@ -29,25 +32,25 @@ export function Footer() {
               href="#terms"
               className="text-foreground-muted hover:text-primary transition-colors text-sm"
             >
-              Terms of Service
+              {t.footer.termsOfService}
             </a>
             <a
               href="#dmca"
               className="text-foreground-muted hover:text-primary transition-colors text-sm"
             >
-              DMCA
+              {t.footer.dmca}
             </a>
             <a
               href="#contact"
               className="text-foreground-muted hover:text-primary transition-colors text-sm"
             >
-              Contact
+              {t.footer.contact}
             </a>
             <a
               href="#faq"
               className="text-foreground-muted hover:text-primary transition-colors text-sm"
             >
-              FAQ
+              {t.footer.faq}
             </a>
           </nav>
 
@@ -73,10 +76,10 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-border text-center">
           <p className="text-foreground-muted text-sm">
-            © {new Date().getFullYear()} AnimeVista. All rights reserved.
+            © {new Date().getFullYear()} AnimeVista. {t.footer.copyright}
           </p>
           <p className="text-foreground-muted/60 text-xs mt-2">
-            AnimeVista does not store any files on its servers. All content is provided by non-affiliated third parties.
+            {t.footer.disclaimer}
           </p>
         </div>
       </div>

@@ -3,8 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Mail, Lock, ShieldCheck, Eye, EyeOff, Check } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function RegisterPage() {
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -55,7 +57,7 @@ export default function RegisterPage() {
         className="absolute top-6 left-6 flex items-center gap-2 text-foreground-muted hover:text-primary transition-colors duration-300 group z-10"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
-        <span className="text-sm font-medium">Back to Home</span>
+        <span className="text-sm font-medium">{t.register.backToHome}</span>
       </Link>
 
       {/* Registration Card */}
@@ -88,8 +90,8 @@ export default function RegisterPage() {
 
           {/* Heading */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Join the Vista</h1>
-            <p className="text-foreground-muted text-sm">Create your account and start streaming</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t.register.joinTheVista}</h1>
+            <p className="text-foreground-muted text-sm">{t.register.createAccountStart}</p>
           </div>
 
           {/* Form */}
@@ -97,7 +99,7 @@ export default function RegisterPage() {
             {/* Username Field */}
             <div className="space-y-2">
               <label htmlFor="username" className="block text-sm font-medium text-foreground-muted">
-                Username
+                {t.register.username}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -110,7 +112,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("username", e.target.value)}
                   onFocus={() => setFocusedField("username")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your username"
+                  placeholder={t.register.enterUsername}
                   className="w-full h-12 pl-12 pr-4 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "username" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -123,7 +125,7 @@ export default function RegisterPage() {
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-foreground-muted">
-                Email Address
+                {t.register.emailAddress}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -136,7 +138,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   onFocus={() => setFocusedField("email")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your email"
+                  placeholder={t.register.enterEmail}
                   className="w-full h-12 pl-12 pr-4 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "email" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -149,7 +151,7 @@ export default function RegisterPage() {
             {/* Password Field */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-foreground-muted">
-                Password
+                {t.register.password}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -162,7 +164,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Create a password"
+                  placeholder={t.register.createPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "password" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -183,7 +185,7 @@ export default function RegisterPage() {
             {/* Confirm Password Field */}
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground-muted">
-                Confirm Password
+                {t.register.confirmPassword}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -196,7 +198,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   onFocus={() => setFocusedField("confirmPassword")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Confirm your password"
+                  placeholder={t.register.confirmYourPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "confirmPassword" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -224,14 +226,14 @@ export default function RegisterPage() {
                     ? "bg-primary border-primary" 
                     : "border-secondary/50 hover:border-primary/50"
                 }`}
-                aria-label="Agree to terms"
+                aria-label={t.register.agreeToTerms}
               >
                 {agreedToTerms && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
               </button>
               <label className="text-sm text-foreground-muted leading-relaxed cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
-                I agree to the{" "}
+                {t.register.agreeToTerms}{" "}
                 <Link href="/terms" className="text-primary hover:underline hover:text-primary/80 transition-colors">
-                  Terms of Service
+                  {t.register.termsOfService}
                 </Link>
               </label>
             </div>
@@ -242,18 +244,18 @@ export default function RegisterPage() {
               disabled={!agreedToTerms}
               className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
             >
-              Create Account
+              {t.register.createAccount}
             </button>
           </form>
 
           {/* Login Link */}
           <p className="text-center mt-6 text-foreground-muted text-sm">
-            Already a member?{" "}
+            {t.register.alreadyMember}{" "}
             <Link 
               href="/login" 
               className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
             >
-              Login
+              {t.register.login}
             </Link>
           </p>
         </div>

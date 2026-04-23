@@ -3,8 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Lock, Eye, EyeOff, Check } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function LoginPage() {
+  const { t } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -63,7 +65,7 @@ export default function LoginPage() {
         className="absolute top-6 left-6 flex items-center gap-2 text-foreground-muted hover:text-primary transition-colors duration-300 group z-10"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
-        <span className="text-sm font-medium">Back to Home</span>
+        <span className="text-sm font-medium">{t.login.backToHome}</span>
       </Link>
 
       {/* Login Card */}
@@ -97,8 +99,8 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
-            <p className="text-foreground-muted text-sm">Sign in to continue your anime journey</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t.login.welcomeBack}</h1>
+            <p className="text-foreground-muted text-sm">{t.login.signInContinue}</p>
           </div>
 
           {/* Form */}
@@ -106,7 +108,7 @@ export default function LoginPage() {
             {/* Username/Email Field */}
             <div className="space-y-2">
               <label htmlFor="username" className="block text-sm font-medium text-foreground-muted">
-                Username or Email
+                {t.login.usernameOrEmail}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -119,7 +121,7 @@ export default function LoginPage() {
                   onChange={(e) => handleInputChange("username", e.target.value)}
                   onFocus={() => setFocusedField("username")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your username or email"
+                  placeholder={t.login.enterUsernameOrEmail}
                   className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "username" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -132,7 +134,7 @@ export default function LoginPage() {
             {/* Password Field */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-foreground-muted">
-                Password
+                {t.login.password}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -145,7 +147,7 @@ export default function LoginPage() {
                   onChange={(e) => handleInputChange("password", e.target.value)}
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="Enter your password"
+                  placeholder={t.login.enterPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
                     boxShadow: focusedField === "password" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
@@ -174,7 +176,7 @@ export default function LoginPage() {
                       ? "bg-primary border-primary" 
                       : "border-secondary/50 hover:border-primary/50"
                   }`}
-                  aria-label="Remember me"
+                  aria-label={t.login.rememberMe}
                 >
                   {rememberMe && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
                 </button>
@@ -182,14 +184,14 @@ export default function LoginPage() {
                   className="text-sm text-foreground-muted cursor-pointer select-none" 
                   onClick={() => setRememberMe(!rememberMe)}
                 >
-                  Remember me
+                  {t.login.rememberMe}
                 </label>
               </div>
               <Link 
                 href="/forgot-password" 
                 className="text-sm text-foreground-muted hover:text-foreground transition-colors duration-300"
               >
-                Forgot Password?
+                {t.login.forgotPassword}
               </Link>
             </div>
 
@@ -217,22 +219,22 @@ export default function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  <span>Signing In...</span>
+                  <span>{t.login.signingIn}</span>
                 </>
               ) : (
-                "Login"
+                t.login.loginButton
               )}
             </button>
           </form>
 
           {/* Register Link */}
           <p className="text-center mt-8 text-foreground-muted text-sm">
-            New to AnimeVista?{" "}
+            {t.login.newToAnimeVista}{" "}
             <Link 
               href="/register" 
               className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
             >
-              Join now
+              {t.login.joinNow}
             </Link>
           </p>
         </div>

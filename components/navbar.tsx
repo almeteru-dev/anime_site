@@ -4,12 +4,15 @@ import { useState, useEffect } from "react"
 import { Search, X, Sun, Moon, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useLanguage } from "@/contexts/language-context"
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { t } = useLanguage()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,9 +31,9 @@ export function Navbar() {
   }, [isDarkMode])
 
   const navLinks = [
-    { label: "Catalog", href: "/catalog" },
-    { label: "Collections", href: "/collections" },
-    { label: "Schedule", href: "/schedule" },
+    { label: t.nav.catalog, href: "/catalog" },
+    { label: t.nav.collections, href: "/collections" },
+    { label: t.nav.schedule, href: "/schedule" },
   ]
 
   return (
@@ -84,7 +87,7 @@ export function Navbar() {
                 {isSearchOpen && (
                   <input
                     type="text"
-                    placeholder="Search anime..."
+                    placeholder={t.nav.searchPlaceholder}
                     autoFocus
                     className="w-full h-10 pl-4 pr-10 bg-muted border border-border rounded-full text-foreground placeholder:text-foreground-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   />
@@ -121,12 +124,17 @@ export function Navbar() {
               )}
             </button>
 
+            {/* Language Switcher - Desktop */}
+            <div className="hidden md:block">
+              <LanguageSwitcher />
+            </div>
+
             {/* Sign In Button - Desktop */}
             <Link
               href="/login"
               className="hidden md:flex items-center justify-center px-5 py-2 bg-primary text-primary-foreground font-medium rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] hover:scale-105"
             >
-              Sign In
+              {t.nav.signIn}
             </Link>
 
             {/* Mobile Menu Toggle */}
@@ -146,7 +154,7 @@ export function Navbar() {
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <Link
-                  key={link.label}
+                  key={link.href}
                   href={link.href}
                   className="text-foreground-muted hover:text-primary transition-colors duration-200 font-medium py-2"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -154,12 +162,18 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              
+              {/* Mobile Language Switcher */}
+              <div className="border-t border-border pt-4 mt-2">
+                <LanguageSwitcher variant="mobile" />
+              </div>
+              
               <Link
                 href="/login"
                 className="flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] mt-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Sign In
+                {t.nav.signIn}
               </Link>
             </div>
           </div>
