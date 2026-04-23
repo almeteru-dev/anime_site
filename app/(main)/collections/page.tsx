@@ -1,4 +1,3 @@
-import { Header } from "@/components/collections/header"
 import { FilterButtons } from "@/components/collections/filter-buttons"
 import { FeaturedCollection } from "@/components/collections/featured-collection"
 import { CollectionCard } from "@/components/collections/collection-card"
@@ -129,8 +128,6 @@ const collections = [
 export default function CollectionsPage() {
   return (
     <div className="pt-20">
-      <Header />
-      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Page Header */}
         <div className="mb-10 lg:mb-14">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Header } from "@/components/schedule/header";
 import { SeasonSelector } from "@/components/schedule/season-selector";
 import { DayTabs } from "@/components/schedule/day-tabs";
 import { ReleaseList } from "@/components/schedule/release-list";
@@ -44,8 +43,6 @@ export default function ReleasesPage() {
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#00E5FF]/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#33CCFF]/3 rounded-full blur-[100px]" />
       </div>
-
-      <Header />
 
       <main className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}

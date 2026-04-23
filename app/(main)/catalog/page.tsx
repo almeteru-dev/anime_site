@@ -1,12 +1,9 @@
-import { Header } from '@/components/catalog/header'
 import { CatalogClient } from '@/components/catalog/catalog-client'
 import { Sparkles } from 'lucide-react'
 
 export default function CatalogPage() {
   return (
     <div className="pt-20">
-      <Header />
-      
       <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-12">
         {/* Page Header */}
         <div className="mb-8 lg:mb-12">

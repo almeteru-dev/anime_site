@@ -121,6 +121,14 @@ export function Navbar() {
               )}
             </button>
 
+            {/* Sign In Button - Desktop */}
+            <Link
+              href="/login"
+              className="hidden md:flex items-center justify-center px-5 py-2 bg-primary text-primary-foreground font-medium rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] hover:scale-105"
+            >
+              Sign In
+            </Link>
+
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -146,6 +154,13 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/login"
+                className="flex items-center justify-center px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-full transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.4)] mt-2"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Sign In
+              </Link>
             </div>
           </div>
         )}
