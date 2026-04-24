@@ -13,16 +13,19 @@ import {
   Eye, 
   EyeOff, 
   Check, 
-  Star,
   Play,
   Clock,
   Tv,
   Heart,
   XCircle,
-  Pencil
+  Pencil,
+  Hash,
+  Send
 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { cn } from "@/lib/utils"
+import { UserCollectionCard } from "@/components/user-collection-card"
+import type { AnimeStatus } from "@/components/anime-status-manager"
 
 // Mock user data
 const mockUser = {
@@ -35,31 +38,34 @@ const mockUser = {
   registrationDate: "January 2024",
 }
 
-// Mock anime data for collections
-const mockAnimeCollections = {
-  watched: [
-    { id: "1", title: "Demon Slayer", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&h=400&fit=crop", rating: 9.2, episodes: 26 },
-    { id: "2", title: "Jujutsu Kaisen", image: "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=300&h=400&fit=crop", rating: 9.0, episodes: 24 },
-    { id: "3", title: "Attack on Titan", image: "https://images.unsplash.com/photo-1541562232579-512a21360020?w=300&h=400&fit=crop", rating: 9.5, episodes: 87 },
-  ],
-  planned: [
-    { id: "4", title: "Solo Leveling", image: "https://images.unsplash.com/photo-1560972550-aba3456b5564?w=300&h=400&fit=crop", rating: 8.8, episodes: 12 },
-    { id: "5", title: "Chainsaw Man", image: "https://images.unsplash.com/photo-1612178537253-bccd437b730e?w=300&h=400&fit=crop", rating: 8.9, episodes: 12 },
-  ],
-  dropped: [
-    { id: "6", title: "One Piece", image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&h=400&fit=crop", rating: 8.7, episodes: 1100 },
-  ],
-  inProgress: [
-    { id: "7", title: "Spy x Family", image: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?w=300&h=400&fit=crop", rating: 8.6, episodes: 25, currentEpisode: 15 },
-    { id: "8", title: "My Hero Academia", image: "https://images.unsplash.com/photo-1626544827763-d516dce335e2?w=300&h=400&fit=crop", rating: 8.4, episodes: 138, currentEpisode: 89 },
-  ],
+// Initial anime collection data with status
+interface AnimeItem {
+  id: string
+  title: string
+  image: string
+  rating: number
+  episodes: number
+  currentEpisode?: number
+  status: AnimeStatus
 }
+
+const initialAnimeCollection: AnimeItem[] = [
+  { id: "1", title: "Demon Slayer", image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&h=400&fit=crop", rating: 9.2, episodes: 26, status: "watched" },
+  { id: "2", title: "Jujutsu Kaisen", image: "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=300&h=400&fit=crop", rating: 9.0, episodes: 24, status: "watched" },
+  { id: "3", title: "Attack on Titan", image: "https://images.unsplash.com/photo-1541562232579-512a21360020?w=300&h=400&fit=crop", rating: 9.5, episodes: 87, status: "watched" },
+  { id: "4", title: "Solo Leveling", image: "https://images.unsplash.com/photo-1560972550-aba3456b5564?w=300&h=400&fit=crop", rating: 8.8, episodes: 12, status: "planned" },
+  { id: "5", title: "Chainsaw Man", image: "https://images.unsplash.com/photo-1612178537253-bccd437b730e?w=300&h=400&fit=crop", rating: 8.9, episodes: 12, status: "planned" },
+  { id: "6", title: "One Piece", image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&h=400&fit=crop", rating: 8.7, episodes: 1100, status: "dropped" },
+  { id: "7", title: "Spy x Family", image: "https://images.unsplash.com/photo-1614583225154-5fcdda07019e?w=300&h=400&fit=crop", rating: 8.6, episodes: 25, currentEpisode: 15, status: "inProgress" },
+  { id: "8", title: "My Hero Academia", image: "https://images.unsplash.com/photo-1626544827763-d516dce335e2?w=300&h=400&fit=crop", rating: 8.4, episodes: 138, currentEpisode: 89, status: "inProgress" },
+]
 
 type CollectionTab = "watched" | "planned" | "dropped" | "inProgress"
 
 export default function ProfilePage() {
   const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<CollectionTab>("watched")
+  const [animeCollection, setAnimeCollection] = useState<AnimeItem[]>(initialAnimeCollection)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -69,26 +75,101 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   })
+  const [profileData, setProfileData] = useState({
+    age: mockUser.age,
+    newEmail: "",
+    verificationCode: "",
+  })
+  const [isEmailVerificationSent, setIsEmailVerificationSent] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  // Handle status change - sends PATCH request to backend
+  const handleStatusChange = async (animeId: string, newStatus: AnimeStatus) => {
+    // Simulate API call: PATCH /api/user/anime/{animeId}/status
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    setAnimeCollection(prev => 
+      prev.map(anime => 
+        anime.id === animeId ? { ...anime, status: newStatus } : anime
+      )
+    )
+  }
+
+  // Handle remove from collection - sends DELETE request to backend
+  const handleRemove = async (animeId: string) => {
+    // Simulate API call: DELETE /api/user/anime/{animeId}
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    setAnimeCollection(prev => prev.filter(anime => anime.id !== animeId))
+  }
+
+  // Send verification code to new email
+  const handleSendVerificationCode = async () => {
+    if (!profileData.newEmail) return
+    // Simulate API call: POST /api/user/email/send-verification
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsEmailVerificationSent(true)
+    // Reset after 60 seconds
+    setTimeout(() => setIsEmailVerificationSent(false), 60000)
+  }
+
+  /**
+   * Handle form submission - sends all profile data to Go backend
+   * API: PATCH /api/user/profile
+   * Request body structure for Go backend:
+   * {
+   *   age?: number,
+   *   newEmail?: string,
+   *   emailVerificationCode?: string,
+   *   currentPassword?: string,
+   *   newPassword?: string,
+   *   confirmPassword?: string
+   * }
+   */
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsUpdating(true)
-    // Simulate API call
+    
+    // Prepare data for Go backend API
+    const updatePayload = {
+      // Profile fields
+      age: profileData.age,
+      // Email change (only if new email is provided)
+      ...(profileData.newEmail && {
+        newEmail: profileData.newEmail,
+        emailVerificationCode: profileData.verificationCode,
+      }),
+      // Password change (only if password fields are filled)
+      ...(passwordData.currentPassword && {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      }),
+    }
+    
+    // Simulate API call: PATCH /api/user/profile
+    console.log("[API] Sending profile update:", updatePayload)
     await new Promise(resolve => setTimeout(resolve, 1500))
-    console.log("Password change submitted")
+    
+    // Reset form fields after successful update
     setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+    setProfileData(prev => ({ ...prev, newEmail: "", verificationCode: "" }))
+    setIsEmailVerificationSent(false)
     setIsUpdating(false)
   }
 
+  // Get collections grouped by status
+  const getCollectionsByStatus = (status: CollectionTab) => 
+    animeCollection.filter(anime => anime.status === status)
+
   const tabs = [
-    { id: "watched" as const, label: t.profile.watched, icon: Check, count: mockAnimeCollections.watched.length },
-    { id: "planned" as const, label: t.profile.planned, icon: Clock, count: mockAnimeCollections.planned.length },
-    { id: "dropped" as const, label: t.profile.dropped, icon: XCircle, count: mockAnimeCollections.dropped.length },
-    { id: "inProgress" as const, label: t.profile.inProgress, icon: Play, count: mockAnimeCollections.inProgress.length },
+    { id: "watched" as const, label: t.profile.watched, icon: Check, count: getCollectionsByStatus("watched").length },
+    { id: "planned" as const, label: t.profile.planned, icon: Clock, count: getCollectionsByStatus("planned").length },
+    { id: "dropped" as const, label: t.profile.dropped, icon: XCircle, count: getCollectionsByStatus("dropped").length },
+    { id: "inProgress" as const, label: t.profile.inProgress, icon: Play, count: getCollectionsByStatus("inProgress").length },
   ]
 
-  const currentCollection = mockAnimeCollections[activeTab]
+  const currentCollection = getCollectionsByStatus(activeTab)
 
   const getGenderLabel = (gender: string) => {
     switch (gender) {
@@ -171,16 +252,18 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-primary" />
-                    <span className="text-foreground-muted">{mockUser.age} {t.profile.years}</span>
+                    <span className="text-foreground-muted">{profileData.age} {t.profile.years}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <User className="w-4 h-4 text-primary" />
-                    <span className="text-foreground-muted">{getGenderLabel(mockUser.gender)}</span>
+                    <Check className="w-4 h-4 text-emerald-500" />
+                    <span className="text-foreground-muted">
+                      {getCollectionsByStatus("watched").length} {t.profile.animeWatched}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Tv className="w-4 h-4 text-primary" />
                     <span className="text-foreground-muted">
-                      {mockAnimeCollections.watched.length + mockAnimeCollections.inProgress.length} anime
+                      {animeCollection.length} {t.profile.totalInList}
                     </span>
                   </div>
                 </div>
@@ -238,60 +321,19 @@ export default function ProfilePage() {
             {currentCollection.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {currentCollection.map((anime) => (
-                  <Link 
-                    key={anime.id} 
-                    href={`/anime/${anime.id}`}
-                    className="group cursor-pointer"
-                  >
-                    <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-[var(--card-shadow)] transition-all duration-300 group-hover:shadow-[var(--glow-primary)] group-hover:scale-[1.02]">
-                      <Image
-                        src={anime.image}
-                        alt={anime.title}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-80" />
-                      
-                      {/* Rating Badge */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-background/70 backdrop-blur-sm rounded-md">
-                        <Star className="w-3 h-3 text-primary fill-primary" />
-                        <span className="text-xs font-semibold text-primary">{anime.rating}</span>
-                      </div>
-
-                      {/* Progress Badge for In Progress */}
-                      {activeTab === "inProgress" && "currentEpisode" in anime && (
-                        <div className="absolute bottom-2 left-2 right-2">
-                          <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1">
-                            <div className="flex justify-between text-xs text-foreground-muted mb-1">
-                              <span>Ep. {anime.currentEpisode}</span>
-                              <span>/ {anime.episodes}</span>
-                            </div>
-                            <div className="h-1 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary rounded-full"
-                                style={{ width: `${(anime.currentEpisode / anime.episodes) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Play Overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur-sm">
-                          <Play className="w-5 h-5 text-primary-foreground fill-current ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Title */}
-                    <h3 className="mt-2 font-medium text-foreground text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                      {anime.title}
-                    </h3>
-                    <p className="text-xs text-foreground-muted mt-0.5">
-                      {anime.episodes} {t.hero.episodes}
-                    </p>
-                  </Link>
+                  <UserCollectionCard
+                    key={anime.id}
+                    id={anime.id}
+                    title={anime.title}
+                    image={anime.image}
+                    rating={anime.rating}
+                    episodes={anime.episodes}
+                    currentEpisode={anime.currentEpisode}
+                    status={anime.status}
+                    showDelete={true}
+                    onStatusChange={handleStatusChange}
+                    onRemove={handleRemove}
+                  />
                 ))}
               </div>
             ) : (
@@ -316,11 +358,11 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Security Settings */}
+        {/* Profile & Security Settings */}
         <section>
           <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
             <Shield className="w-6 h-6 text-primary" />
-            {t.profile.security}
+            {t.profile.profileSettings}
           </h2>
 
           <div className="relative">
@@ -333,12 +375,142 @@ export default function ProfilePage() {
                 boxShadow: "var(--card-shadow)",
               }}
             >
-              <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-primary" />
-                {t.profile.changePassword}
-              </h3>
+              <form onSubmit={handleProfileUpdate} className="space-y-8">
+                {/* Profile Settings Section */}
+                <div className="space-y-5 max-w-md">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary" />
+                    {t.profile.editProfile}
+                  </h3>
 
-              <form onSubmit={handlePasswordChange} className="space-y-5 max-w-md">
+                  {/* Age Input */}
+                  <div className="space-y-2">
+                    <label htmlFor="age" className="block text-sm font-medium text-foreground-muted">
+                      {t.profile.editAge}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Calendar className={cn(
+                          "w-5 h-5 transition-colors duration-300",
+                          focusedField === "age" ? "text-primary" : "text-secondary/60"
+                        )} />
+                      </div>
+                      <input
+                        id="age"
+                        type="number"
+                        min="0"
+                        max="150"
+                        value={profileData.age}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, age: Math.max(0, parseInt(e.target.value) || 0) }))}
+                        onFocus={() => setFocusedField("age")}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder={t.profile.enterAge}
+                        className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        style={{
+                          boxShadow: focusedField === "age" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* New Email Input */}
+                  <div className="space-y-2">
+                    <label htmlFor="newEmail" className="block text-sm font-medium text-foreground-muted">
+                      {t.profile.newEmailAddress}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Mail className={cn(
+                          "w-5 h-5 transition-colors duration-300",
+                          focusedField === "newEmail" ? "text-primary" : "text-secondary/60"
+                        )} />
+                      </div>
+                      <input
+                        id="newEmail"
+                        type="email"
+                        value={profileData.newEmail}
+                        onChange={(e) => {
+                          setProfileData(prev => ({ ...prev, newEmail: e.target.value }))
+                          if (isEmailVerificationSent) setIsEmailVerificationSent(false)
+                        }}
+                        onFocus={() => setFocusedField("newEmail")}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder={t.profile.enterNewEmail}
+                        className="w-full h-12 pl-12 pr-28 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                        style={{
+                          boxShadow: focusedField === "newEmail" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendVerificationCode}
+                        disabled={!profileData.newEmail || isEmailVerificationSent}
+                        className={cn(
+                          "absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 flex items-center gap-1.5",
+                          isEmailVerificationSent 
+                            ? "bg-emerald-500/20 text-emerald-400 cursor-default"
+                            : profileData.newEmail
+                              ? "bg-primary/20 text-primary hover:bg-primary/30"
+                              : "bg-secondary/10 text-secondary/40 cursor-not-allowed"
+                        )}
+                      >
+                        {isEmailVerificationSent ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            {t.profile.codeSent}
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            {t.profile.sendVerificationCode}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Verification Code Input - Only visible when new email is entered */}
+                  <div className={cn(
+                    "space-y-2 transition-all duration-300",
+                    profileData.newEmail ? "opacity-100" : "opacity-40 pointer-events-none"
+                  )}>
+                    <label htmlFor="verificationCode" className="block text-sm font-medium text-foreground-muted">
+                      {t.profile.verificationCode}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Hash className={cn(
+                          "w-5 h-5 transition-colors duration-300",
+                          focusedField === "verificationCode" ? "text-primary" : "text-secondary/60"
+                        )} />
+                      </div>
+                      <input
+                        id="verificationCode"
+                        type="text"
+                        value={profileData.verificationCode}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, verificationCode: e.target.value }))}
+                        onFocus={() => setFocusedField("verificationCode")}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder={t.profile.enterVerificationCode}
+                        disabled={!profileData.newEmail}
+                        className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+                        style={{
+                          boxShadow: focusedField === "verificationCode" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-secondary/20" />
+
+                {/* Password Change Section */}
+                <div className="space-y-5 max-w-md">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-primary" />
+                    {t.profile.changePassword}
+                  </h3>
                 {/* Current Password */}
                 <div className="space-y-2">
                   <label htmlFor="currentPassword" className="block text-sm font-medium text-foreground-muted">
@@ -450,36 +622,40 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="w-full sm:w-auto px-8 h-12 mt-4 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
-                >
-                  {isUpdating ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle 
-                          className="opacity-25" 
-                          cx="12" 
-                          cy="12" 
-                          r="10" 
-                          stroke="currentColor" 
-                          strokeWidth="4"
-                          fill="none"
-                        />
-                        <path 
-                          className="opacity-75" 
-                          fill="currentColor" 
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      <span>{t.profile.updating}</span>
-                    </>
-                  ) : (
-                    t.profile.saveChanges
-                  )}
-                </button>
+                </div>
+
+                {/* Submit Button - Single button for all changes */}
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="w-full sm:w-auto px-8 h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle 
+                            className="opacity-25" 
+                            cx="12" 
+                            cy="12" 
+                            r="10" 
+                            stroke="currentColor" 
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path 
+                            className="opacity-75" 
+                            fill="currentColor" 
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        <span>{t.profile.updating}</span>
+                      </>
+                    ) : (
+                      t.profile.saveChanges
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

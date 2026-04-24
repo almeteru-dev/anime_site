@@ -82,6 +82,8 @@ export const translations = {
       female: "Female",
       other: "Other",
       editProfile: "Edit Profile",
+      animeWatched: "Anime Watched",
+      totalInList: "Total in List",
       // Collections
       collections: "My Collections",
       watched: "Watched",
@@ -91,6 +93,16 @@ export const translations = {
       noAnimeInCollection: "No anime in this collection yet",
       startWatching: "Start exploring and add anime to your collection!",
       browseAnime: "Browse Anime",
+      // Profile Editing
+      profileSettings: "Profile Settings",
+      editAge: "Age",
+      enterAge: "Enter your age",
+      newEmailAddress: "New Email Address",
+      enterNewEmail: "Enter new email address",
+      verificationCode: "Verification Code",
+      enterVerificationCode: "Enter code sent to new email",
+      sendVerificationCode: "Send Code",
+      codeSent: "Code sent!",
       // Security
       security: "Security Settings",
       changePassword: "Change Password",
@@ -103,6 +115,22 @@ export const translations = {
       saveChanges: "Save Changes",
       passwordUpdated: "Password updated successfully",
       updating: "Updating...",
+    },
+    // Status Manager
+    status: {
+      addToList: "Add to List",
+      changeStatus: "Change Status",
+      watched: "Watched",
+      planned: "Planned",
+      dropped: "Dropped",
+      inProgress: "In Progress",
+      removeFromList: "Remove from List",
+      confirmRemove: "Remove this anime?",
+      confirmRemoveDesc: "This will remove the anime from your collection.",
+      yes: "Yes, Remove",
+      no: "Cancel",
+      statusChanged: "Status changed to",
+      removed: "Removed from your list",
     },
     // Common
     common: {
@@ -204,6 +232,8 @@ export const translations = {
       female: "Женский",
       other: "Другой",
       editProfile: "Редактировать",
+      animeWatched: "Просмотрено аниме",
+      totalInList: "Всего в списке",
       // Collections
       collections: "Мои коллекции",
       watched: "Просмотрено",
@@ -213,6 +243,16 @@ export const translations = {
       noAnimeInCollection: "В этой коллекции пока нет аниме",
       startWatching: "Начните исследовать и добавьте аниме в коллекцию!",
       browseAnime: "Смотреть каталог",
+      // Profile Editing
+      profileSettings: "Настройки профиля",
+      editAge: "Возраст",
+      enterAge: "Введите ваш возраст",
+      newEmailAddress: "Новый Email адрес",
+      enterNewEmail: "Введите новый email адрес",
+      verificationCode: "Код подтверждения",
+      enterVerificationCode: "Введите код, отправленный на новый email",
+      sendVerificationCode: "Отправить код",
+      codeSent: "Код отправлен!",
       // Security
       security: "Настройки безопасности",
       changePassword: "Изменить пароль",
@@ -225,6 +265,22 @@ export const translations = {
       saveChanges: "Сохранить изменения",
       passwordUpdated: "Пароль успешно обновлён",
       updating: "Обновление...",
+    },
+    // Status Manager
+    status: {
+      addToList: "Добавить в список",
+      changeStatus: "Изменить статус",
+      watched: "Просмотрено",
+      planned: "Запланировано",
+      dropped: "Брошено",
+      inProgress: "Смотрю",
+      removeFromList: "Удалить из списка",
+      confirmRemove: "Удалить это аниме?",
+      confirmRemoveDesc: "Аниме будет удалено из вашей коллекции.",
+      yes: "Да, удалить",
+      no: "Отмена",
+      statusChanged: "Статус изменён на",
+      removed: "Удалено из вашего списка",
     },
     // Common
     common: {

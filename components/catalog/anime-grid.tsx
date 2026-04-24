@@ -1,11 +1,12 @@
 'use client'
 
-import { AnimeCard } from './anime-card'
+import { AnimeCard, handleStatusChange } from './anime-card'
 import { SearchBar } from './search-bar'
 import { Pagination } from './pagination'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Film } from 'lucide-react'
 import type { Anime } from '@/lib/anime-data'
+import type { AnimeStatus } from '@/components/anime-status-manager'
 
 interface AnimeGridProps {
   anime: Anime[]
@@ -15,6 +16,9 @@ interface AnimeGridProps {
   totalPages: number
   onPageChange: (page: number) => void
   onMobileFilterToggle?: () => void
+  // Optional: pass user's anime statuses from a parent component/context
+  userStatuses?: Record<string, AnimeStatus>
+  onStatusChange?: (animeId: string, newStatus: AnimeStatus) => Promise<void>
 }
 
 export function AnimeGrid({
@@ -25,6 +29,8 @@ export function AnimeGrid({
   totalPages,
   onPageChange,
   onMobileFilterToggle,
+  userStatuses,
+  onStatusChange,
 }: AnimeGridProps) {
   return (
     <div className="flex-1 min-w-0">
@@ -54,7 +60,13 @@ export function AnimeGrid({
           {/* Anime Cards Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {anime.map((item) => (
-              <AnimeCard key={item.id} anime={item} />
+              <AnimeCard 
+                key={item.id} 
+                anime={item}
+                userStatus={userStatuses?.[item.id]}
+                onStatusChange={onStatusChange || handleStatusChange}
+                showRemoveOption={false} // In catalog, don't show remove option
+              />
             ))}
           </div>
 
