@@ -164,6 +164,7 @@ export default function AnimeTitlePage() {
         currentEpisode={currentEpisode}
         currentSeason={currentSeason}
         onEpisodeSelect={handleEpisodeSelect}
+        animeId="jujutsu-kaisen"
       />
 
       {/* Gallery Section */}

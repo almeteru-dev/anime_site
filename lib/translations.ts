@@ -132,6 +132,55 @@ export const translations = {
       statusChanged: "Status changed to",
       removed: "Removed from your list",
     },
+    // Forgot Password Page
+    forgotPassword: {
+      title: "Forgot Password",
+      subtitle: "Enter your email and we'll send you a reset link",
+      emailAddress: "Email Address",
+      enterEmail: "Enter your email address",
+      sendResetLink: "Send Reset Link",
+      sending: "Sending...",
+      checkEmail: "Check Your Email",
+      emailSentTo: "We've sent a password reset link to",
+      didntReceive: "Didn't receive the email?",
+      resendEmail: "Resend email",
+      backToLogin: "Back to Login",
+    },
+    // Reset Password Page
+    resetPassword: {
+      title: "Reset Password",
+      subtitle: "Enter your new password below",
+      newPassword: "New Password",
+      enterNewPassword: "Enter your new password",
+      confirmPassword: "Confirm Password",
+      confirmNewPassword: "Confirm your new password",
+      updatePassword: "Update Password",
+      updating: "Updating...",
+      passwordUpdated: "Password Updated!",
+      successMessage: "Your password has been successfully updated. You can now log in with your new password.",
+      backToLogin: "Back to Login",
+    },
+    // Verify Email Page
+    verifyEmail: {
+      title: "Verify Your Email",
+      subtitle: "Action Required",
+      messageLine1: "We've sent a verification link to your email.",
+      messageLine2: "Please click it to activate your account.",
+      resendEmail: "Resend Email",
+      resendIn: "Resend in",
+      emailResent: "Email Resent!",
+      checkInbox: "Check your inbox for the verification link.",
+      backToLogin: "Back to Login",
+    },
+    // Verify Confirm Page
+    verifyConfirm: {
+      title: "Email Verified!",
+      subtitle: "Success",
+      message: "Your email has been successfully verified. Your account is now active and ready to use.",
+      goToDashboard: "Go to Dashboard",
+      orLogin: "or",
+      login: "Log In",
+    },
     // Common
     common: {
       loading: "Loading...",
@@ -213,7 +262,7 @@ export const translations = {
     // Footer
     footer: {
       tagline: "Ваш путь к бесконечным аниме приключениям",
-      termsOfService: "Условия использования",
+      termsOfService: "Условия ��спользования",
       dmca: "DMCA",
       contact: "Контакты",
       faq: "FAQ",
@@ -281,6 +330,55 @@ export const translations = {
       no: "Отмена",
       statusChanged: "Статус изменён на",
       removed: "Удалено из вашего списка",
+    },
+    // Forgot Password Page
+    forgotPassword: {
+      title: "Забыли пароль",
+      subtitle: "Введите email и мы отправим ссылку для сброса",
+      emailAddress: "Email адрес",
+      enterEmail: "Введите ваш email адрес",
+      sendResetLink: "Отправить ссылку",
+      sending: "Отправка...",
+      checkEmail: "Проверьте почту",
+      emailSentTo: "Мы отправили ссылку для сброса пароля на",
+      didntReceive: "Не получили письмо?",
+      resendEmail: "Отправить снова",
+      backToLogin: "Вернуться к входу",
+    },
+    // Reset Password Page
+    resetPassword: {
+      title: "Сброс пароля",
+      subtitle: "Введите новый пароль ниже",
+      newPassword: "Новый пароль",
+      enterNewPassword: "Введите новый пароль",
+      confirmPassword: "Подтвердите пароль",
+      confirmNewPassword: "Подтвердите ваш новый пароль",
+      updatePassword: "Обновить пароль",
+      updating: "Обновление...",
+      passwordUpdated: "Пароль обновлён!",
+      successMessage: "Ваш пароль успешно обновлён. Теперь вы можете войти с новым паролем.",
+      backToLogin: "Вернуться к входу",
+    },
+    // Verify Email Page
+    verifyEmail: {
+      title: "Подтвердите Email",
+      subtitle: "Требуется действие",
+      messageLine1: "Мы отправили ссылку для подтверждения на ваш email.",
+      messageLine2: "Пожалуйста, нажмите на неё для активации аккаунта.",
+      resendEmail: "Отправить снова",
+      resendIn: "Повторить через",
+      emailResent: "Письмо отправлено!",
+      checkInbox: "Проверьте входящие для ссылки подтверждения.",
+      backToLogin: "Вернуться к входу",
+    },
+    // Verify Confirm Page
+    verifyConfirm: {
+      title: "Email подтверждён!",
+      subtitle: "Успех",
+      message: "Ваш email успешно подтверждён. Ваш аккаунт активирован и готов к использованию.",
+      goToDashboard: "Перейти в профиль",
+      orLogin: "или",
+      login: "Войти",
     },
     // Common
     common: {

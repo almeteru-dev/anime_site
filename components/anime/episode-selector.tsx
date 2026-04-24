@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { AnimeStatusManager, type AnimeStatus } from "@/components/anime-status-manager"
 
 interface Episode {
   number: number
@@ -30,19 +31,28 @@ interface EpisodeSelectorProps {
   currentEpisode: number
   currentSeason: string
   onEpisodeSelect: (seasonId: string, episodeNumber: number) => void
+  animeId?: string
 }
 
 export function EpisodeSelector({ 
   seasons, 
   currentEpisode, 
   currentSeason,
-  onEpisodeSelect 
+  onEpisodeSelect,
+  animeId = "1"
 }: EpisodeSelectorProps) {
   const [selectedServer, setSelectedServer] = useState("Server 1")
   const [selectedAudio, setSelectedAudio] = useState("Subbed")
+  const [animeStatus, setAnimeStatus] = useState<AnimeStatus>(null)
 
   const servers = ["Server 1", "Server 2", "Server 3", "Backup"]
   const audioOptions = ["Subbed", "Dubbed", "Multi-Audio"]
+
+  const handleStatusChange = async (id: string, newStatus: AnimeStatus) => {
+    // In a real app, this would save to a database
+    setAnimeStatus(newStatus)
+    return Promise.resolve()
+  }
 
   return (
     <section className="py-6 px-4">
@@ -98,6 +108,14 @@ export function EpisodeSelector({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Add to List Selector */}
+          <AnimeStatusManager
+            animeId={animeId}
+            currentStatus={animeStatus}
+            onStatusChange={handleStatusChange}
+            variant="default"
+          />
         </div>
 
         {/* Season Tabs */}

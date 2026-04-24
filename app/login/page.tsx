@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Lock, Eye, EyeOff, Check } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
+import { LanguageSwitcher } from "@/components/language-switcher"
 
 export default function LoginPage() {
   const { t } = useLanguage()
@@ -67,6 +68,11 @@ export default function LoginPage() {
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" />
         <span className="text-sm font-medium">{t.login.backToHome}</span>
       </Link>
+
+      {/* Language Switcher */}
+      <div className="absolute top-6 right-6 z-10">
+        <LanguageSwitcher />
+      </div>
 
       {/* Login Card */}
       <div className="relative w-full max-w-md">
