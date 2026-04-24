@@ -35,7 +35,6 @@ export function Navbar() {
 
   const navLinks = [
     { label: t.nav.catalog, href: "/catalog" },
-    { label: t.nav.collections, href: "/collections" },
     { label: t.nav.schedule, href: "/schedule" },
   ]
 
