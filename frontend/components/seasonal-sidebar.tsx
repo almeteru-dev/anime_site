@@ -2,46 +2,18 @@
 
 import { Sparkles } from "lucide-react"
 import { AnimeCard } from "./anime-card"
+import { type Anime, getAnimePosterUrl, getLocalizedTitle } from "@/lib/api"
+import { useLanguage } from "@/contexts/language-context"
 
-const seasonalAnime = [
-  {
-    id: "1",
-    title: "Shadow Sovereign",
-    image: "/images/anime-1.jpg",
-    rating: 9.2,
-    status: "Airing",
-  },
-  {
-    id: "2",
-    title: "Frost Enchantress",
-    image: "/images/anime-2.jpg",
-    rating: 8.9,
-    status: "Airing",
-  },
-  {
-    id: "3",
-    title: "Campus Love Story",
-    image: "/images/anime-3.jpg",
-    rating: 8.5,
-    status: "Completed",
-  },
-  {
-    id: "4",
-    title: "Mecha Genesis",
-    image: "/images/anime-4.jpg",
-    rating: 8.7,
-    status: "Airing",
-  },
-  {
-    id: "5",
-    title: "Detective Noir",
-    image: "/images/anime-5.jpg",
-    rating: 9.0,
-    status: "Airing",
-  },
-]
+interface SeasonalSidebarProps {
+  animes: Anime[]
+}
 
-export function SeasonalSidebar() {
+export function SeasonalSidebar({ animes }: SeasonalSidebarProps) {
+  const { locale } = useLanguage()
+  // Use the last 5 animes as seasonal for now
+  const seasonalAnime = animes.slice(-5)
+
   return (
     <aside className="w-full lg:w-80 bg-background-secondary/50 rounded-2xl p-5 border border-border">
       {/* Header */}
@@ -59,9 +31,14 @@ export function SeasonalSidebar() {
       <div className="space-y-2">
         {seasonalAnime.map((anime) => (
           <AnimeCard
-            key={anime.title}
+            key={anime.id}
             variant="seasonal"
-            {...anime}
+            id={anime.id.toString()}
+            title={getLocalizedTitle(anime, locale)}
+            image={getAnimePosterUrl(anime) || `https://placehold.co/300x450/081229/00E5FF?text=${encodeURIComponent(getLocalizedTitle(anime, locale))}`}
+            rating={anime.score}
+            status={anime.status?.name || ""}
+            data={anime}
           />
         ))}
       </div>

@@ -12,6 +12,7 @@ type User struct {
 	AvatarURL    string    `gorm:"type:varchar(500)" json:"avatar_url"`
 	Age          int       `json:"age"`
 	IsVerified   bool      `gorm:"default:false" json:"is_verified"`
+	Role         string    `gorm:"default:'user';type:varchar(20)" json:"role"`
 	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 }
 
@@ -25,6 +26,6 @@ type UserCollection struct {
 	CreatedAt        time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 	User             User           `gorm:"foreignKey:UserID" json:"-"`
-	Anime            Anime          `gorm:"foreignKey:AnimeID" json:"-"`
-	CollectionType   CollectionType `gorm:"foreignKey:CollectionTypeID" json:"-"`
+	Anime            Anime          `gorm:"foreignKey:AnimeID" json:"anime"`
+	CollectionType   CollectionType `gorm:"foreignKey:CollectionTypeID" json:"collection_type"`
 }

@@ -1,7 +1,12 @@
 import { CatalogClient } from '@/components/catalog/catalog-client'
 import { Sparkles } from 'lucide-react'
+import { getAnimes } from '@/lib/api'
 
-export default function CatalogPage() {
+export const dynamic = "force-dynamic"
+
+export default async function CatalogPage() {
+  const animes = await getAnimes()
+  
   return (
     <div className="pt-20">
       <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8 lg:py-12">
@@ -21,7 +26,7 @@ export default function CatalogPage() {
         </div>
 
         {/* Catalog Content */}
-        <CatalogClient />
+        <CatalogClient initialAnimes={animes} />
       </main>
     </div>
   )

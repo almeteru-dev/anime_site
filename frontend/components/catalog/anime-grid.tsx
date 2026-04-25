@@ -1,11 +1,11 @@
 'use client'
 
-import { AnimeCard, handleStatusChange } from './anime-card'
+import { AnimeCard } from './anime-card'
 import { SearchBar } from './search-bar'
 import { Pagination } from './pagination'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Film } from 'lucide-react'
-import type { Anime } from '@/lib/anime-data'
+import type { Anime } from '@/lib/api'
 import type { AnimeStatus } from '@/components/anime-status-manager'
 
 interface AnimeGridProps {
@@ -64,7 +64,7 @@ export function AnimeGrid({
                 key={item.id} 
                 anime={item}
                 userStatus={userStatuses?.[item.id]}
-                onStatusChange={onStatusChange || handleStatusChange}
+                onStatusChange={onStatusChange}
                 showRemoveOption={false} // In catalog, don't show remove option
               />
             ))}

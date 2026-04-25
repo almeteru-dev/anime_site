@@ -14,7 +14,7 @@ type Anime struct {
 	URL           string    `gorm:"unique;not null;type:varchar(255)" json:"url"`
 	Duration      int       `json:"duration"`
 	Rating        string    `gorm:"type:varchar(50)" json:"rating"`
-	Image         string    `gorm:"type:varchar(500)" json:"image"`
+	ImageURL      string    `gorm:"column:image;type:varchar(500)" json:"image_url"`
 	Score         float64   `gorm:"type:decimal(3,2);default:0" json:"score"`
 	Episodes      int       `gorm:"default:0" json:"episodes"`
 	EpisodesAired int       `gorm:"default:0" json:"episodes_aired"`
@@ -25,6 +25,7 @@ type Anime struct {
 	Status   *Status   `gorm:"foreignKey:StatusID" json:"status,omitempty"`
 	Source   *Source   `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 	Genres   []Genre   `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
+	Translations []AnimeTranslation `gorm:"foreignKey:AnimeID" json:"translations,omitempty"`
 }
 
 type AnimeTranslation struct {
@@ -34,5 +35,5 @@ type AnimeTranslation struct {
 	Title       string   `gorm:"not null;type:varchar(255)" json:"title"`
 	Description string   `gorm:"type:text" json:"description"`
 	Anime       Anime    `gorm:"foreignKey:AnimeID" json:"-"`
-	Language    Language `gorm:"foreignKey:LanguageID" json:"-"`
+	Language    Language `gorm:"foreignKey:LanguageID" json:"language"`
 }

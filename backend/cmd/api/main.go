@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/handlers"
+	"github.com/seva/animevista/internal/middleware"
 )
 
 func main() {
@@ -22,12 +24,60 @@ func main() {
 	// Initialize Gin router
 	r := gin.Default()
 
-	// Health check route
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
+	// CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
 	})
+
+	// Routes
+	api := r.Group("/api")
+	{
+		api.GET("/ping", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "pong",
+			})
+		})
+
+		// Auth routes
+		api.POST("/register", handlers.Register)
+		api.POST("/login", handlers.Login)
+
+		api.GET("/animes", handlers.GetAnimes)
+		api.GET("/animes/:id", handlers.GetAnimeByID)
+
+		// Protected routes
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			protected.GET("/collections", handlers.GetMyCollections)
+			protected.POST("/collections", handlers.AddToMyCollection)
+			protected.DELETE("/collections/:animeId", handlers.RemoveFromMyCollection)
+
+			protected.GET("/users/:userId/collection", handlers.GetUserCollection)
+			protected.POST("/collection", handlers.UpdateCollectionEntry)
+			protected.DELETE("/users/:userId/collection/:animeId", handlers.RemoveFromCollection)
+
+			// Admin only routes
+			admin := protected.Group("/admin")
+			admin.Use(middleware.AdminOnly())
+			{
+				admin.GET("/meta", handlers.AdminGetMeta)
+				admin.POST("/animes", handlers.AdminCreateAnime)
+				admin.PUT("/animes/:id", handlers.AdminUpdateAnime)
+				admin.DELETE("/animes/:id", handlers.AdminDeleteAnime)
+			}
+		}
+	}
 
 	// Get port from environment
 	port := os.Getenv("PORT")

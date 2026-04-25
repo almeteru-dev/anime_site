@@ -2,12 +2,15 @@
 
 import { useState, useCallback } from 'react'
 import Image from 'next/image'
-import { Star, Play, Info, Check, Clock, XCircle } from 'lucide-react'
+import { Star, Play, Info, Check, Clock, XCircle, Film } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { Anime } from '@/lib/anime-data'
+import { addToMyCollection, getAnimePosterUrl, getLocalizedDescription, getLocalizedTitle, removeFromMyCollection, type Anime, type WatchlistStatus } from '@/lib/api'
 import Link from 'next/link'
 import { AnimeStatusManager, type AnimeStatus } from '@/components/anime-status-manager'
+import { useLanguage } from '@/contexts/language-context'
+import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 interface AnimeCardProps {
   anime: Anime
@@ -45,26 +48,6 @@ const statusColors = {
   },
 }
 
-/**
- * Placeholder function for backend integration
- * This will be called when the user changes the anime status
- * Connect this to your Go backend API: POST/PATCH /api/user/anime/{animeId}/status
- */
-export async function handleStatusChange(animeId: string, status: AnimeStatus): Promise<void> {
-  // TODO: Replace with actual API call to Go backend
-  // Example:
-  // const response = await fetch(`/api/user/anime/${animeId}/status`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ status }),
-  // });
-  // if (!response.ok) throw new Error('Failed to update status');
-  
-  console.log(`[API Placeholder] Changing status for anime ${animeId} to: ${status}`)
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 500))
-}
-
 export function AnimeCard({ 
   anime, 
   userStatus, 
@@ -72,14 +55,19 @@ export function AnimeCard({
   showRemoveOption = false,
   onRemove,
 }: AnimeCardProps) {
+  const { locale } = useLanguage()
+  const { token } = useAuth()
+  const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [localStatus, setLocalStatus] = useState<AnimeStatus>(userStatus ?? null)
 
-  const displayGenres = anime.genres.slice(0, 2)
+  const title = getLocalizedTitle(anime, locale)
+  const posterUrl = getAnimePosterUrl(anime)
+  const displayGenres = anime.genres?.slice(0, 2) || []
   
   // Get current status styling
-  const currentStatusStyle = localStatus ? statusColors[localStatus] : null
+  const currentStatusStyle = localStatus ? statusColors[localStatus as keyof typeof statusColors] : null
   const StatusIcon = currentStatusStyle?.icon
 
   // Handle status change with local state update
@@ -91,9 +79,42 @@ export function AnimeCard({
     if (onStatusChange) {
       await onStatusChange(animeId, newStatus)
     } else {
-      await handleStatusChange(animeId, newStatus)
+      if (!token) {
+        router.push('/login')
+        return
+      }
+
+      const mapStatus = (s: AnimeStatus): WatchlistStatus | null => {
+        if (s === 'inProgress') return 'watching'
+        if (s === 'planned') return 'planned'
+        if (s === 'watched') return 'completed'
+        return null
+      }
+
+      const status = mapStatus(newStatus)
+      if (!status) {
+        return
+      }
+
+      await addToMyCollection({ animeId, status, token })
     }
-  }, [onStatusChange])
+  }, [onStatusChange, router, token])
+
+  const handleLocalRemove = useCallback(async (animeId: string) => {
+    setLocalStatus(null)
+
+    if (onRemove) {
+      await onRemove(animeId)
+      return
+    }
+
+    if (!token) {
+      router.push('/login')
+      return
+    }
+
+    await removeFromMyCollection({ animeId, token })
+  }, [onRemove, router, token])
 
   return (
     <div
@@ -110,15 +131,24 @@ export function AnimeCard({
           localStatus && currentStatusStyle?.border,
           localStatus && currentStatusStyle?.glow
         )}>
-          {/* Poster Image */}
-          <Image
-            src={imageError ? `https://placehold.co/300x450/081229/00E5FF?text=${encodeURIComponent(anime.title)}` : anime.poster}
-            alt={anime.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            onError={() => setImageError(true)}
-          />
+          {/* Poster */}
+          {posterUrl && !imageError ? (
+            <Image
+              src={posterUrl}
+              alt={title}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-background-secondary to-background">
+              <div className="w-12 h-12 rounded-2xl bg-background/40 border border-border/50 flex items-center justify-center">
+                <Film className="w-6 h-6 text-foreground-muted" />
+              </div>
+              <div className="mt-3 text-xs font-semibold text-foreground-muted">No Image</div>
+            </div>
+          )}
 
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
@@ -126,7 +156,7 @@ export function AnimeCard({
           {/* Rating Badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-lg bg-background/80 backdrop-blur-sm px-2 py-1">
             <Star className="h-3.5 w-3.5 fill-accent-primary text-accent-primary" />
-            <span className="text-xs font-semibold text-foreground">{anime.rating.toFixed(1)}</span>
+            <span className="text-xs font-semibold text-foreground">{anime.score.toFixed(1)}</span>
           </div>
 
           {/* User List Status Badge - Shows when status is set */}
@@ -145,18 +175,18 @@ export function AnimeCard({
           )}
 
           {/* Anime Status Badge (Ongoing/Completed) - Show only when no user status */}
-          {!localStatus && (
+          {!localStatus && anime.status && (
             <div className="absolute top-3 right-3">
               <Badge
                 variant="outline"
                 className={cn(
                   "text-[10px] font-semibold border-0 backdrop-blur-sm",
-                  anime.status === 'Ongoing'
+                  anime.status.name === 'ongoing'
                     ? "bg-emerald-500/20 text-emerald-400"
                     : "bg-accent-muted/20 text-accent-muted"
                 )}
               >
-                {anime.status}
+                {anime.status.name}
               </Badge>
             </div>
           )}
@@ -165,17 +195,17 @@ export function AnimeCard({
           <div className="absolute bottom-0 left-0 right-0 p-4">
             {/* Title */}
             <h3 className="text-sm font-bold text-foreground line-clamp-2 mb-2 text-balance">
-              {anime.title}
+              {title}
             </h3>
 
             {/* Genre Tags */}
             <div className="flex flex-wrap gap-1.5 mb-2">
               {displayGenres.map(genre => (
                 <span
-                  key={genre}
+                  key={genre.id}
                   className="rounded-md bg-background-secondary/80 px-2 py-0.5 text-[10px] font-medium text-foreground-muted backdrop-blur-sm"
                 >
-                  {genre}
+                  {genre.name}
                 </span>
               ))}
             </div>
@@ -184,9 +214,9 @@ export function AnimeCard({
             <div className="flex items-center gap-2 text-[11px] text-foreground-subtle">
               <span>{anime.episodes} EP</span>
               <span className="w-1 h-1 rounded-full bg-foreground-subtle" />
-              <span>{anime.type}</span>
+              <span>{anime.kind}</span>
               <span className="w-1 h-1 rounded-full bg-foreground-subtle" />
-              <span>{anime.year}</span>
+              <span>{anime.aired_on ? new Date(anime.aired_on).getFullYear() : "N/A"}</span>
             </div>
           </div>
 
@@ -198,10 +228,10 @@ export function AnimeCard({
             {/* Synopsis */}
             <div className="pt-2">
               <h3 className="text-sm font-bold text-foreground mb-2 line-clamp-2">
-                {anime.title}
+                {title}
               </h3>
               <p className="text-xs text-foreground-muted line-clamp-5 leading-relaxed">
-                {anime.synopsis}
+                {getLocalizedDescription(anime, locale)}
               </p>
             </div>
 
@@ -226,10 +256,10 @@ export function AnimeCard({
         onClick={(e) => e.stopPropagation()}
       >
         <AnimeStatusManager
-          animeId={anime.id}
+          animeId={String(anime.id)}
           currentStatus={localStatus}
           onStatusChange={handleLocalStatusChange}
-          onRemove={onRemove}
+          onRemove={handleLocalRemove}
           showDelete={showRemoveOption}
           variant="icon"
           className="opacity-80 group-hover:opacity-100 transition-opacity"

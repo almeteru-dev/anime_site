@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/contexts/language-context"
+import { useAuth } from "@/contexts/auth-context"
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -13,8 +14,8 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  // Demo: toggle this to show logged-in state
-  const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const { user, logout } = useAuth()
+  const isLoggedIn = !!user
   const { t } = useLanguage()
 
   useEffect(() => {
@@ -138,10 +139,14 @@ export function Navbar() {
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-full transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]"
                 >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary-foreground" />
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center overflow-hidden">
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-4 h-4 text-primary-foreground" />
+                    )}
                   </div>
-                  <span className="text-sm font-medium text-foreground">AnimeKing</span>
+                  <span className="text-sm font-medium text-foreground">{user?.username}</span>
                 </button>
                 
                 {/* Dropdown Menu */}
@@ -167,9 +172,17 @@ export function Navbar() {
                         <Settings className="w-4 h-4" />
                         <span className="text-sm font-medium">{t.nav.myProfile}</span>
                       </Link>
+                      <Link
+                        href="/profile/mylist"
+                        className="flex items-center gap-3 px-4 py-3 text-foreground-muted hover:text-foreground hover:bg-primary/10 transition-colors"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        <span className="text-sm font-medium">My List</span>
+                      </Link>
                       <button
                         onClick={() => {
-                          setIsLoggedIn(false)
+                          logout()
                           setIsProfileMenuOpen(false)
                         }}
                         className="flex items-center gap-3 w-full px-4 py-3 text-foreground-muted hover:text-destructive hover:bg-destructive/10 transition-colors border-t border-border"
@@ -231,9 +244,17 @@ export function Navbar() {
                     <User className="w-5 h-5" />
                     <span className="font-medium">{t.nav.myProfile}</span>
                   </Link>
+                  <Link
+                    href="/profile/mylist"
+                    className="flex items-center gap-3 px-4 py-2.5 text-foreground-muted hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="font-medium">My List</span>
+                  </Link>
                   <button
                     onClick={() => {
-                      setIsLoggedIn(false)
+                      logout()
                       setIsMobileMenuOpen(false)
                     }}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-foreground-muted hover:text-destructive transition-colors"

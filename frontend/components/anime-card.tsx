@@ -6,6 +6,8 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { AnimeStatusManager, type AnimeStatus } from "@/components/anime-status-manager"
+import { useLanguage } from "@/contexts/language-context"
+import { type Anime as BackendAnime, getLocalizedTitle } from "@/lib/api"
 
 // Status color configuration for visual indicators
 const statusColors = {
@@ -47,6 +49,7 @@ interface BaseAnimeCardProps {
   rating?: number
   userStatus?: AnimeStatus
   onStatusChange?: (animeId: string, newStatus: AnimeStatus) => Promise<void>
+  data?: BackendAnime
 }
 
 interface LatestEpisodeCardProps extends BaseAnimeCardProps {
@@ -79,10 +82,13 @@ type AnimeCardProps =
   | SeasonalCardProps
 
 export function AnimeCard(props: AnimeCardProps) {
-  const { title, image, rating, variant, userStatus, onStatusChange } = props
+  const { title: propTitle, image, rating, variant, userStatus, onStatusChange, data } = props
+  const { locale } = useLanguage()
   const [localStatus, setLocalStatus] = useState<AnimeStatus>(userStatus ?? null)
   
-  const currentStatusStyle = localStatus ? statusColors[localStatus] : null
+  const title = data ? getLocalizedTitle(data, locale) : propTitle
+
+  const currentStatusStyle = localStatus ? statusColors[localStatus as keyof typeof statusColors] : null
   const StatusIcon = currentStatusStyle?.icon
 
   const handleLocalStatusChange = useCallback(async (animeId: string, newStatus: AnimeStatus) => {

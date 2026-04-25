@@ -2,8 +2,10 @@ package app
 
 import (
 	"log"
+	"time"
 
 	"github.com/seva/animevista/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -25,6 +27,44 @@ func Seed(db *gorm.DB) {
 	var ru, en models.Language
 	db.Where("code = ?", "ru").First(&ru)
 	db.Where("code = ?", "en").First(&en)
+
+	// 1.5. Admin User
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	adminUser := models.User{
+		Username:     "admin",
+		Email:        "admin@animevista.com",
+		PasswordHash: string(hashedPassword),
+		Role:         "admin",
+		IsVerified:   true,
+	}
+	db.FirstOrCreate(&adminUser, models.User{Email: "admin@animevista.com"})
+
+	// 1.6. Collection Types
+	collectionTypes := []struct {
+		Name   string
+		RUName string
+		ENName string
+	}{
+		{Name: "watching", RUName: "Смотрю", ENName: "Watching"},
+		{Name: "planned", RUName: "Запланировано", ENName: "Planned"},
+		{Name: "completed", RUName: "Просмотрено", ENName: "Completed"},
+	}
+	for _, ct := range collectionTypes {
+		collectionType := models.CollectionType{Name: ct.Name}
+		db.FirstOrCreate(&collectionType, models.CollectionType{Name: ct.Name})
+
+		db.FirstOrCreate(&models.CollectionTypeTranslation{
+			CollectionTypeID: collectionType.ID,
+			LanguageID:       ru.ID,
+			Name:             ct.RUName,
+		}, models.CollectionTypeTranslation{CollectionTypeID: collectionType.ID, LanguageID: ru.ID})
+
+		db.FirstOrCreate(&models.CollectionTypeTranslation{
+			CollectionTypeID: collectionType.ID,
+			LanguageID:       en.ID,
+			Name:             ct.ENName,
+		}, models.CollectionTypeTranslation{CollectionTypeID: collectionType.ID, LanguageID: en.ID})
+	}
 
 	// 2. Statuses
 	statuses := []struct {
@@ -122,6 +162,10 @@ func Seed(db *gorm.DB) {
 	var madhouse models.Studio
 	db.Where("name = ?", "Madhouse").First(&madhouse)
 
+	now := time.Now()
+	year2023 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	year2024 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
 	animeList := []struct {
 		Name    string
 		URL     string
@@ -129,6 +173,8 @@ func Seed(db *gorm.DB) {
 		ENTitle string // Romaji
 		RUDesc  string
 		ENDesc  string
+		Poster  string
+		AiredOn *time.Time
 	}{
 		{
 			Name:    "Sousou no Frieren",
@@ -137,6 +183,8 @@ func Seed(db *gorm.DB) {
 			ENTitle: "Sousou no Frieren",
 			RUDesc:  "История о эльфийке-маге Фрирен и её путешествии после победы над Королем Демонов.",
 			ENDesc:  "After the party of heroes defeated the Demon King, they restored peace to the land and returned to lives of solitude.",
+			Poster:  "https://cdn.myanimelist.net/images/anime/1015/138006l.jpg",
+			AiredOn: &year2023,
 		},
 		{
 			Name:    "Kimetsu no Yaiba",
@@ -145,6 +193,8 @@ func Seed(db *gorm.DB) {
 			ENTitle: "Kimetsu no Yaiba",
 			RUDesc:  "Тандзиро Камадо становится истребителем демонов, чтобы спасти свою сестру Незуко.",
 			ENDesc:  "Tanjirou Kamado's quiet life is shattered when he finds his family slaughtered by a demon.",
+			Poster:  "https://cdn.myanimelist.net/images/anime/1286/99889l.jpg",
+			AiredOn: &now,
 		},
 		{
 			Name:    "Jujutsu Kaisen",
@@ -153,6 +203,8 @@ func Seed(db *gorm.DB) {
 			ENTitle: "Jujutsu Kaisen",
 			RUDesc:  "Юдзи Итадори поглощает проклятый палец и вступает в мир магов.",
 			ENDesc:  "Yuji Itadori, a high school student with extraordinary physical abilities, eats a cursed finger.",
+			Poster:  "https://cdn.myanimelist.net/images/anime/1171/109222l.jpg",
+			AiredOn: &year2023,
 		},
 		{
 			Name:    "Oshi no Ko",
@@ -161,6 +213,8 @@ func Seed(db *gorm.DB) {
 			ENTitle: "Oshi no Ko",
 			RUDesc:  "Закулисье мира айдолов и история о перерождении.",
 			ENDesc:  "Dr. Goro is reborn as the son of the young starlet Ai Hoshino after her stalker murders him.",
+			Poster:  "https://cdn.myanimelist.net/images/anime/1812/134736l.jpg",
+			AiredOn: &year2023,
 		},
 		{
 			Name:    "Solo Leveling",
@@ -169,6 +223,8 @@ func Seed(db *gorm.DB) {
 			ENTitle: "Ore dake Level Up na Ken",
 			RUDesc:  "Слабейший охотник человечества получает уникальную способность повышать свой уровень.",
 			ENDesc:  "In a world where hunters must battle deadly monsters to protect mankind, Sung Jinwoo finds himself in a 'Double Dungeon'.",
+			Poster:  "https://cdn.myanimelist.net/images/anime/1024/138696l.jpg",
+			AiredOn: &year2024,
 		},
 	}
 
@@ -179,6 +235,8 @@ func Seed(db *gorm.DB) {
 			StatusID: &releasedStatus.ID,
 			SourceID: &mangaSource.ID,
 			StudioID: &madhouse.ID,
+			ImageURL: a.Poster,
+			AiredOn:  a.AiredOn,
 		}
 		db.FirstOrCreate(&anime, models.Anime{URL: a.URL})
 

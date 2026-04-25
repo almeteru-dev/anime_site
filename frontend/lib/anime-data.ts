@@ -49,7 +49,7 @@ export const studios = [
 ] as const
 
 export const types = ['TV', 'Movie', 'OVA', 'Special'] as const
-export const statuses = ['Ongoing', 'Finished'] as const
+export const statuses = ['ongoing', 'released'] as const
 
 export const animeData: Anime[] = [
   {

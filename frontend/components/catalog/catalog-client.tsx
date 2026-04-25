@@ -4,20 +4,24 @@ import { useState, useMemo, useCallback } from 'react'
 import { FilterSidebar, type FilterState } from './filter-sidebar'
 import { AnimeGrid } from './anime-grid'
 import { MobileFilterSheet } from './mobile-filter-sheet'
-import { animeData, type Anime } from '@/lib/anime-data'
+import { type Anime } from '@/lib/api'
 
 const ITEMS_PER_PAGE = 12
 
 const defaultFilters: FilterState = {
   genres: [],
   status: [],
-  yearRange: [1990, 2024],
+  yearRange: [1990, 2026],
   types: [],
   studios: [],
   minRating: 0,
 }
 
-export function CatalogClient() {
+interface CatalogClientProps {
+  initialAnimes: Anime[]
+}
+
+export function CatalogClient({ initialAnimes }: CatalogClientProps) {
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilters)
   const [searchQuery, setSearchQuery] = useState('')
@@ -26,45 +30,58 @@ export function CatalogClient() {
 
   // Filter anime based on applied filters and search query
   const filteredAnime = useMemo(() => {
-    return animeData.filter((anime: Anime) => {
-      // Search query
-      if (searchQuery && !anime.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false
+    if (!initialAnimes) return []
+
+    return initialAnimes.filter((anime: Anime) => {
+      // Search query - check original name and all translations
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesName = anime.name.toLowerCase().includes(query)
+        const matchesTranslations = anime.translations?.some(t => t.title.toLowerCase().includes(query))
+        if (!matchesName && !matchesTranslations) {
+          return false
+        }
       }
 
       // Genres (match any selected genre)
-      if (appliedFilters.genres.length > 0 && !appliedFilters.genres.some(g => anime.genres.includes(g))) {
-        return false
+      if (appliedFilters.genres.length > 0) {
+        const animeGenreNames = anime.genres?.map(g => g.name) || []
+        if (!appliedFilters.genres.some(g => animeGenreNames.includes(g))) {
+          return false
+        }
       }
 
       // Status
-      if (appliedFilters.status.length > 0 && !appliedFilters.status.includes(anime.status)) {
+      if (appliedFilters.status.length > 0 && !appliedFilters.status.includes(anime.status?.name || "")) {
         return false
       }
 
-      // Year range
-      if (anime.year < appliedFilters.yearRange[0] || anime.year > appliedFilters.yearRange[1]) {
-        return false
+      // Year range - only filter if aired_on exists, otherwise include it
+      if (anime.aired_on) {
+        const animeYear = new Date(anime.aired_on).getFullYear()
+        if (animeYear < appliedFilters.yearRange[0] || animeYear > appliedFilters.yearRange[1]) {
+          return false
+        }
       }
 
       // Type
-      if (appliedFilters.types.length > 0 && !appliedFilters.types.includes(anime.type)) {
+      if (appliedFilters.types.length > 0 && !appliedFilters.types.includes(anime.kind)) {
         return false
       }
 
       // Studio
-      if (appliedFilters.studios.length > 0 && !appliedFilters.studios.includes(anime.studio)) {
+      if (appliedFilters.studios.length > 0 && !appliedFilters.studios.includes(anime.studio?.name || "")) {
         return false
       }
 
       // Rating
-      if (anime.rating < appliedFilters.minRating) {
+      if (anime.score < appliedFilters.minRating) {
         return false
       }
 
       return true
     })
-  }, [appliedFilters, searchQuery])
+  }, [initialAnimes, appliedFilters, searchQuery])
 
   // Paginate results
   const totalPages = Math.ceil(filteredAnime.length / ITEMS_PER_PAGE)

@@ -1,25 +1,30 @@
 "use client"
 
 import { Info, Languages, Clock, Tv } from "lucide-react"
+import { type Anime, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
+import { useLanguage } from "@/contexts/language-context"
 
 interface SynopsisSectionProps {
-  synopsis: string
-  alternativeTitles: {
-    english?: string
-    japanese?: string
-    romaji?: string
-  }
-  details: {
-    type: string
-    source: string
-    premiered: string
-    aired: string
-    duration: string
-    rating: string
-  }
+  anime: Anime
 }
 
-export function SynopsisSection({ synopsis, alternativeTitles, details }: SynopsisSectionProps) {
+export function SynopsisSection({ anime }: SynopsisSectionProps) {
+  const { locale } = useLanguage()
+  
+  const alternativeTitles = {
+    english: anime.translations?.find(t => t.language.code === "en")?.title,
+    russian: anime.translations?.find(t => t.language.code === "ru")?.title,
+  }
+
+  const details = {
+    type: anime.kind || "TV",
+    source: anime.source?.name || "N/A",
+    premiered: anime.aired_on ? new Date(anime.aired_on).toLocaleDateString() : "N/A",
+    aired: anime.aired_on ? new Date(anime.aired_on).toLocaleDateString() : "N/A",
+    duration: `${anime.duration} min per ep`,
+    rating: anime.rating || "N/A",
+  }
+
   return (
     <section className="py-12 px-4">
       <div className="container mx-auto max-w-5xl">
@@ -32,7 +37,7 @@ export function SynopsisSection({ synopsis, alternativeTitles, details }: Synops
             </div>
             <div className="bg-[#081229] rounded-xl p-6 border border-[#1A2847] shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)]">
               <p className="text-[#D1D9E6] leading-relaxed text-base">
-                {synopsis}
+                {getLocalizedDescription(anime, locale)}
               </p>
             </div>
 
@@ -49,16 +54,10 @@ export function SynopsisSection({ synopsis, alternativeTitles, details }: Synops
                     <span className="text-[#D1D9E6]">{alternativeTitles.english}</span>
                   </div>
                 )}
-                {alternativeTitles.japanese && (
+                {alternativeTitles.russian && (
                   <div className="flex gap-2">
-                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Japanese:</span>
-                    <span className="text-[#D1D9E6]">{alternativeTitles.japanese}</span>
-                  </div>
-                )}
-                {alternativeTitles.romaji && (
-                  <div className="flex gap-2">
-                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Romaji:</span>
-                    <span className="text-[#D1D9E6]">{alternativeTitles.romaji}</span>
+                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Russian:</span>
+                    <span className="text-[#D1D9E6]">{alternativeTitles.russian}</span>
                   </div>
                 )}
               </div>

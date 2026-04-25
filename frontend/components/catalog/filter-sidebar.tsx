@@ -151,7 +151,7 @@ export function FilterSidebar({ filters, onFiltersChange, onApply, onReset }: Fi
               <Slider
                 value={filters.yearRange}
                 min={1990}
-                max={2024}
+                max={2026}
                 step={1}
                 onValueChange={(value) => onFiltersChange({ ...filters, yearRange: value as [number, number] })}
                 className="[&_[data-slot=slider-track]]:bg-background-tertiary [&_[data-slot=slider-range]]:bg-accent-primary [&_[data-slot=slider-thumb]]:border-accent-primary [&_[data-slot=slider-thumb]]:bg-background"

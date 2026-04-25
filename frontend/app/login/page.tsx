@@ -5,14 +5,17 @@ import Link from "next/link"
 import { ArrowLeft, User, Lock, Eye, EyeOff, Check } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function LoginPage() {
   const { t } = useLanguage()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    username: "",
+    identifier: "",
     password: "",
   })
   const [focusedField, setFocusedField] = useState<string | null>(null)
@@ -20,10 +23,27 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    console.log("Login submitted:", formData)
-    setIsLoading(false)
+    setError(null)
+    
+    try {
+      const response = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: formData.identifier, password: formData.password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed")
+      }
+
+      login(data.token, data.user)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -109,28 +129,34 @@ export default function LoginPage() {
             <p className="text-foreground-muted text-sm">{t.login.signInContinue}</p>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+              {error}
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username/Email Field */}
             <div className="space-y-2">
-              <label htmlFor="username" className="block text-sm font-medium text-foreground-muted">
+              <label htmlFor="identifier" className="block text-sm font-medium text-foreground-muted">
                 {t.login.usernameOrEmail}
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "username" ? "text-primary" : "text-secondary/60"}`} />
+                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "identifier" ? "text-primary" : "text-secondary/60"}`} />
                 </div>
                 <input
-                  id="username"
+                  id="identifier"
                   type="text"
-                  value={formData.username}
-                  onChange={(e) => handleInputChange("username", e.target.value)}
-                  onFocus={() => setFocusedField("username")}
+                  value={formData.identifier}
+                  onChange={(e) => handleInputChange("identifier", e.target.value)}
+                  onFocus={() => setFocusedField("identifier")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.login.enterUsernameOrEmail}
                   className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
                   style={{
-                    boxShadow: focusedField === "username" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
+                    boxShadow: focusedField === "identifier" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
                   }}
                   required
                 />

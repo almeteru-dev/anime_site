@@ -7,43 +7,21 @@ import { Play, Info, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useLanguage } from "@/contexts/language-context"
+import { type Anime, getAnimePosterUrl, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
 
-const featuredAnime = [
-  {
-    id: 1,
-    title: "Shadow Sovereign",
-    synopsis: "When humanity faces extinction, one warrior rises from the shadows. With the power to command an army of darkness, he must choose between saving the world or becoming its greatest threat.",
-    rating: 9.2,
-    genres: ["Action", "Fantasy", "Dark Fantasy"],
-    image: "/images/anime-1.jpg",
-    episodes: 24,
-  },
-  {
-    id: 2,
-    title: "Frost Enchantress",
-    synopsis: "In a world where magic flows through bloodlines, a young ice mage discovers her true heritage. Her journey to master forbidden spells will reshape the frozen kingdoms forever.",
-    rating: 8.9,
-    genres: ["Fantasy", "Adventure", "Magic"],
-    image: "/images/anime-2.jpg",
-    episodes: 12,
-  },
-  {
-    id: 3,
-    title: "Crimson Blade",
-    synopsis: "A lone samurai seeks vengeance against the demon clan that destroyed his village. Armed with a cursed blade, he walks the path between humanity and monster.",
-    rating: 9.5,
-    genres: ["Action", "Historical", "Supernatural"],
-    image: "/images/anime-6.jpg",
-    episodes: 26,
-  },
-]
+interface HeroCarouselProps {
+  animes: Anime[]
+}
 
-export function HeroCarousel() {
-  const { t } = useLanguage()
+export function HeroCarousel({ animes }: HeroCarouselProps) {
+  const { t, locale } = useLanguage()
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 6000, stopOnInteraction: false }),
   ])
   const [selectedIndex, setSelectedIndex] = useState(0)
+
+  // Use the first 3-5 animes as featured
+  const featuredAnime = animes.slice(0, 5)
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi])
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi])
@@ -74,8 +52,8 @@ export function HeroCarousel() {
               {/* Background Image */}
               <div className="absolute inset-0">
                 <Image
-                  src={anime.image}
-                  alt={anime.title}
+                  src={getAnimePosterUrl(anime) || `https://placehold.co/1400x900/081229/00E5FF?text=${encodeURIComponent(getLocalizedTitle(anime, locale))}`}
+                  alt={getLocalizedTitle(anime, locale)}
                   fill
                   className="object-cover"
                   priority={index === 0}
@@ -92,19 +70,19 @@ export function HeroCarousel() {
                 <div className="max-w-2xl pt-20">
                   {/* Genres */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {anime.genres.map((genre) => (
+                    {anime.genres?.map((genre) => (
                       <span
-                        key={genre}
+                        key={genre.id}
                         className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/30 rounded-full"
                       >
-                        {genre}
+                        {genre.name}
                       </span>
                     ))}
                   </div>
 
                   {/* Title */}
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight text-balance">
-                    {anime.title}
+                    {getLocalizedTitle(anime, locale)}
                   </h1>
 
                   {/* Rating & Episodes */}
@@ -112,7 +90,7 @@ export function HeroCarousel() {
                     <div className="flex items-center gap-1.5">
                       <Star className="w-5 h-5 text-primary fill-primary" />
                       <span className="text-lg font-semibold text-primary">
-                        {anime.rating}
+                        {anime.score}
                       </span>
                     </div>
                     <span className="text-foreground-muted">•</span>
@@ -122,8 +100,8 @@ export function HeroCarousel() {
                   </div>
 
                   {/* Synopsis */}
-                  <p className="text-foreground-muted text-lg leading-relaxed mb-8 max-w-xl">
-                    {anime.synopsis}
+                  <p className="text-foreground-muted text-lg leading-relaxed mb-8 max-w-xl line-clamp-3">
+                    {getLocalizedDescription(anime, locale)}
                   </p>
 
                   {/* Buttons */}

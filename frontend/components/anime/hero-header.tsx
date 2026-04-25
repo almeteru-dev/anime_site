@@ -3,30 +3,25 @@
 import { Star, Play, Calendar, Film, Clock, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { type Anime, getAnimePosterUrl, getLocalizedTitle } from "@/lib/api"
+import { useLanguage } from "@/contexts/language-context"
 
 interface HeroHeaderProps {
-  anime: {
-    title: string
-    japaneseTitle: string
-    rating: number
-    year: number
-    status: "Ongoing" | "Finished" | "Upcoming"
-    studio: string
-    episodes: number
-    duration: string
-    genres: string[]
-    coverImage: string
-  }
+  anime: Anime
   onStartWatching: () => void
 }
 
 export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
+  const { locale } = useLanguage()
+  const title = getLocalizedTitle(anime, locale)
+  const posterUrl = getAnimePosterUrl(anime)
+  
   return (
     <section className="relative w-full min-h-[70vh] overflow-hidden">
       {/* Background Image with Gradient Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${anime.coverImage})` }}
+        style={{ backgroundImage: `url(${posterUrl || `https://placehold.co/1400x900/081229/00E5FF?text=${encodeURIComponent(title)}`})` }}
       >
         {/* Multi-layer gradient for cinematic depth */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#040D1F] via-[#040D1F]/90 to-transparent" />
@@ -40,9 +35,8 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
           {/* Title */}
           <div className="space-y-2">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight text-balance">
-              {anime.title}
+              {title}
             </h1>
-            <p className="text-[#A3CFFF] text-lg font-medium">{anime.japaneseTitle}</p>
           </div>
 
           {/* Meta Info Row */}
@@ -50,13 +44,13 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
             {/* Rating */}
             <div className="flex items-center gap-1.5">
               <Star className="w-5 h-5 fill-[#00E5FF] text-[#00E5FF]" />
-              <span className="font-semibold text-white">{anime.rating.toFixed(1)}</span>
+              <span className="font-semibold text-white">{anime.score.toFixed(1)}</span>
             </div>
 
             {/* Year */}
             <div className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-[#A3CFFF]" />
-              <span>{anime.year}</span>
+              <span>{anime.aired_on ? new Date(anime.aired_on).getFullYear() : "N/A"}</span>
             </div>
 
             {/* Episodes */}
@@ -68,37 +62,39 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
             {/* Duration */}
             <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-[#A3CFFF]" />
-              <span>{anime.duration}</span>
+              <span>{anime.duration} min</span>
             </div>
 
             {/* Studio */}
             <div className="flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-[#A3CFFF]" />
-              <span>{anime.studio}</span>
+              <span>{anime.studio?.name || "N/A"}</span>
             </div>
 
             {/* Status Badge */}
-            <Badge 
-              variant="outline" 
-              className={`
-                border-[#00E5FF]/50 text-[#00E5FF] font-medium px-3 py-1
-                ${anime.status === "Ongoing" ? "bg-[#00E5FF]/10" : ""}
-                ${anime.status === "Finished" ? "bg-[#A3CFFF]/10 border-[#A3CFFF]/50 text-[#A3CFFF]" : ""}
-              `}
-            >
-              {anime.status}
-            </Badge>
+            {anime.status && (
+              <Badge 
+                variant="outline" 
+                className={`
+                  border-[#00E5FF]/50 text-[#00E5FF] font-medium px-3 py-1
+                  ${anime.status.name === "Ongoing" ? "bg-[#00E5FF]/10" : ""}
+                  ${anime.status.name === "Released" ? "bg-[#A3CFFF]/10 border-[#A3CFFF]/50 text-[#A3CFFF]" : ""}
+                `}
+              >
+                {anime.status.name}
+              </Badge>
+            )}
           </div>
 
           {/* Genre Tags */}
           <div className="flex flex-wrap gap-2">
-            {anime.genres.map((genre) => (
+            {anime.genres?.map((genre) => (
               <Badge 
-                key={genre}
+                key={genre.id}
                 variant="secondary"
                 className="bg-[#0D1A3A] text-[#D1D9E6] border border-[#1A2847] hover:bg-[#1A2847] hover:border-[#A3CFFF]/30 transition-all duration-300 px-3 py-1"
               >
-                {genre}
+                {genre.name}
               </Badge>
             ))}
           </div>
