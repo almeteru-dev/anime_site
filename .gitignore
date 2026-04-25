@@ -1,4 +1,4 @@
-# v0 sandbox internal files
+# === V0 / Next.js Sandbox ===
 __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
@@ -7,10 +7,53 @@ __v0_jsx-dev-runtime.ts
 .vercel/
 next.user-config.*
 
-# Environment variables
-.env*.local
-
-# Common ignores
-node_modules
+# === Frontend (Next.js) ===
+node_modules/
 .next/
+out/
+build/
+.env*.local
 .DS_Store
+
+# === Go (Backend) ===
+# Binary files
+backend/bin/
+backend/cmd/api/api
+backend/cmd/api/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Dependencies and cache
+backend/vendor/
+backend/go.work
+backend/go.work.sum
+coverage.out
+*.test
+
+# === Database & Docker ===
+pgdata/
+data/
+*.log
+*.sql.gz
+
+# === Environment & Secrets ===
+# Ignore all .env files for security
+.env
+.env.*
+!.env.example
+
+# === IDEs & Editors ===
+# VS Code
+.vscode/
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (GoLand, WebStorm, IntelliJ)
+.idea/
+
+# === System Files ===
+.DS_Store
+Thumbs.db
