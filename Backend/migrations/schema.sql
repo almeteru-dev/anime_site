@@ -7,22 +7,27 @@ CREATE TABLE languages (
 
 CREATE TABLE statuses (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- Техническое имя (ongoing, released)
+  name VARCHAR(255) NOT NULL -- ongoing, released
+);
+
+CREATE TABLE sources (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name VARCHAR(255) NOT NULL -- manga, light_novel, original, game
 );
 
 CREATE TABLE collection_types (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- Техническое имя (watching, planned)
+  name VARCHAR(255) NOT NULL -- watching, planned
 );
 
 CREATE TABLE genres (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- Техническое имя (action, comedy)
+  name VARCHAR(255) NOT NULL -- action, comedy
 );
 
 CREATE TABLE studios (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- Название студии (MAPPA, Madhouse)
+  name VARCHAR(255) NOT NULL -- MAPPA, Madhouse
 );
 
 -- 2. Основные сущности
@@ -41,11 +46,12 @@ CREATE TABLE anime (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   studio_id INTEGER REFERENCES studios (id),
   status_id INTEGER REFERENCES statuses (id),
-  name VARCHAR(255) NOT NULL, -- Романдзи для справки
-  kind VARCHAR(50),           -- TV, Movie, OVA
+  source_id INTEGER REFERENCES sources (id), -- Ссылка на первоисточник
+  name VARCHAR(255) NOT NULL,
+  kind VARCHAR(50),
   url VARCHAR(255) UNIQUE NOT NULL,
-  duration INTEGER,           -- Длительность в минутах
-  rating VARCHAR(50),         -- PG-13, R-17
+  duration INTEGER,
+  rating VARCHAR(50),
   image VARCHAR(500),
   score DECIMAL(3, 2) DEFAULT 0,
   episodes INTEGER DEFAULT 0,
@@ -68,6 +74,13 @@ CREATE TABLE status_translations (
   status_id INTEGER NOT NULL REFERENCES statuses (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE source_translations (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+  language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL -- "Манга", "Ранобэ", "Manga"
 );
 
 CREATE TABLE studio_translations (
@@ -104,12 +117,12 @@ CREATE TABLE user_collections (
   anime_id BIGINT NOT NULL REFERENCES anime (id) ON DELETE CASCADE,
   collection_type_id INTEGER NOT NULL REFERENCES collection_types (id),
   episodes_watched INTEGER DEFAULT 0,
-  score DECIMAL(3, 1), -- Личная оценка (например, 9.5)
+  score DECIMAL(3, 1),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, anime_id)
 );
 
--- Индексы для ускорения поиска
+-- Индексы
 CREATE INDEX idx_anime_url ON anime (url);
 CREATE INDEX idx_user_collections_user ON user_collections (user_id);
