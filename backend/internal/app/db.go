@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"github.com/seva/animevista/internal/models"
 )
 
 var DB *gorm.DB
@@ -32,4 +33,31 @@ func InitDB() {
 	}
 
 	log.Println("Database connection established")
+
+	// Auto-Migration
+	err = DB.AutoMigrate(
+		&models.Language{},
+		&models.Status{},
+		&models.Source{},
+		&models.CollectionType{},
+		&models.Genre{},
+		&models.Studio{},
+		&models.User{},
+		&models.Anime{},
+		&models.AnimeTranslation{},
+		&models.StatusTranslation{},
+		&models.SourceTranslation{},
+		&models.StudioTranslation{},
+		&models.GenreTranslation{},
+		&models.CollectionTypeTranslation{},
+		&models.UserCollection{},
+	)
+	if err != nil {
+		log.Fatalf("Failed to run auto-migration: %v", err)
+	}
+
+	log.Println("Database migration completed")
+
+	// Run Seeder
+	Seed(DB)
 }
