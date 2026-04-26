@@ -4,10 +4,19 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { ArtVideoPlayer, type ArtVideoPlayerHandle } from "@/components/anime/art-video-player"
 import { AddToUserList } from "@/components/anime/add-to-user-list"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
 import type { Anime, EpisodesByServer, WatchlistStatus } from "@/lib/api"
 import { addToMyCollection } from "@/lib/api"
+import { ChevronDown, Headphones } from "lucide-react"
 
 type StreamType = "dubbed" | "subbed"
 
@@ -223,6 +232,11 @@ export function AnimeStreamPlayer({
     setAutoplayTrailer(false)
   }
 
+  const categoryLabel = (type: StreamType) => {
+    if (type === "dubbed") return locale === "ru" ? "Озвучка" : "Dubbed"
+    return locale === "ru" ? "Субтитры" : "Subbed"
+  }
+
   return (
     <section className="py-6 px-4" ref={wrapperRef}>
       <div className="container mx-auto max-w-5xl">
@@ -274,61 +288,75 @@ export function AnimeStreamPlayer({
 
         <div className="mt-4 grid grid-cols-1 gap-4">
           {(dubbedGroups.length > 0 || subbedGroups.length > 0) ? (
-            <>
-              {dubbedGroups.length > 0 ? (
-                <div>
-                  <div className="text-sm font-semibold text-white mb-2">{locale === "ru" ? "Озвучка" : "Dubbed"}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {dubbedGroups.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          setSelectedType("dubbed")
-                          setSelectedGroupId(g.id)
-                          setSelectedEpisodeNumber(null)
-                          switchTo(g.episodes[0]?.video_url || trailerUrl)
-                        }}
-                        className={cn(
-                          "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
-                          selectedType === "dubbed" && selectedGroupId === g.id
-                            ? "bg-[#00E5FF]/10 border-[#00E5FF]/50 text-[#00E5FF]"
-                            : "bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A]"
-                        )}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#1A2847] bg-[#081229] px-4 py-2 text-sm font-semibold text-[#D1D9E6] hover:bg-[#0D1A3A] hover:text-white"
+                  >
+                    <Headphones className="w-4 h-4 text-[#00E5FF]" />
+                    <span className="min-w-0 truncate">{categoryLabel(selectedType)}</span>
+                    <ChevronDown className="w-4 h-4 opacity-80" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64 border border-[#1A2847] bg-[#081229] text-[#D1D9E6]">
+                  {dubbedGroups.length > 0 ? (
+                    <>
+                      <DropdownMenuLabel className="text-xs text-[#A3CFFF]">{categoryLabel("dubbed")}</DropdownMenuLabel>
+                      {dubbedGroups.map((g) => (
+                        <DropdownMenuItem
+                          key={`dub-${g.id}`}
+                          onSelect={() => {
+                            setSelectedType("dubbed")
+                            setSelectedGroupId(g.id)
+                            setSelectedEpisodeNumber(null)
+                            switchTo(g.episodes[0]?.video_url || trailerUrl)
+                          }}
+                          className={cn(
+                            "cursor-pointer",
+                            selectedType === "dubbed" && selectedGroupId === g.id && "bg-[#00E5FF]/10 text-[#00E5FF]"
+                          )}
+                        >
+                          {g.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  ) : null}
 
-              {subbedGroups.length > 0 ? (
-                <div>
-                  <div className="text-sm font-semibold text-white mb-2">{locale === "ru" ? "Субтитры" : "Subbed"}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {subbedGroups.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          setSelectedType("subbed")
-                          setSelectedGroupId(g.id)
-                          setSelectedEpisodeNumber(null)
-                          switchTo(g.episodes[0]?.video_url || trailerUrl)
-                        }}
-                        className={cn(
-                          "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
-                          selectedType === "subbed" && selectedGroupId === g.id
-                            ? "bg-[#00E5FF]/10 border-[#00E5FF]/50 text-[#00E5FF]"
-                            : "bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A]"
-                        )}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
+                  {dubbedGroups.length > 0 && subbedGroups.length > 0 ? <DropdownMenuSeparator className="bg-[#1A2847]" /> : null}
+
+                  {subbedGroups.length > 0 ? (
+                    <>
+                      <DropdownMenuLabel className="text-xs text-[#A3CFFF]">{categoryLabel("subbed")}</DropdownMenuLabel>
+                      {subbedGroups.map((g) => (
+                        <DropdownMenuItem
+                          key={`sub-${g.id}`}
+                          onSelect={() => {
+                            setSelectedType("subbed")
+                            setSelectedGroupId(g.id)
+                            setSelectedEpisodeNumber(null)
+                            switchTo(g.episodes[0]?.video_url || trailerUrl)
+                          }}
+                          className={cn(
+                            "cursor-pointer",
+                            selectedType === "subbed" && selectedGroupId === g.id && "bg-[#00E5FF]/10 text-[#00E5FF]"
+                          )}
+                        >
+                          {g.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {selectedGroup ? (
+                <div className="text-sm text-[#A3CFFF]">
+                  {locale === "ru" ? "Группа:" : "Group:"} <span className="text-white font-semibold">{selectedGroup.name}</span>
                 </div>
               ) : null}
-            </>
+            </div>
           ) : (
             <div className="text-sm text-[#A3CFFF]">No episodes yet. Trailer is available.</div>
           )}
