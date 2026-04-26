@@ -21,6 +21,7 @@ export default function AdminAddAnimePage() {
     description_ru: "",
     description_en: "",
     poster_url: "",
+    trailer_url: "",
     status_id: null,
     studio_id: null,
     source_id: null,
@@ -86,7 +87,7 @@ export default function AdminAddAnimePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Add Anime</h1>
-          <p className="text-sm text-foreground-muted">Create a new anime entry with RU + EN (Romaji)</p>
+          <p className="text-sm text-foreground-muted">Create a new anime entry with RU + Romaji</p>
         </div>
         <Link
           href="/admin/animes"
@@ -131,6 +132,16 @@ export default function AdminAddAnimePage() {
               </div>
             </div>
 
+            <div className="space-y-2 lg:col-span-2">
+              <label className="text-xs font-semibold text-foreground-muted">Trailer URL (optional)</label>
+              <input
+                value={form.trailer_url || ""}
+                onChange={(e) => setForm((p) => ({ ...p, trailer_url: e.target.value }))}
+                placeholder="https://www.youtube.com/embed/... or direct video url"
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-semibold text-foreground-muted">Title (RU)</label>
               <input
@@ -141,7 +152,7 @@ export default function AdminAddAnimePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground-muted">Title (EN Romaji)</label>
+              <label className="text-xs font-semibold text-foreground-muted">Title (Romaji)</label>
               <input
                 value={form.title_en_romaji}
                 onChange={(e) => setForm((p) => ({ ...p, title_en_romaji: e.target.value }))}
@@ -154,18 +165,18 @@ export default function AdminAddAnimePage() {
               <textarea
                 value={form.description_ru || ""}
                 onChange={(e) => setForm((p) => ({ ...p, description_ru: e.target.value }))}
-                rows={4}
-                className="w-full rounded-xl bg-background border border-border/60 px-4 py-3 text-sm text-foreground outline-none focus:border-primary/50"
+                rows={8}
+                className="w-full rounded-2xl bg-primary/5 border border-primary/30 px-4 py-3 text-sm text-foreground outline-none focus:border-primary/60"
               />
             </div>
 
             <div className="space-y-2 lg:col-span-2">
-              <label className="text-xs font-semibold text-foreground-muted">Description (EN Romaji)</label>
+              <label className="text-xs font-semibold text-foreground-muted">Description (Romaji)</label>
               <textarea
                 value={form.description_en || ""}
                 onChange={(e) => setForm((p) => ({ ...p, description_en: e.target.value }))}
-                rows={4}
-                className="w-full rounded-xl bg-background border border-border/60 px-4 py-3 text-sm text-foreground outline-none focus:border-primary/50"
+                rows={8}
+                className="w-full rounded-2xl bg-primary/5 border border-primary/30 px-4 py-3 text-sm text-foreground outline-none focus:border-primary/60"
               />
             </div>
 

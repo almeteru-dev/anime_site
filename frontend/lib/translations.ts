@@ -22,7 +22,6 @@ export const translations = {
       latestEpisodes: "Latest Episodes",
       trendingNow: "Trending Now",
       topRated: "Top Rated",
-      seasonalAnime: "Seasonal Anime",
       viewAll: "View All",
     },
     // Login Page
@@ -120,10 +119,11 @@ export const translations = {
     status: {
       addToList: "Add to List",
       changeStatus: "Change Status",
-      watched: "Watched",
+      watching: "Watching",
       planned: "Planned",
+      completed: "Completed",
+      onHold: "On Hold",
       dropped: "Dropped",
-      inProgress: "In Progress",
       removeFromList: "Remove from List",
       confirmRemove: "Remove this anime?",
       confirmRemoveDesc: "This will remove the anime from your collection.",
@@ -195,7 +195,7 @@ export const translations = {
     },
     // Language
     language: {
-      en: "English",
+      en: "Romaji",
       ru: "Russian",
       selectLanguage: "Select Language",
     },
@@ -221,7 +221,6 @@ export const translations = {
       latestEpisodes: "Новые серии",
       trendingNow: "В тренде",
       topRated: "Лучшие",
-      seasonalAnime: "Сезонное аниме",
       viewAll: "Смотреть все",
     },
     // Login Page
@@ -319,10 +318,11 @@ export const translations = {
     status: {
       addToList: "Добавить в список",
       changeStatus: "Изменить статус",
-      watched: "Просмотрено",
+      watching: "Смотрю",
       planned: "Запланировано",
+      completed: "Просмотрено",
+      onHold: "На паузе",
       dropped: "Брошено",
-      inProgress: "Смотрю",
       removeFromList: "Удалить из списка",
       confirmRemove: "Удалить это аниме?",
       confirmRemoveDesc: "Аниме будет удалено из вашей коллекции.",
@@ -394,11 +394,11 @@ export const translations = {
     },
     // Language
     language: {
-      en: "Английский",
+      en: "Ромадзи",
       ru: "Русский",
       selectLanguage: "Выбрать язык",
     },
   },
-} as const
+}
 
 export type TranslationKeys = typeof translations.en

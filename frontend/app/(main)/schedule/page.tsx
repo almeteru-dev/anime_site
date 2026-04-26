@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { SeasonSelector } from "@/components/schedule/season-selector";
+import { PeriodSelector } from "@/components/schedule/period-selector";
 import { DayTabs } from "@/components/schedule/day-tabs";
 import { ReleaseList } from "@/components/schedule/release-list";
 import { NextRelease } from "@/components/schedule/next-release";
@@ -9,7 +9,7 @@ import { weekSchedule, DaySchedule } from "@/lib/schedule-data";
 import { CalendarDays } from "lucide-react";
 
 export default function ReleasesPage() {
-  const [selectedSeason, setSelectedSeason] = useState("spring-2026");
+  const [selectedPeriod, setSelectedPeriod] = useState("2026-04");
   const [selectedDay, setSelectedDay] = useState(() => {
     const today = weekSchedule.find(d => d.isToday);
     return today?.day || weekSchedule[0].day;
@@ -63,9 +63,9 @@ export default function ReleasesPage() {
               </span>
             </p>
           </div>
-          <SeasonSelector 
-            selectedSeason={selectedSeason} 
-            onSeasonChange={setSelectedSeason} 
+          <PeriodSelector 
+            selectedPeriod={selectedPeriod} 
+            onPeriodChange={setSelectedPeriod} 
           />
         </div>
 

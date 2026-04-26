@@ -1,7 +1,7 @@
 import { HeroCarousel } from "@/components/hero-carousel"
 import { ContentSection } from "@/components/content-section"
 import { AnimeCard } from "@/components/anime-card"
-import { SeasonalSidebar } from "@/components/seasonal-sidebar"
+import { FeaturedSidebar } from "@/components/featured-sidebar"
 import { getAnimes, getAnimePosterUrl } from "@/lib/api"
 
 export const dynamic = "force-dynamic"
@@ -33,7 +33,7 @@ export default async function Home() {
           </div>
 
           <aside>
-            <SeasonalSidebar animes={animes} />
+            <FeaturedSidebar animes={animes} />
           </aside>
         </div>
       </div>

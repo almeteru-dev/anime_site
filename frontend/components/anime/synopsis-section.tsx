@@ -12,7 +12,7 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
   const { locale } = useLanguage()
   
   const alternativeTitles = {
-    english: anime.translations?.find(t => t.language.code === "en")?.title,
+    romaji: anime.translations?.find(t => t.language.code === "en")?.title,
     russian: anime.translations?.find(t => t.language.code === "ru")?.title,
   }
 
@@ -48,10 +48,10 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
                 <h3 className="text-lg font-semibold text-white">Alternative Titles</h3>
               </div>
               <div className="space-y-2">
-                {alternativeTitles.english && (
+                {alternativeTitles.romaji && (
                   <div className="flex gap-2">
-                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">English:</span>
-                    <span className="text-[#D1D9E6]">{alternativeTitles.english}</span>
+                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Romaji:</span>
+                    <span className="text-[#D1D9E6]">{alternativeTitles.romaji}</span>
                   </div>
                 )}
                 {alternativeTitles.russian && (

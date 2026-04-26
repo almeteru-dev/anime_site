@@ -16,11 +16,11 @@ export interface DaySchedule {
   releases: AnimeRelease[];
 }
 
-export const seasons = [
-  { id: "spring-2026", label: "Spring 2026", current: true },
-  { id: "winter-2026", label: "Winter 2026", current: false },
-  { id: "fall-2025", label: "Fall 2025", current: false },
-  { id: "summer-2025", label: "Summer 2025", current: false },
+export const periods = [
+  { id: "2026-04", label: "2026-04", current: true },
+  { id: "2026-01", label: "2026-01", current: false },
+  { id: "2025-10", label: "2025-10", current: false },
+  { id: "2025-07", label: "2025-07", current: false },
 ];
 
 export const weekSchedule: DaySchedule[] = [
@@ -32,7 +32,7 @@ export const weekSchedule: DaySchedule[] = [
     releases: [
       { id: "1", title: "Demon Slayer: Infinity Castle", episode: 8, time: "10:00 AM", timeRaw: 600, posterUrl: "/posters/demon-slayer.jpg", isReminded: true },
       { id: "2", title: "Solo Leveling: Arise", episode: 12, time: "2:30 PM", timeRaw: 870, posterUrl: "/posters/solo-leveling.jpg", isReminded: false },
-      { id: "3", title: "Blue Lock Season 3", episode: 5, time: "6:00 PM", timeRaw: 1080, posterUrl: "/posters/blue-lock.jpg", isReminded: false },
+      { id: "3", title: "Blue Lock Part 3", episode: 5, time: "6:00 PM", timeRaw: 1080, posterUrl: "/posters/blue-lock.jpg", isReminded: false },
     ],
   },
   {
@@ -43,8 +43,8 @@ export const weekSchedule: DaySchedule[] = [
     releases: [
       { id: "4", title: "Jujutsu Kaisen: Culling Game", episode: 15, time: "11:00 AM", timeRaw: 660, posterUrl: "/posters/jujutsu-kaisen.jpg", isReminded: true },
       { id: "5", title: "Chainsaw Man Part 2", episode: 7, time: "1:00 PM", timeRaw: 780, posterUrl: "/posters/chainsaw-man.jpg", isReminded: false },
-      { id: "6", title: "Spy x Family Season 3", episode: 9, time: "4:30 PM", timeRaw: 990, posterUrl: "/posters/spy-family.jpg", isReminded: true },
-      { id: "7", title: "Oshi no Ko Season 2", episode: 11, time: "8:00 PM", timeRaw: 1200, posterUrl: "/posters/oshi-no-ko.jpg", isReminded: false },
+      { id: "6", title: "Spy x Family Part 3", episode: 9, time: "4:30 PM", timeRaw: 990, posterUrl: "/posters/spy-family.jpg", isReminded: true },
+      { id: "7", title: "Oshi no Ko Part 2", episode: 11, time: "8:00 PM", timeRaw: 1200, posterUrl: "/posters/oshi-no-ko.jpg", isReminded: false },
     ],
   },
   {
@@ -75,7 +75,7 @@ export const weekSchedule: DaySchedule[] = [
     isToday: false,
     releases: [
       { id: "13", title: "One Piece", episode: 1145, time: "7:00 AM", timeRaw: 420, posterUrl: "/posters/one-piece.jpg", isReminded: true },
-      { id: "14", title: "Mashle Season 3", episode: 4, time: "2:00 PM", timeRaw: 840, posterUrl: "/posters/mashle.jpg", isReminded: false },
+      { id: "14", title: "Mashle Part 3", episode: 4, time: "2:00 PM", timeRaw: 840, posterUrl: "/posters/mashle.jpg", isReminded: false },
     ],
   },
   {
@@ -87,7 +87,7 @@ export const weekSchedule: DaySchedule[] = [
       { id: "15", title: "Dragon Ball Daima", episode: 22, time: "8:30 AM", timeRaw: 510, posterUrl: "/posters/dragon-ball.jpg", isReminded: false },
       { id: "16", title: "Kaiju No. 8", episode: 16, time: "11:30 AM", timeRaw: 690, posterUrl: "/posters/kaiju-no-8.jpg", isReminded: true },
       { id: "17", title: "Dandadan", episode: 20, time: "4:00 PM", timeRaw: 960, posterUrl: "/posters/dandadan.jpg", isReminded: false },
-      { id: "18", title: "Re:Zero Season 4", episode: 8, time: "10:00 PM", timeRaw: 1320, posterUrl: "/posters/rezero.jpg", isReminded: true },
+      { id: "18", title: "Re:Zero Part 4", episode: 8, time: "10:00 PM", timeRaw: 1320, posterUrl: "/posters/rezero.jpg", isReminded: true },
     ],
   },
   {
@@ -98,7 +98,7 @@ export const weekSchedule: DaySchedule[] = [
     releases: [
       { id: "19", title: "Bleach: Thousand-Year Blood War", episode: 25, time: "10:30 AM", timeRaw: 630, posterUrl: "/posters/bleach.jpg", isReminded: true },
       { id: "20", title: "Boruto: Two Blue Vortex", episode: 13, time: "3:30 PM", timeRaw: 930, posterUrl: "/posters/boruto.jpg", isReminded: false },
-      { id: "21", title: "Hell's Paradise Season 2", episode: 6, time: "7:30 PM", timeRaw: 1170, posterUrl: "/posters/hells-paradise.jpg", isReminded: false },
+      { id: "21", title: "Hell's Paradise Part 2", episode: 6, time: "7:30 PM", timeRaw: 1170, posterUrl: "/posters/hells-paradise.jpg", isReminded: false },
     ],
   },
 ];

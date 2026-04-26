@@ -37,17 +37,8 @@ export default function MyListPage() {
 
   const mapBackendToUiStatus = (name: string): AnimeStatus => {
     const n = (name || "").toLowerCase()
-    if (n === "watching") return "inProgress"
-    if (n === "planned") return "planned"
-    if (n === "completed") return "watched"
+    if (n === "watching" || n === "planned" || n === "completed" || n === "on_hold" || n === "dropped") return n as AnimeStatus
     return "planned"
-  }
-
-  const mapUiToBackendStatus = (s: AnimeStatus): WatchlistStatus | null => {
-    if (s === "inProgress") return "watching"
-    if (s === "planned") return "planned"
-    if (s === "watched") return "completed"
-    return null
   }
 
   const cards = useMemo(() => {
@@ -64,10 +55,8 @@ export default function MyListPage() {
 
   const handleStatusChange = async (animeId: string, newStatus: AnimeStatus) => {
     if (!token) return
-    const status = mapUiToBackendStatus(newStatus)
-    if (!status) return
-
-    await addToMyCollection({ animeId, status, token })
+    if (!newStatus) return
+    await addToMyCollection({ animeId, status: newStatus as WatchlistStatus, token })
     const refreshed = await getMyCollection({ token })
     setItems(refreshed)
   }
@@ -145,7 +134,8 @@ export default function MyListPage() {
             {cards.map(({ entry, title, image, status }) => (
               <UserCollectionCard
                 key={entry.id}
-                id={String(entry.anime_id)}
+                animeId={String(entry.anime_id)}
+                slug={entry.anime.url}
                 title={title}
                 image={image}
                 rating={entry.anime.score}
@@ -162,4 +152,3 @@ export default function MyListPage() {
     </div>
   )
 }
-

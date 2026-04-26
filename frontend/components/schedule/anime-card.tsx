@@ -22,7 +22,7 @@ export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
       </div>
 
       {/* Poster */}
-      <Link href={`/anime/${anime.id}`} className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-black/30 ring-1 ring-[#1A2744] group-hover:ring-[#00E5FF]/30 transition-all duration-300">
+      <Link href="/catalog" className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-black/30 ring-1 ring-[#1A2744] group-hover:ring-[#00E5FF]/30 transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A2744] to-[#0A1628]" />
         <Image
           src={anime.posterUrl}
@@ -40,7 +40,7 @@ export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
       </Link>
 
       {/* Info */}
-      <Link href={`/anime/${anime.id}`} className="flex-1 min-w-0">
+      <Link href="/catalog" className="flex-1 min-w-0">
         <h3 className="font-bold text-white text-base leading-snug truncate group-hover:text-[#00E5FF] transition-colors duration-200">
           {anime.title}
         </h3>

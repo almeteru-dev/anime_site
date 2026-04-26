@@ -54,6 +54,7 @@ func main() {
 
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
+		api.GET("/animes/:id/episodes", handlers.GetAnimeEpisodes)
 
 		// Protected routes
 		protected := api.Group("/")
@@ -72,9 +73,16 @@ func main() {
 			admin.Use(middleware.AdminOnly())
 			{
 				admin.GET("/meta", handlers.AdminGetMeta)
+				admin.GET("/voice-groups", handlers.AdminListVoiceGroups)
+				admin.POST("/voice-groups", handlers.AdminCreateVoiceGroup)
+				admin.PUT("/voice-groups/:id", handlers.AdminUpdateVoiceGroup)
+				admin.DELETE("/voice-groups/:id", handlers.AdminDeleteVoiceGroup)
 				admin.POST("/animes", handlers.AdminCreateAnime)
 				admin.PUT("/animes/:id", handlers.AdminUpdateAnime)
 				admin.DELETE("/animes/:id", handlers.AdminDeleteAnime)
+				admin.POST("/animes/:id/episodes", handlers.AdminCreateEpisode)
+				admin.PUT("/episodes/:id", handlers.AdminUpdateEpisode)
+				admin.DELETE("/episodes/:id", handlers.AdminDeleteEpisode)
 			}
 		}
 	}

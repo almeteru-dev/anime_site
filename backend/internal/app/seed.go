@@ -12,13 +12,32 @@ import (
 func Seed(db *gorm.DB) {
 	log.Println("Seeding database...")
 
-	// 0. Clean-up: Remove languages other than RU and EN
-	db.Where("code NOT IN ?", []string{"ru", "en"}).Delete(&models.Language{})
+	defaultTrailer := "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
+
+	// 0. Clean-up: Ensure only the supported locales exist (RU + EN)
+	var unsupported []models.Language
+	db.Where("code NOT IN ?", []string{"ru", "en"}).Find(&unsupported)
+	if len(unsupported) > 0 {
+		ids := make([]int, 0, len(unsupported))
+		for _, l := range unsupported {
+			ids = append(ids, l.ID)
+		}
+		if len(ids) > 0 {
+			db.Where("language_id IN ?", ids).Delete(&models.AnimeTranslation{})
+			db.Where("language_id IN ?", ids).Delete(&models.StatusTranslation{})
+			db.Where("language_id IN ?", ids).Delete(&models.SourceTranslation{})
+			db.Where("language_id IN ?", ids).Delete(&models.StudioTranslation{})
+			db.Where("language_id IN ?", ids).Delete(&models.GenreTranslation{})
+			db.Where("language_id IN ?", ids).Delete(&models.CollectionTypeTranslation{})
+			// episodes have no translations in the new schema
+		}
+		db.Where("code NOT IN ?", []string{"ru", "en"}).Delete(&models.Language{})
+	}
 
 	// 1. Languages
 	languages := []models.Language{
 		{Code: "ru", Name: "Russian"},
-		{Code: "en", Name: "English (Romaji)"},
+		{Code: "en", Name: "Romaji"},
 	}
 	for _, lang := range languages {
 		db.FirstOrCreate(&lang, models.Language{Code: lang.Code})
@@ -48,6 +67,8 @@ func Seed(db *gorm.DB) {
 		{Name: "watching", RUName: "Смотрю", ENName: "Watching"},
 		{Name: "planned", RUName: "Запланировано", ENName: "Planned"},
 		{Name: "completed", RUName: "Просмотрено", ENName: "Completed"},
+		{Name: "on_hold", RUName: "На паузе", ENName: "On Hold"},
+		{Name: "dropped", RUName: "Брошено", ENName: "Dropped"},
 	}
 	for _, ct := range collectionTypes {
 		collectionType := models.CollectionType{Name: ct.Name}
@@ -64,6 +85,16 @@ func Seed(db *gorm.DB) {
 			LanguageID:       en.ID,
 			Name:             ct.ENName,
 		}, models.CollectionTypeTranslation{CollectionTypeID: collectionType.ID, LanguageID: en.ID})
+	}
+
+	// 1.7. Voice Groups
+	voiceGroups := []models.VoiceGroup{
+		{Name: "Anidub", Type: models.VoiceGroupTypeDub},
+		{Name: "SoftBox", Type: models.VoiceGroupTypeDub},
+		{Name: "Subbed", Type: models.VoiceGroupTypeSub},
+	}
+	for _, vg := range voiceGroups {
+		db.FirstOrCreate(&vg, models.VoiceGroup{Name: vg.Name})
 	}
 
 	// 2. Statuses
@@ -229,16 +260,17 @@ func Seed(db *gorm.DB) {
 	}
 
 	for _, a := range animeList {
-		anime := models.Anime{
-			Name:     a.Name,
-			URL:      a.URL,
-			StatusID: &releasedStatus.ID,
-			SourceID: &mangaSource.ID,
-			StudioID: &madhouse.ID,
-			ImageURL: a.Poster,
-			AiredOn:  a.AiredOn,
-		}
-		db.FirstOrCreate(&anime, models.Anime{URL: a.URL})
+		anime := models.Anime{}
+		db.Where(models.Anime{URL: a.URL}).Assign(models.Anime{
+			Name:       a.Name,
+			URL:        a.URL,
+			StatusID:   &releasedStatus.ID,
+			SourceID:   &mangaSource.ID,
+			StudioID:   &madhouse.ID,
+			ImageURL:   a.Poster,
+			TrailerURL: defaultTrailer,
+			AiredOn:    a.AiredOn,
+		}).FirstOrCreate(&anime)
 
 		db.FirstOrCreate(&models.AnimeTranslation{
 			AnimeID:     anime.ID,
@@ -254,6 +286,10 @@ func Seed(db *gorm.DB) {
 			Description: a.ENDesc,
 		}, models.AnimeTranslation{AnimeID: anime.ID, LanguageID: en.ID})
 	}
+
+	_ = db.Model(&models.Anime{}).
+		Where("trailer_url IS NULL OR trailer_url = ''").
+		Update("trailer_url", defaultTrailer).Error
 
 	log.Println("Seeding completed successfully")
 }

@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Check, Clock, XCircle, Play, Plus, ChevronDown, Trash2 } from "lucide-react"
+import { Check, Clock, XCircle, Play, PauseCircle, Plus, ChevronDown, Trash2 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { cn } from "@/lib/utils"
 
-export type AnimeStatus = "watched" | "planned" | "dropped" | "inProgress" | null
+export type AnimeStatus = "watching" | "planned" | "completed" | "on_hold" | "dropped" | null
 
 interface AnimeStatusManagerProps {
   animeId: string
@@ -18,7 +18,7 @@ interface AnimeStatusManagerProps {
 }
 
 const statusConfig = {
-  watched: {
+  completed: {
     icon: Check,
     color: "bg-emerald-500",
     textColor: "text-emerald-400",
@@ -34,6 +34,14 @@ const statusConfig = {
     hoverBg: "hover:bg-amber-500/20",
     glowColor: "shadow-[0_0_20px_rgba(245,158,11,0.3)]",
   },
+  on_hold: {
+    icon: PauseCircle,
+    color: "bg-slate-500",
+    textColor: "text-slate-300",
+    borderColor: "border-slate-400/40",
+    hoverBg: "hover:bg-slate-500/20",
+    glowColor: "shadow-[0_0_20px_rgba(148,163,184,0.25)]",
+  },
   dropped: {
     icon: XCircle,
     color: "bg-red-500",
@@ -42,7 +50,7 @@ const statusConfig = {
     hoverBg: "hover:bg-red-500/20",
     glowColor: "shadow-[0_0_20px_rgba(239,68,68,0.3)]",
   },
-  inProgress: {
+  watching: {
     icon: Play,
     color: "bg-primary",
     textColor: "text-primary",
@@ -115,9 +123,10 @@ export function AnimeStatusManager({
   }
 
   const statusOptions: { id: AnimeStatus; label: string }[] = [
-    { id: "watched", label: t.status.watched },
+    { id: "watching", label: t.status.watching },
     { id: "planned", label: t.status.planned },
-    { id: "inProgress", label: t.status.inProgress },
+    { id: "completed", label: t.status.completed },
+    { id: "on_hold", label: t.status.onHold },
     { id: "dropped", label: t.status.dropped },
   ]
 

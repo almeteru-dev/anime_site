@@ -1,37 +1,35 @@
--- 1. Справочники
-CREATE TABLE languages (
+CREATE TABLE IF NOT EXISTS languages (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  code VARCHAR(10) UNIQUE NOT NULL, -- ru, en, kz
+  code VARCHAR(10) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE statuses (
+CREATE TABLE IF NOT EXISTS statuses (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- ongoing, released
+  name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE sources (
+CREATE TABLE IF NOT EXISTS sources (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- manga, light_novel, original, game
+  name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE collection_types (
+CREATE TABLE IF NOT EXISTS collection_types (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- watching, planned
+  name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE genres (
+CREATE TABLE IF NOT EXISTS genres (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- action, comedy
+  name VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE studios (
+CREATE TABLE IF NOT EXISTS studios (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name VARCHAR(255) NOT NULL -- MAPPA, Madhouse
+  name VARCHAR(255) NOT NULL
 );
 
--- 2. Основные сущности
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   username VARCHAR(40) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -39,20 +37,22 @@ CREATE TABLE users (
   avatar_url VARCHAR(500),
   age INTEGER,
   is_verified BOOLEAN DEFAULT FALSE,
+  role VARCHAR(20) NOT NULL DEFAULT 'user',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE anime (
+CREATE TABLE IF NOT EXISTS anime (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   studio_id INTEGER REFERENCES studios (id),
   status_id INTEGER REFERENCES statuses (id),
-  source_id INTEGER REFERENCES sources (id), -- Ссылка на первоисточник
+  source_id INTEGER REFERENCES sources (id),
   name VARCHAR(255) NOT NULL,
   kind VARCHAR(50),
   url VARCHAR(255) UNIQUE NOT NULL,
   duration INTEGER,
   rating VARCHAR(50),
   image VARCHAR(500),
+  trailer_url VARCHAR(1000),
   score DECIMAL(3, 2) DEFAULT 0,
   episodes INTEGER DEFAULT 0,
   episodes_aired INTEGER DEFAULT 0,
@@ -60,58 +60,62 @@ CREATE TABLE anime (
   released_on TIMESTAMP
 );
 
--- 3. Таблицы переводов (Мультиязычность)
-CREATE TABLE anime_translations (
+CREATE TABLE IF NOT EXISTS anime_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   anime_id BIGINT NOT NULL REFERENCES anime (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
-  description TEXT
+  description TEXT,
+  UNIQUE (anime_id, language_id)
 );
 
-CREATE TABLE status_translations (
+CREATE TABLE IF NOT EXISTS status_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   status_id INTEGER NOT NULL REFERENCES statuses (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL,
+  UNIQUE (status_id, language_id)
 );
 
-CREATE TABLE source_translations (
+CREATE TABLE IF NOT EXISTS source_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL -- "Манга", "Ранобэ", "Manga"
+  name VARCHAR(255) NOT NULL,
+  UNIQUE (source_id, language_id)
 );
 
-CREATE TABLE studio_translations (
+CREATE TABLE IF NOT EXISTS studio_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   studio_id INTEGER NOT NULL REFERENCES studios (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL,
+  UNIQUE (studio_id, language_id)
 );
 
-CREATE TABLE genre_translations (
+CREATE TABLE IF NOT EXISTS genre_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   genre_id INTEGER NOT NULL REFERENCES genres (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL,
+  UNIQUE (genre_id, language_id)
 );
 
-CREATE TABLE collection_type_translations (
+CREATE TABLE IF NOT EXISTS collection_type_translations (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   collection_type_id INTEGER NOT NULL REFERENCES collection_types (id) ON DELETE CASCADE,
   language_id INTEGER NOT NULL REFERENCES languages (id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL,
+  UNIQUE (collection_type_id, language_id)
 );
 
--- 4. Связи и списки
-CREATE TABLE anime_genres (
+CREATE TABLE IF NOT EXISTS anime_genres (
   anime_id BIGINT NOT NULL REFERENCES anime (id) ON DELETE CASCADE,
   genre_id INTEGER NOT NULL REFERENCES genres (id) ON DELETE CASCADE,
   PRIMARY KEY (anime_id, genre_id)
 );
 
-CREATE TABLE user_collections (
+CREATE TABLE IF NOT EXISTS user_collections (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   anime_id BIGINT NOT NULL REFERENCES anime (id) ON DELETE CASCADE,
@@ -123,6 +127,56 @@ CREATE TABLE user_collections (
   UNIQUE (user_id, anime_id)
 );
 
--- Индексы
-CREATE INDEX idx_anime_url ON anime (url);
-CREATE INDEX idx_user_collections_user ON user_collections (user_id);
+CREATE INDEX IF NOT EXISTS idx_anime_url ON anime (url);
+CREATE INDEX IF NOT EXISTS idx_user_collections_user ON user_collections (user_id);
+
+CREATE TABLE IF NOT EXISTS voice_groups (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('dub', 'sub')),
+  UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS episodes (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  anime_id BIGINT NOT NULL REFERENCES anime (id) ON DELETE CASCADE,
+  group_id INTEGER NOT NULL REFERENCES voice_groups (id) ON DELETE CASCADE,
+  server_number INTEGER NOT NULL CHECK (server_number IN (1, 2, 3)),
+  number INTEGER NOT NULL CHECK (number >= 1),
+  video_url VARCHAR(500) NOT NULL,
+  duration INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (anime_id, server_number, group_id, number)
+);
+
+CREATE OR REPLACE FUNCTION enforce_episode_number_limit()
+RETURNS trigger AS $$
+DECLARE
+  max_eps integer;
+BEGIN
+  SELECT episodes INTO max_eps FROM anime WHERE id = NEW.anime_id;
+  IF max_eps IS NULL THEN
+    RAISE EXCEPTION 'Anime not found';
+  END IF;
+
+  IF NEW.number > max_eps THEN
+    RAISE EXCEPTION 'episode_number exceeds anime.episodes';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'episodes'
+  ) THEN
+    DROP TRIGGER IF EXISTS trg_enforce_episode_number_limit ON episodes;
+    CREATE TRIGGER trg_enforce_episode_number_limit
+    BEFORE INSERT OR UPDATE ON episodes
+    FOR EACH ROW
+    EXECUTE FUNCTION enforce_episode_number_limit();
+  END IF;
+END $$;

@@ -62,6 +62,7 @@ type AdminCreateAnimeInput struct {
 	Kind             string  `json:"kind"`
 	Duration         int     `json:"duration"`
 	Rating           string  `json:"rating"`
+	TrailerURL       string  `json:"trailer_url"`
 	Score            float64 `json:"score"`
 	Episodes         int     `json:"episodes"`
 	PosterURL        string  `json:"poster_url"`
@@ -111,12 +112,16 @@ func AdminCreateAnime(c *gin.Context) {
 		Kind:     input.Kind,
 		Duration: input.Duration,
 		Rating:   input.Rating,
+		TrailerURL: input.TrailerURL,
 		Score:    input.Score,
 		Episodes: input.Episodes,
 		StudioID: input.StudioID,
 		StatusID: input.StatusID,
 		SourceID: input.SourceID,
 		ImageURL: input.PosterURL,
+	}
+	if anime.TrailerURL == "" {
+		anime.TrailerURL = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
 	}
 
 	if err := app.DB.Create(&anime).Error; err != nil {
@@ -154,6 +159,7 @@ type AdminUpdateAnimeInput struct {
     Kind             string  `json:"kind"`
     Duration         int     `json:"duration"`
     Rating           string  `json:"rating"`
+	TrailerURL       string  `json:"trailer_url"`
     Score            float64 `json:"score"`
     Episodes         int     `json:"episodes"`
     PosterURL        string  `json:"poster_url"`
@@ -210,6 +216,10 @@ func AdminUpdateAnime(c *gin.Context) {
     anime.Kind = input.Kind
     anime.Duration = input.Duration
     anime.Rating = input.Rating
+	anime.TrailerURL = input.TrailerURL
+	if anime.TrailerURL == "" {
+		anime.TrailerURL = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
+	}
     anime.Score = input.Score
     anime.Episodes = input.Episodes
     anime.StudioID = input.StudioID

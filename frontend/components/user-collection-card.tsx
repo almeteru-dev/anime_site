@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils"
 import { AnimeStatusManager, type AnimeStatus } from "./anime-status-manager"
 
 interface UserCollectionCardProps {
-  id: string
+  animeId: string
+  slug: string
   title: string
   image: string
   rating: number
@@ -22,7 +23,8 @@ interface UserCollectionCardProps {
 }
 
 export function UserCollectionCard({
-  id,
+  animeId,
+  slug,
   title,
   image,
   rating,
@@ -106,7 +108,7 @@ export function UserCollectionCard({
 
         {/* Play Overlay */}
         <Link
-          href={`/anime/${id}`}
+          href={`/anime/${slug}`}
           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         >
           <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur-sm shadow-[0_0_25px_rgba(0,229,255,0.5)]">
@@ -117,7 +119,7 @@ export function UserCollectionCard({
 
       {/* Info Section */}
       <div className="mt-3 px-0.5">
-        <Link href={`/anime/${id}`}>
+        <Link href={`/anime/${slug}`}>
           <h3 className="font-semibold text-foreground text-sm line-clamp-2 group-hover:text-primary transition-colors">
             {title}
           </h3>
@@ -129,7 +131,7 @@ export function UserCollectionCard({
         {/* Status Manager - Compact variant */}
         <div className="mt-2">
           <AnimeStatusManager
-            animeId={id}
+            animeId={animeId}
             currentStatus={status}
             onStatusChange={onStatusChange}
             onRemove={onRemove}

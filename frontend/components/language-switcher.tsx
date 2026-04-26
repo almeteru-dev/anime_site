@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/language-context"
 import type { Locale } from "@/lib/translations"
 
 const languages: { code: Locale; label: string; nativeLabel: string }[] = [
-  { code: "en", label: "English", nativeLabel: "EN" },
+  { code: "en", label: "Romaji", nativeLabel: "EN" },
   { code: "ru", label: "Русский", nativeLabel: "RU" },
 ]
 

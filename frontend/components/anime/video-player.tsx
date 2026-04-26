@@ -19,9 +19,10 @@ interface VideoPlayerProps {
   posterImage: string
   title: string
   episode: number
+  source?: { type: "iframe" | "video"; src: string } | null
 }
 
-export function VideoPlayer({ posterImage, title, episode }: VideoPlayerProps) {
+export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [progress, setProgress] = useState([0])
@@ -37,13 +38,31 @@ export function VideoPlayer({ posterImage, title, episode }: VideoPlayerProps) {
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => !isPlaying && setShowControls(true)}
         >
-          {/* Video Poster/Thumbnail */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${posterImage})` }}
-          >
-            <div className="absolute inset-0 bg-[#040D1F]/40" />
-          </div>
+          {/* Player */}
+          {source ? (
+            source.type === "iframe" ? (
+              <iframe
+                src={source.src}
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video
+                className="absolute inset-0 w-full h-full"
+                src={source.src}
+                poster={posterImage}
+                controls
+              />
+            )
+          ) : (
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${posterImage})` }}
+            >
+              <div className="absolute inset-0 bg-[#040D1F]/40" />
+            </div>
+          )}
 
           {/* Episode Info Overlay */}
           <div className="absolute top-4 left-4 z-20">
@@ -54,7 +73,7 @@ export function VideoPlayer({ posterImage, title, episode }: VideoPlayerProps) {
           </div>
 
           {/* Big Play Button (Center) */}
-          {!isPlaying && (
+          {!source && !isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <button
                 onClick={() => setIsPlaying(true)}
@@ -65,7 +84,7 @@ export function VideoPlayer({ posterImage, title, episode }: VideoPlayerProps) {
             </div>
           )}
 
-          {/* Bottom Controls */}
+          {/* Bottom Controls (visual only when embedded) */}
           <div 
             className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#040D1F] via-[#040D1F]/80 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
           >

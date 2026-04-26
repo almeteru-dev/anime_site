@@ -70,8 +70,8 @@ interface TopRatedCardProps extends BaseAnimeCardProps {
   genres: string[]
 }
 
-interface SeasonalCardProps extends BaseAnimeCardProps {
-  variant: "seasonal"
+interface FeaturedCardProps extends BaseAnimeCardProps {
+  variant: "featured"
   status: string
 }
 
@@ -79,7 +79,7 @@ type AnimeCardProps =
   | LatestEpisodeCardProps
   | TrendingCardProps
   | TopRatedCardProps
-  | SeasonalCardProps
+  | FeaturedCardProps
 
 export function AnimeCard(props: AnimeCardProps) {
   const { title: propTitle, image, rating, variant, userStatus, onStatusChange, data } = props
@@ -87,6 +87,13 @@ export function AnimeCard(props: AnimeCardProps) {
   const [localStatus, setLocalStatus] = useState<AnimeStatus>(userStatus ?? null)
   
   const title = data ? getLocalizedTitle(data, locale) : propTitle
+
+  const href = (() => {
+    const slug = data?.url
+    if (slug) return `/anime/${slug}`
+    if (typeof props.id === "string" && /\D/.test(props.id)) return `/anime/${props.id}`
+    return "/catalog"
+  })()
 
   const currentStatusStyle = localStatus ? statusColors[localStatus as keyof typeof statusColors] : null
   const StatusIcon = currentStatusStyle?.icon
@@ -104,7 +111,7 @@ export function AnimeCard(props: AnimeCardProps) {
     const { id, episode, totalEpisodes, updatedTime } = props as LatestEpisodeCardProps
     return (
       <div className="group relative w-[180px] sm:w-[200px] flex-shrink-0">
-        <Link href={`/anime/${id}`} className="cursor-pointer block">
+        <Link href={href} className="cursor-pointer block">
           <div className={cn(
             "relative aspect-[3/4] rounded-xl overflow-hidden shadow-[var(--card-shadow)] transition-all duration-300 group-hover:shadow-[var(--glow-primary)] group-hover:scale-[1.02]",
             localStatus && currentStatusStyle?.border
@@ -166,7 +173,7 @@ export function AnimeCard(props: AnimeCardProps) {
     const { id } = props as TrendingCardProps
     return (
       <div className="group relative w-[180px] sm:w-[200px] flex-shrink-0">
-        <Link href={`/anime/${id}`} className="cursor-pointer block">
+        <Link href={href} className="cursor-pointer block">
           <div className={cn(
             "relative aspect-[3/4] rounded-xl overflow-hidden shadow-[var(--card-shadow)] transition-all duration-300 group-hover:shadow-[var(--glow-primary)] group-hover:scale-[1.02]",
             localStatus && currentStatusStyle?.border
@@ -223,7 +230,7 @@ export function AnimeCard(props: AnimeCardProps) {
     const { id, genres } = props as TopRatedCardProps
     return (
       <div className="group relative w-[180px] sm:w-[200px] flex-shrink-0">
-        <Link href={`/anime/${id}`} className="cursor-pointer block">
+        <Link href={href} className="cursor-pointer block">
           <div className={cn(
             "relative aspect-[3/4] rounded-xl overflow-hidden shadow-[var(--card-shadow)] transition-all duration-300 group-hover:shadow-[var(--glow-primary)] group-hover:scale-[1.02]",
             localStatus && currentStatusStyle?.border
@@ -294,10 +301,10 @@ export function AnimeCard(props: AnimeCardProps) {
     )
   }
 
-  if (variant === "seasonal") {
-    const { id, status } = props as SeasonalCardProps
+  if (variant === "featured") {
+    const { id, status } = props as FeaturedCardProps
     return (
-      <Link href={`/anime/${id}`} className="group flex gap-3 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors">
+      <Link href={href} className="group flex gap-3 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors">
         <div className="relative w-16 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-[var(--card-shadow)]">
           <Image
             src={image}

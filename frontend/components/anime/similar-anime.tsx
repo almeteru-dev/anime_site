@@ -33,7 +33,7 @@ export function SimilarAnimeSection({ animeList }: SimilarAnimeSectionProps) {
           {animeList.map((anime) => (
             <a
               key={anime.id}
-              href={`/anime/${anime.id}`}
+              href={`/catalog`}
               className="group relative bg-[#081229] rounded-xl overflow-hidden border border-[#1A2847] shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)] hover:shadow-[0_0_30px_rgba(0,229,255,0.2)] hover:border-[#00E5FF]/50 transition-all duration-300"
             >
               {/* Poster Image */}

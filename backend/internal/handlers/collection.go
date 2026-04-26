@@ -90,7 +90,7 @@ func RemoveFromCollection(c *gin.Context) {
 
 type AddToCollectionInput struct {
 	AnimeID int64  `json:"anime_id" binding:"required"`
-	Status  string `json:"status" binding:"required"` // watching | planned | completed
+	Status  string `json:"status" binding:"required"` // watching | planned | completed | on_hold | dropped
 }
 
 func GetMyCollections(c *gin.Context) {
@@ -142,7 +142,7 @@ func AddToMyCollection(c *gin.Context) {
 	}
 
 	status := strings.ToLower(strings.TrimSpace(input.Status))
-	if status != "watching" && status != "planned" && status != "completed" {
+	if status != "watching" && status != "planned" && status != "completed" && status != "on_hold" && status != "dropped" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
 		return
 	}

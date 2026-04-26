@@ -123,7 +123,7 @@ export function AnimeCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Card Container with Status Indicator */}
-      <Link href={`/anime/${anime.id}`}>
+      <Link href={`/anime/${anime.url}`}>
         <div className={cn(
           "relative aspect-[2/3] rounded-xl overflow-hidden card-shadow transition-all duration-300",
           isHovered && "glow-cyan",
