@@ -233,6 +233,253 @@ export interface AdminMeta {
   studios: Studio[]
   statuses: Status[]
   sources: Source[]
+  kinds: KindOption[]
+  ratings: RatingOption[]
+}
+
+export interface KindOption {
+  id: number
+  name: string
+}
+
+export interface RatingOption {
+  id: number
+  name: string
+}
+
+export async function adminListKinds(params: { token: string }): Promise<KindOption[]> {
+  const res = await fetch(`${API_URL}/admin/kinds`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch kinds")
+  return data
+}
+
+export async function adminCreateKind(params: { token: string; name: string }): Promise<KindOption> {
+  const res = await fetch(`${API_URL}/admin/kinds`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create kind")
+  return data
+}
+
+export async function adminUpdateKind(params: { token: string; id: number; name: string }): Promise<KindOption> {
+  const res = await fetch(`${API_URL}/admin/kinds/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update kind")
+  return data
+}
+
+export async function adminDeleteKind(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/kinds/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete kind")
+}
+
+export async function adminListRatings(params: { token: string }): Promise<RatingOption[]> {
+  const res = await fetch(`${API_URL}/admin/ratings`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch ratings")
+  return data
+}
+
+export async function adminCreateRating(params: { token: string; name: string }): Promise<RatingOption> {
+  const res = await fetch(`${API_URL}/admin/ratings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create rating")
+  return data
+}
+
+export async function adminUpdateRating(params: { token: string; id: number; name: string }): Promise<RatingOption> {
+  const res = await fetch(`${API_URL}/admin/ratings/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update rating")
+  return data
+}
+
+export async function adminDeleteRating(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/ratings/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete rating")
+}
+
+export async function adminListStatuses(params: { token: string }): Promise<Status[]> {
+  const res = await fetch(`${API_URL}/admin/statuses`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch statuses")
+  return data
+}
+
+export async function adminCreateStatus(params: { token: string; name: string }): Promise<Status> {
+  const res = await fetch(`${API_URL}/admin/statuses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create status")
+  return data
+}
+
+export async function adminUpdateStatus(params: { token: string; id: number; name: string }): Promise<Status> {
+  const res = await fetch(`${API_URL}/admin/statuses/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update status")
+  return data
+}
+
+export async function adminDeleteStatus(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/statuses/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete status")
+}
+
+export async function adminListStudios(params: { token: string }): Promise<Studio[]> {
+  const res = await fetch(`${API_URL}/admin/studios`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch studios")
+  return data
+}
+
+export async function adminCreateStudio(params: { token: string; name: string }): Promise<Studio> {
+  const res = await fetch(`${API_URL}/admin/studios`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create studio")
+  return data
+}
+
+export async function adminUpdateStudio(params: { token: string; id: number; name: string }): Promise<Studio> {
+  const res = await fetch(`${API_URL}/admin/studios/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update studio")
+  return data
+}
+
+export async function adminDeleteStudio(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/studios/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete studio")
+}
+
+export async function adminListSources(params: { token: string }): Promise<Source[]> {
+  const res = await fetch(`${API_URL}/admin/sources`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch sources")
+  return data
+}
+
+export async function adminCreateSource(params: { token: string; name: string }): Promise<Source> {
+  const res = await fetch(`${API_URL}/admin/sources`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create source")
+  return data
+}
+
+export async function adminUpdateSource(params: { token: string; id: number; name: string }): Promise<Source> {
+  const res = await fetch(`${API_URL}/admin/sources/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update source")
+  return data
+}
+
+export async function adminDeleteSource(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/sources/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete source")
 }
 
 export interface AdminUpsertEpisodeInput {
@@ -426,6 +673,9 @@ export interface AdminCreateAnimeInput {
   kind?: string
   duration?: number
   rating?: string
+  episodes_aired?: number
+  aired_on?: string | null
+  released_on?: string | null
   trailer_url?: string
   score?: number
   episodes?: number

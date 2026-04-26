@@ -27,7 +27,11 @@ export default function AdminAddAnimePage() {
     source_id: null,
     genre_ids: [],
     kind: "tv",
+    rating: "",
     episodes: 12,
+    episodes_aired: 0,
+    aired_on: "",
+    released_on: "",
     duration: 24,
   })
 
@@ -240,6 +244,17 @@ export default function AdminAddAnimePage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground-muted">Episodes aired</label>
+              <input
+                type="number"
+                min={0}
+                value={form.episodes_aired ?? 0}
+                onChange={(e) => setForm((p) => ({ ...p, episodes_aired: Number(e.target.value) }))}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-foreground-muted">Duration (min)</label>
               <input
                 type="number"
@@ -248,6 +263,64 @@ export default function AdminAddAnimePage() {
                 onChange={(e) => setForm((p) => ({ ...p, duration: Number(e.target.value) }))}
                 className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground-muted">Aired on</label>
+              <input
+                type="date"
+                value={(form.aired_on as string) || ""}
+                onChange={(e) => setForm((p) => ({ ...p, aired_on: e.target.value }))}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground-muted">Released on</label>
+              <input
+                type="date"
+                value={(form.released_on as string) || ""}
+                onChange={(e) => setForm((p) => ({ ...p, released_on: e.target.value }))}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground-muted">Kind</label>
+              <select
+                value={form.kind || ""}
+                onChange={(e) => setForm((p) => ({ ...p, kind: e.target.value }))}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              >
+                <option value="">Select…</option>
+                {(meta?.kinds || []).map((k) => (
+                  <option key={k.id} value={k.name}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+              <Link href="/admin/kinds-ratings" target="_blank" className="text-xs text-primary hover:underline">
+                Manage kinds
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground-muted">Rating</label>
+              <select
+                value={form.rating || ""}
+                onChange={(e) => setForm((p) => ({ ...p, rating: e.target.value }))}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              >
+                <option value="">Select…</option>
+                {(meta?.ratings || []).map((r) => (
+                  <option key={r.id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <Link href="/admin/kinds-ratings" target="_blank" className="text-xs text-primary hover:underline">
+                Manage ratings
+              </Link>
             </div>
 
             <div className="space-y-2 lg:col-span-2">

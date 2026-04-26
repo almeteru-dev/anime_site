@@ -97,6 +97,16 @@ func Seed(db *gorm.DB) {
 		db.FirstOrCreate(&vg, models.VoiceGroup{Name: vg.Name})
 	}
 
+	kinds := []models.KindOption{{Name: "tv"}, {Name: "movie"}, {Name: "ova"}, {Name: "ona"}, {Name: "special"}}
+	for _, k := range kinds {
+		db.FirstOrCreate(&k, models.KindOption{Name: k.Name})
+	}
+
+	ratings := []models.RatingOption{{Name: "g"}, {Name: "pg"}, {Name: "pg-13"}, {Name: "r-17+"}, {Name: "r+"}}
+	for _, r := range ratings {
+		db.FirstOrCreate(&r, models.RatingOption{Name: r.Name})
+	}
+
 	// 2. Statuses
 	statuses := []struct {
 		Name   string

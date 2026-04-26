@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags } from "lucide-react"
+import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -24,6 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const nav = [
     { href: "/admin/animes", label: "Anime", icon: List },
     { href: "/admin/animes/new", label: "Add Anime", icon: PlusCircle },
+    { href: "/admin/kinds-ratings", label: "Kinds & Ratings", icon: Sliders },
     { href: "/admin/users", label: "Users", icon: Users, disabled: true },
     { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },
   ]
@@ -101,4 +102,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )
 }
-

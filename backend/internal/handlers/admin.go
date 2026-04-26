@@ -4,6 +4,7 @@ import (
     "net/http"
     "regexp"
     "strings"
+	"time"
 
     "github.com/gin-gonic/gin"
     "github.com/seva/animevista/internal/app"
@@ -19,11 +20,28 @@ func slugify(input string) string {
     return s
 }
 
+func parseOptionalDate(value string) (*time.Time, error) {
+	v := strings.TrimSpace(value)
+	if v == "" {
+		return nil, nil
+	}
+	if t, err := time.Parse("2006-01-02", v); err == nil {
+		return &t, nil
+	}
+	if t, err := time.Parse(time.RFC3339, v); err == nil {
+		return &t, nil
+	} else {
+		return nil, err
+	}
+}
+
 type AdminMetaResponse struct {
 	Genres  []models.Genre  `json:"genres"`
 	Studios []models.Studio `json:"studios"`
 	Statuses []models.Status `json:"statuses"`
 	Sources []models.Source `json:"sources"`
+	Kinds   []models.KindOption `json:"kinds"`
+	Ratings []models.RatingOption `json:"ratings"`
 }
 
 func AdminGetMeta(c *gin.Context) {
@@ -31,6 +49,8 @@ func AdminGetMeta(c *gin.Context) {
 	var studios []models.Studio
 	var statuses []models.Status
 	var sources []models.Source
+	var kinds []models.KindOption
+	var ratings []models.RatingOption
 
 	if err := app.DB.Find(&genres).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch genres"})
@@ -48,12 +68,22 @@ func AdminGetMeta(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sources"})
 		return
 	}
+	if err := app.DB.Order("name asc").Find(&kinds).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch kinds"})
+		return
+	}
+	if err := app.DB.Order("name asc").Find(&ratings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ratings"})
+		return
+	}
 
 	c.JSON(http.StatusOK, AdminMetaResponse{
 		Genres:  genres,
 		Studios: studios,
 		Statuses: statuses,
 		Sources: sources,
+		Kinds: kinds,
+		Ratings: ratings,
 	})
 }
 
@@ -62,6 +92,9 @@ type AdminCreateAnimeInput struct {
 	Kind             string  `json:"kind"`
 	Duration         int     `json:"duration"`
 	Rating           string  `json:"rating"`
+	EpisodesAired    int     `json:"episodes_aired"`
+	AiredOn          string  `json:"aired_on"`
+	ReleasedOn       string  `json:"released_on"`
 	TrailerURL       string  `json:"trailer_url"`
 	Score            float64 `json:"score"`
 	Episodes         int     `json:"episodes"`
@@ -106,12 +139,26 @@ func AdminCreateAnime(c *gin.Context) {
         return
     }
 
+	airedOn, err := parseOptionalDate(input.AiredOn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid aired_on"})
+		return
+	}
+	releasedOn, err := parseOptionalDate(input.ReleasedOn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid released_on"})
+		return
+	}
+
     anime := models.Anime{
         Name:     input.TitleENRomaji,
         URL:      slug,
 		Kind:     input.Kind,
 		Duration: input.Duration,
 		Rating:   input.Rating,
+		EpisodesAired: input.EpisodesAired,
+		AiredOn: airedOn,
+		ReleasedOn: releasedOn,
 		TrailerURL: input.TrailerURL,
 		Score:    input.Score,
 		Episodes: input.Episodes,
@@ -120,8 +167,26 @@ func AdminCreateAnime(c *gin.Context) {
 		SourceID: input.SourceID,
 		ImageURL: input.PosterURL,
 	}
+	if strings.TrimSpace(anime.Kind) != "" {
+		var k models.KindOption
+		if err := app.DB.Where("name = ?", strings.TrimSpace(anime.Kind)).First(&k).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown kind (add it in Kinds & Ratings)"})
+			return
+		}
+	}
+	if strings.TrimSpace(anime.Rating) != "" {
+		var r models.RatingOption
+		if err := app.DB.Where("name = ?", strings.TrimSpace(anime.Rating)).First(&r).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown rating (add it in Kinds & Ratings)"})
+			return
+		}
+	}
 	if anime.TrailerURL == "" {
 		anime.TrailerURL = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
+	}
+	if input.Episodes > 0 && input.EpisodesAired > input.Episodes {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "episodes_aired cannot exceed episodes"})
+		return
 	}
 
 	if err := app.DB.Create(&anime).Error; err != nil {
@@ -159,6 +224,9 @@ type AdminUpdateAnimeInput struct {
     Kind             string  `json:"kind"`
     Duration         int     `json:"duration"`
     Rating           string  `json:"rating"`
+	EpisodesAired    int     `json:"episodes_aired"`
+	AiredOn          string  `json:"aired_on"`
+	ReleasedOn       string  `json:"released_on"`
 	TrailerURL       string  `json:"trailer_url"`
     Score            float64 `json:"score"`
     Episodes         int     `json:"episodes"`
@@ -211,14 +279,46 @@ func AdminUpdateAnime(c *gin.Context) {
         return
     }
 
+	airedOn, err := parseOptionalDate(input.AiredOn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid aired_on"})
+		return
+	}
+	releasedOn, err := parseOptionalDate(input.ReleasedOn)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid released_on"})
+		return
+	}
+
     anime.Name = input.TitleENRomaji
     anime.URL = slug
     anime.Kind = input.Kind
     anime.Duration = input.Duration
     anime.Rating = input.Rating
+	if strings.TrimSpace(anime.Kind) != "" {
+		var k models.KindOption
+		if err := app.DB.Where("name = ?", strings.TrimSpace(anime.Kind)).First(&k).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown kind (add it in Kinds & Ratings)"})
+			return
+		}
+	}
+	if strings.TrimSpace(anime.Rating) != "" {
+		var r models.RatingOption
+		if err := app.DB.Where("name = ?", strings.TrimSpace(anime.Rating)).First(&r).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown rating (add it in Kinds & Ratings)"})
+			return
+		}
+	}
+	anime.EpisodesAired = input.EpisodesAired
+	anime.AiredOn = airedOn
+	anime.ReleasedOn = releasedOn
 	anime.TrailerURL = input.TrailerURL
 	if anime.TrailerURL == "" {
 		anime.TrailerURL = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
+	}
+	if input.Episodes > 0 && input.EpisodesAired > input.Episodes {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "episodes_aired cannot exceed episodes"})
+		return
 	}
     anime.Score = input.Score
     anime.Episodes = input.Episodes
