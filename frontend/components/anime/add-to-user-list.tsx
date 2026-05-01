@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { ChevronDown, Plus } from "lucide-react"
+import { ChevronDown, Plus, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,9 +89,13 @@ export function AddToUserList({ animeId, onUpdate, initialStatus = null }: AddTo
           <DropdownMenuItem
             key={it.value}
             onClick={() => handlePick(it.value)}
-            className="text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A] focus:bg-[#0D1A3A] focus:text-white cursor-pointer"
+            className={cn(
+              "flex items-center justify-between text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A] focus:bg-[#0D1A3A] focus:text-white cursor-pointer",
+              selected === it.value && "bg-[#0D1A3A] text-white"
+            )}
           >
             {it.label}
+            {selected === it.value && <Check className="w-4 h-4 ml-2 text-primary" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

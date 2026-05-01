@@ -5,21 +5,29 @@ import Link from "next/link"
 import { ArrowLeft, Mail, CheckCircle2, Send } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { forgotPassword } from "@/lib/api"
 
 export default function ForgotPasswordPage() {
   const { t } = useLanguage()
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setIsSuccess(true)
+    setError(null)
+    
+    try {
+      await forgotPassword(email)
+      setIsSuccess(true)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -102,6 +110,12 @@ export default function ForgotPasswordPage() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{t.forgotPassword.title}</h1>
                 <p className="text-foreground-muted text-sm">{t.forgotPassword.subtitle}</p>
               </div>
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+                  {error}
+                </div>
+              )}
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5">

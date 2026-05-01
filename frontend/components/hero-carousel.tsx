@@ -6,6 +6,7 @@ import Autoplay from "embla-carousel-autoplay"
 import { Play, Info, ChevronLeft, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import Link from "next/link"
 import { useLanguage } from "@/contexts/language-context"
 import { type Anime, getAnimePosterUrl, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
 
@@ -41,7 +42,7 @@ export function HeroCarousel({ animes }: HeroCarouselProps) {
   }, [emblaApi, onSelect])
 
   return (
-    <section className="relative w-full h-[85vh] min-h-[600px] overflow-hidden">
+    <section className="relative w-full h-[70vh] sm:h-[80vh] lg:h-[85vh] min-h-[500px] sm:min-h-[600px] overflow-hidden">
       <div className="overflow-hidden h-full" ref={emblaRef}>
         <div className="flex h-full">
           {featuredAnime.map((anime, index) => (
@@ -67,13 +68,13 @@ export function HeroCarousel({ animes }: HeroCarouselProps) {
 
               {/* Content */}
               <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-                <div className="max-w-2xl pt-20">
+                <div className="max-w-2xl pt-16 sm:pt-20">
                   {/* Genres */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {anime.genres?.map((genre) => (
+                    {anime.genres?.slice(0, 3).map((genre) => (
                       <span
                         key={genre.id}
-                        className="px-3 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/30 rounded-full"
+                        className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-medium bg-primary/10 text-primary border border-primary/30 rounded-full"
                       >
                         {genre.name}
                       </span>
@@ -81,39 +82,45 @@ export function HeroCarousel({ animes }: HeroCarouselProps) {
                   </div>
 
                   {/* Title */}
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight text-balance">
+                  <h1 className="text-2xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight text-balance">
                     {getLocalizedTitle(anime, locale)}
                   </h1>
 
                   {/* Rating & Episodes */}
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div className="flex items-center gap-1.5">
-                      <Star className="w-5 h-5 text-primary fill-primary" />
-                      <span className="text-lg font-semibold text-primary">
+                      <Star className="w-4 h-4 sm:w-5 sm:h-5 text-primary fill-primary" />
+                      <span className="text-sm sm:text-lg font-semibold text-primary">
                         {anime.score}
                       </span>
                     </div>
                     <span className="text-foreground-muted">•</span>
-                    <span className="text-foreground-muted">
+                    <span className="text-foreground-muted text-xs sm:text-base">
                       {anime.episodes} {t.hero.episodes}
                     </span>
                   </div>
 
                   {/* Synopsis */}
-                  <p className="text-foreground-muted text-lg leading-relaxed mb-8 max-w-xl line-clamp-3">
+                  <p className="text-foreground-muted text-xs sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8 max-w-xl line-clamp-2 sm:line-clamp-3">
                     {getLocalizedDescription(anime, locale)}
                   </p>
 
                   {/* Buttons */}
-                  <div className="flex flex-wrap gap-4">
-                    <button className="group flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:shadow-[var(--glow-primary)] transition-all duration-300">
-                      <Play className="w-5 h-5 fill-current" />
+                  <div className="flex flex-wrap gap-3 sm:gap-4">
+                    <Link 
+                      href={`/anime/${anime.url}`}
+                      className="group flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-primary text-primary-foreground text-sm sm:text-base font-semibold rounded-lg hover:shadow-[var(--glow-primary)] transition-all duration-300"
+                    >
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                       {t.hero.watchNow}
-                    </button>
-                    <button className="flex items-center gap-2 px-8 py-3 bg-transparent border border-secondary/50 text-foreground font-semibold rounded-lg hover:bg-secondary/10 hover:border-secondary transition-all duration-300">
-                      <Info className="w-5 h-5" />
+                    </Link>
+                    <Link 
+                      href={`/anime/${anime.url}`}
+                      className="flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-transparent border border-secondary/50 text-foreground text-sm sm:text-base font-semibold rounded-lg hover:bg-secondary/10 hover:border-secondary transition-all duration-300"
+                    >
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                       {t.hero.moreInfo}
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -125,17 +132,17 @@ export function HeroCarousel({ animes }: HeroCarouselProps) {
       {/* Navigation Arrows */}
       <button
         onClick={scrollPrev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-background/50 backdrop-blur-sm border border-border hover:bg-primary/20 hover:border-primary transition-all duration-300 group"
+        className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 items-center justify-center rounded-full bg-background/50 backdrop-blur-sm border border-border hover:bg-primary/20 hover:border-primary transition-all duration-300 group"
         aria-label="Previous slide"
       >
-        <ChevronLeft className="w-6 h-6 text-foreground group-hover:text-primary transition-colors" />
+        <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6 text-foreground group-hover:text-primary transition-colors" />
       </button>
       <button
         onClick={scrollNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-background/50 backdrop-blur-sm border border-border hover:bg-primary/20 hover:border-primary transition-all duration-300 group"
+        className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 items-center justify-center rounded-full bg-background/50 backdrop-blur-sm border border-border hover:bg-primary/20 hover:border-primary transition-all duration-300 group"
         aria-label="Next slide"
       >
-        <ChevronRight className="w-6 h-6 text-foreground group-hover:text-primary transition-colors" />
+        <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6 text-foreground group-hover:text-primary transition-colors" />
       </button>
 
       {/* Dots Indicator */}

@@ -6,8 +6,8 @@ import { ArtVideoPlayer, type ArtVideoPlayerHandle } from "@/components/anime/ar
 import { AddToUserList } from "@/components/anime/add-to-user-list"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
-import type { Anime, EpisodesByServer, WatchlistStatus, VideoSource } from "@/lib/api"
-import { addToMyCollection } from "@/lib/api"
+import type { Anime, EpisodesByServer, WatchlistStatus, VideoSource, UserListStatus } from "@/lib/api"
+import { addToMyCollection, getMyCollection } from "@/lib/api"
 
 type StreamType = "dubbed" | "subbed"
 
@@ -76,6 +76,17 @@ export function AnimeStreamPlayer({
   const [resumeAt, setResumeAt] = useState(0)
   const [resumePlay, setResumePlay] = useState(false)
   const [autoplayTrailer, setAutoplayTrailer] = useState(false)
+  const [initialListStatus, setInitialStatus] = useState<UserListStatus | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    getMyCollection({ token }).then((list) => {
+      const entry = list.find((x) => x.anime_id === anime.id)
+      if (entry) {
+        setInitialStatus(entry.collection_type.name.toLowerCase().replace(" ", "_") as UserListStatus)
+      }
+    })
+  }, [anime.id, token])
 
   const currentData = useMemo(() => episodesByServer["default"] || null, [episodesByServer])
   const dubbedGroups = currentData?.dub || []
@@ -248,7 +259,11 @@ export function AnimeStreamPlayer({
             )}
           </div>
 
-          <AddToUserList animeId={String(anime.id)} onUpdate={handleUpdateList} />
+          <AddToUserList 
+            animeId={String(anime.id)} 
+            onUpdate={handleUpdateList} 
+            initialStatus={initialListStatus}
+          />
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4">

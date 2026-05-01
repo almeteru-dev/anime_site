@@ -25,45 +25,43 @@ export function ContentSection({ title, subtitle, children, className }: Content
   }
 
   return (
-    <section className={cn("py-8 lg:py-12", className)}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-2xl lg:text-3xl font-bold text-foreground">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="text-foreground-muted mt-1">{subtitle}</p>
-            )}
-          </div>
-          
-          {/* Scroll Buttons */}
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => scroll("left")}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all duration-200 group"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-5 h-5 text-foreground-muted group-hover:text-primary transition-colors" />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all duration-200 group"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-5 h-5 text-foreground-muted group-hover:text-primary transition-colors" />
-            </button>
-          </div>
+    <section className={cn("py-6 lg:py-8", className)}>
+      {/* Header */}
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h2 className="text-xl lg:text-2xl font-bold text-foreground">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-foreground-muted text-sm mt-1">{subtitle}</p>
+          )}
         </div>
+        
+        {/* Scroll Buttons */}
+        <div className="hidden sm:flex items-center gap-2">
+          <button
+            onClick={() => scroll("left")}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all duration-200 group"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-4 h-4 text-foreground-muted group-hover:text-primary transition-colors" />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-border hover:border-primary hover:bg-primary/10 transition-all duration-200 group"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-4 h-4 text-foreground-muted group-hover:text-primary transition-colors" />
+          </button>
+        </div>
+      </div>
 
-        {/* Scrollable Content */}
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-4 lg:gap-6 overflow-x-auto hide-scrollbar pb-4"
-        >
-          {children}
-        </div>
+      {/* Scrollable Content */}
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-4 lg:gap-6 overflow-x-auto hide-scrollbar pb-4"
+      >
+        {children}
       </div>
     </section>
   )

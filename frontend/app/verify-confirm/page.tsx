@@ -1,20 +1,161 @@
 "use client"
 
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
-import { CheckCircle2, Sparkles } from "lucide-react"
+import { CheckCircle2, Sparkles, XCircle, Loader2 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { useSearchParams } from "next/navigation"
+import { verifyEmailToken } from "@/lib/api"
+
+function VerifyConfirmContent() {
+  const { t } = useLanguage()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const verify = async () => {
+      if (!token) {
+        setStatus("error")
+        setErrorMessage("Verification token is missing")
+        return
+      }
+
+      try {
+        await verifyEmailToken(token)
+        setStatus("success")
+      } catch (err: any) {
+        setStatus("error")
+        setErrorMessage(err.message)
+      }
+    }
+
+    verify()
+  }, [token])
+
+  return (
+    <div 
+      className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 text-center"
+      style={{
+        backgroundColor: "rgba(8, 18, 41, 0.85)",
+        border: "1px solid rgba(163, 207, 255, 0.3)",
+        boxShadow: status === "error"
+          ? "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 60px -15px rgba(239, 68, 68, 0.1)"
+          : "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 60px -15px rgba(0, 229, 255, 0.2)",
+      }}
+    >
+      {/* Logo */}
+      <div className="flex justify-center mb-8">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-2xl">A</span>
+            </div>
+          </div>
+          <span className="text-3xl font-bold tracking-tight text-foreground">
+            Anime<span className="text-primary">Vista</span>
+          </span>
+        </Link>
+      </div>
+
+      {status === "loading" && (
+        <div className="py-12 flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-foreground-muted">{t.common?.loading || "Verifying..."}</p>
+        </div>
+      )}
+
+      {status === "success" && (
+        <>
+          <div className="flex justify-center mb-6">
+            <div className="relative w-28 h-28" style={{ animation: "bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
+              <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl" />
+              <div className="relative w-full h-full bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(0,229,255,0.4)]">
+                <CheckCircle2 className="w-14 h-14 text-primary-foreground" />
+              </div>
+              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary" style={{ animation: "sparkle 2s ease-in-out infinite" }} />
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <span className="inline-block px-3 py-1 text-xs font-semibold text-primary bg-primary/10 rounded-full mb-3">
+              {t.verifyConfirm.subtitle}
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">{t.verifyConfirm.title}</h1>
+            <p className="text-foreground-muted text-sm leading-relaxed">
+              {t.verifyConfirm.message}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Link
+              href="/login"
+              className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              {t.verifyConfirm.login}
+            </Link>
+          </div>
+        </>
+      )}
+
+      {status === "error" && (
+        <>
+          <div className="flex justify-center mb-6">
+            <div className="relative w-28 h-28" style={{ animation: "bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
+              <div className="absolute inset-0 bg-red-500/30 rounded-full blur-2xl" />
+              <div className="relative w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.4)]">
+                <XCircle className="w-14 h-14 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Verification Failed</h1>
+            <p className="text-red-400 text-sm leading-relaxed mb-4">
+              {errorMessage}
+            </p>
+            <p className="text-foreground-muted text-sm leading-relaxed">
+              The link may be invalid or expired. Please try to register again or request a new verification link.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Link
+              href="/register"
+              className="w-full h-12 bg-secondary text-secondary-foreground font-semibold rounded-xl transition-all duration-300 hover:bg-secondary/80 flex items-center justify-center gap-2"
+            >
+              Back to Registration
+            </Link>
+            <Link
+              href="/login"
+              className="text-primary font-medium hover:underline text-sm"
+            >
+              Back to Login
+            </Link>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 export default function VerifyConfirmPage() {
   const { t } = useLanguage()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center px-4 py-8">
-      {/* Background gradient - celebratory */}
+      {/* Background gradient */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at 50% 30%, rgba(0, 229, 255, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 70%, rgba(0, 200, 255, 0.05) 0%, transparent 40%)",
+          background: status === "error" 
+            ? "radial-gradient(ellipse at 50% 30%, rgba(239, 68, 68, 0.08) 0%, transparent 50%)"
+            : "radial-gradient(ellipse at 50% 30%, rgba(0, 229, 255, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 70%, rgba(0, 200, 255, 0.05) 0%, transparent 40%)",
         }}
       />
       
@@ -29,20 +170,22 @@ export default function VerifyConfirmPage() {
       </div>
 
       {/* Floating particles effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 bg-primary/30 rounded-full"
-            style={{
-              left: `${15 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              animation: `float-particle ${3 + i * 0.5}s ease-in-out infinite`,
-              animationDelay: `${i * 0.3}s`,
-            }}
-          />
-        ))}
-      </div>
+      {status === "success" && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-primary/30 rounded-full"
+              style={{
+                left: `${15 + i * 15}%`,
+                top: `${20 + (i % 3) * 25}%`,
+                animation: `float-particle ${3 + i * 0.5}s ease-in-out infinite`,
+                animationDelay: `${i * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Scan-line animation overlay */}
       <div 
@@ -61,9 +204,11 @@ export default function VerifyConfirmPage() {
           0%, 100% { transform: translateY(0px) scale(1); opacity: 0.3; }
           50% { transform: translateY(-20px) scale(1.2); opacity: 0.6; }
         }
-        @keyframes success-bounce {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
+        @keyframes bounce-in {
+          0% { transform: scale(0.3); opacity: 0; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          70% { transform: scale(0.9); opacity: 0.9; }
+          100% { transform: scale(1); opacity: 1; }
         }
         @keyframes sparkle {
           0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
@@ -73,94 +218,16 @@ export default function VerifyConfirmPage() {
 
       {/* Card */}
       <div className="relative w-full max-w-md">
-        {/* Gradient border effect - more vibrant for success */}
-        <div className="absolute -inset-[1px] bg-gradient-to-br from-primary/60 via-secondary/30 to-primary/20 rounded-2xl pointer-events-none" />
+        {/* Gradient border effect */}
+        <div className={`absolute -inset-[1px] rounded-2xl pointer-events-none ${
+          status === "error" 
+            ? "bg-gradient-to-br from-red-500/50 via-transparent to-transparent" 
+            : "bg-gradient-to-br from-primary/60 via-secondary/30 to-primary/20"
+        }`} />
         
-        <div 
-          className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.85)",
-            border: "1px solid rgba(163, 207, 255, 0.3)",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 60px -15px rgba(0, 229, 255, 0.2)",
-          }}
-        >
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-2xl">A</span>
-                </div>
-                <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-3xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
-              </span>
-            </Link>
-          </div>
-
-          {/* Success Icon */}
-          <div className="flex justify-center mb-6">
-            <div 
-              className="relative w-28 h-28"
-              style={{ animation: "success-bounce 2s ease-in-out infinite" }}
-            >
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl" />
-              
-              {/* Main circle */}
-              <div className="relative w-full h-full bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(0,229,255,0.4)]">
-                <CheckCircle2 className="w-14 h-14 text-primary-foreground" />
-              </div>
-              
-              {/* Sparkles */}
-              <Sparkles 
-                className="absolute -top-2 -right-2 w-6 h-6 text-primary" 
-                style={{ animation: "sparkle 2s ease-in-out infinite" }}
-              />
-              <Sparkles 
-                className="absolute -bottom-1 -left-3 w-5 h-5 text-secondary" 
-                style={{ animation: "sparkle 2s ease-in-out infinite 0.5s" }}
-              />
-              <Sparkles 
-                className="absolute top-1/2 -right-4 w-4 h-4 text-primary/70" 
-                style={{ animation: "sparkle 2s ease-in-out infinite 1s" }}
-              />
-            </div>
-          </div>
-
-          {/* Heading */}
-          <div className="text-center mb-8">
-            <span className="inline-block px-3 py-1 text-xs font-semibold text-primary bg-primary/10 rounded-full mb-3">
-              {t.verifyConfirm.subtitle}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">{t.verifyConfirm.title}</h1>
-            <p className="text-foreground-muted text-sm leading-relaxed">
-              {t.verifyConfirm.message}
-            </p>
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="space-y-4">
-            <Link
-              href="/profile"
-              className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] flex items-center justify-center gap-2"
-            >
-              {t.verifyConfirm.goToDashboard}
-            </Link>
-            
-            <div className="flex items-center justify-center gap-3 text-sm text-foreground-muted">
-              <span>{t.verifyConfirm.orLogin}</span>
-              <Link 
-                href="/login" 
-                className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
-              >
-                {t.verifyConfirm.login}
-              </Link>
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={<div className="text-foreground-muted text-center py-12">Loading verification...</div>}>
+          <VerifyConfirmContent />
+        </Suspense>
       </div>
     </div>
   )

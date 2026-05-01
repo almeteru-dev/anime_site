@@ -51,15 +51,26 @@ func main() {
 		// Auth routes
 		api.POST("/register", handlers.Register)
 		api.POST("/login", handlers.Login)
+		api.GET("/verify-email", handlers.VerifyEmail)
+		api.POST("/resend-verification", handlers.ResendVerification)
+		api.POST("/forgot-password", handlers.ForgotPassword)
+		api.POST("/reset-password", handlers.ResetPassword)
 
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
 		api.GET("/animes/:id/episodes", handlers.GetAnimeEpisodes)
 
 		// Protected routes
-		protected := api.Group("/")
+		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			protected.GET("/me", handlers.GetMe)
+			protected.PUT("/me/age", handlers.UpdateAge)
+			protected.PUT("/me/password", handlers.UpdatePassword)
+			protected.POST("/me/email/request-old", handlers.RequestOldEmailCode)
+			protected.POST("/me/email/verify-old", handlers.VerifyOldEmailCode)
+			protected.POST("/me/email/request-new", handlers.RequestNewEmailCode)
+			protected.POST("/me/email/verify-new", handlers.VerifyNewEmailCode)
 			protected.GET("/collections", handlers.GetMyCollections)
 			protected.POST("/collections", handlers.AddToMyCollection)
 			protected.DELETE("/collections/:animeId", handlers.RemoveFromMyCollection)

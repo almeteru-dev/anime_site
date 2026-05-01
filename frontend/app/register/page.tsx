@@ -29,6 +29,29 @@ export default function RegisterPage() {
       setError("Passwords do not match")
       return
     }
+
+    // Password validation
+    const password = formData.password
+    if (password.length < 10) {
+      setError("Password must be at least 10 characters long")
+      return
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain at least one uppercase letter")
+      return
+    }
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain at least one digit")
+      return
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setError("Password must contain at least one special character")
+      return
+    }
+    if (!/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$/.test(password)) {
+      setError("Password must only contain English letters, digits, and special characters")
+      return
+    }
     
     setIsLoading(true)
     setError(null)
@@ -50,7 +73,7 @@ export default function RegisterPage() {
         throw new Error(data.error || "Registration failed")
       }
 
-      router.push("/login")
+      router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`)
     } catch (err: any) {
       setError(err.message)
     } finally {

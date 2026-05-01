@@ -1,17 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { ArrowLeft, Mail, Send, CheckCircle2 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { useSearchParams } from "next/navigation"
+import { resendVerificationEmail } from "@/lib/api"
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const { t } = useLanguage()
+  const searchParams = useSearchParams()
+  const email = searchParams.get("email") || ""
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [showResendSuccess, setShowResendSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (countdown > 0 && !canResend) {
@@ -23,18 +28,156 @@ export default function VerifyEmailPage() {
   }, [countdown, canResend])
 
   const handleResend = async () => {
-    if (!canResend) return
+    if (!canResend || !email) return
     setIsResending(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsResending(false)
-    setShowResendSuccess(true)
-    setCountdown(60)
-    setCanResend(false)
+    setError(null)
     
-    // Hide success message after 3 seconds
-    setTimeout(() => setShowResendSuccess(false), 3000)
+    try {
+      await resendVerificationEmail(email)
+      setShowResendSuccess(true)
+      setCountdown(60)
+      setCanResend(false)
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => setShowResendSuccess(false), 3000)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsResending(false)
+    }
   }
+
+  return (
+    <div className="relative w-full max-w-md">
+      {/* Gradient border effect */}
+      <div className="absolute -inset-[1px] bg-gradient-to-br from-primary/50 via-secondary/20 to-transparent rounded-2xl pointer-events-none" />
+      
+      <div 
+        className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
+        style={{
+          backgroundColor: "rgba(8, 18, 41, 0.8)",
+          border: "1px solid rgba(163, 207, 255, 0.2)",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-2xl">A</span>
+              </div>
+              <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <span className="text-3xl font-bold tracking-tight">
+              <span className="text-foreground">Anime</span>
+              <span className="text-primary">Vista</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Email Icon */}
+        <div className="flex justify-center mb-6">
+          <div 
+            className="relative w-24 h-24"
+            style={{ animation: "float 3s ease-in-out infinite" }}
+          >
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl" />
+            <div className="relative w-full h-full bg-gradient-to-br from-[#081229] to-[#0D1A3A] rounded-full flex items-center justify-center border border-primary/30">
+              <Mail className="w-12 h-12 text-primary" />
+            </div>
+            {/* Notification dot */}
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+              !
+            </div>
+          </div>
+        </div>
+
+        {/* Heading */}
+        <div className="text-center mb-6">
+          <span className="inline-block px-3 py-1 text-xs font-semibold text-orange-400 bg-orange-400/10 rounded-full mb-3">
+            {t.verifyEmail.subtitle}
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">{t.verifyEmail.title}</h1>
+          <p className="text-foreground-muted text-sm leading-relaxed">
+            {t.verifyEmail.messageLine1}
+            <br />
+            {t.verifyEmail.messageLine2}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Resend Success Message */}
+        {showResendSuccess && (
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/30 rounded-xl flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+            <div>
+              <p className="text-primary font-medium text-sm">{t.verifyEmail.emailResent}</p>
+              <p className="text-foreground-muted text-xs">{t.verifyEmail.checkInbox}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Resend Button */}
+        <button
+          onClick={handleResend}
+          disabled={!canResend || isResending}
+          className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+        >
+          {isResending ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle 
+                  className="opacity-25" 
+                  cx="12" 
+                  cy="12" 
+                  r="10" 
+                  stroke="currentColor" 
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path 
+                  className="opacity-75" 
+                  fill="currentColor" 
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <span>{t.common.loading}</span>
+            </>
+          ) : canResend ? (
+            <>
+              <Send className="w-5 h-5" />
+              {t.verifyEmail.resendEmail}
+            </>
+          ) : (
+            <>
+              <Send className="w-5 h-5" />
+              {t.verifyEmail.resendIn} {countdown}s
+            </>
+          )}
+        </button>
+
+        {/* Back to Login Link */}
+        <p className="text-center mt-6 text-foreground-muted text-sm">
+          <Link 
+            href="/login" 
+            className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
+          >
+            {t.verifyEmail.backToLogin}
+          </Link>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default function VerifyEmailPage() {
+  const { t } = useLanguage()
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center px-4 py-8">
@@ -84,126 +227,9 @@ export default function VerifyEmailPage() {
         <LanguageSwitcher />
       </div>
 
-      {/* Card */}
-      <div className="relative w-full max-w-md">
-        {/* Gradient border effect */}
-        <div className="absolute -inset-[1px] bg-gradient-to-br from-primary/50 via-secondary/20 to-transparent rounded-2xl pointer-events-none" />
-        
-        <div 
-          className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.8)",
-            border: "1px solid rgba(163, 207, 255, 0.2)",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-2xl">A</span>
-                </div>
-                <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-3xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
-              </span>
-            </Link>
-          </div>
-
-          {/* Email Icon */}
-          <div className="flex justify-center mb-6">
-            <div 
-              className="relative w-24 h-24"
-              style={{ animation: "float 3s ease-in-out infinite" }}
-            >
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl" />
-              <div className="relative w-full h-full bg-gradient-to-br from-[#081229] to-[#0D1A3A] rounded-full flex items-center justify-center border border-primary/30">
-                <Mail className="w-12 h-12 text-primary" />
-              </div>
-              {/* Notification dot */}
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                !
-              </div>
-            </div>
-          </div>
-
-          {/* Heading */}
-          <div className="text-center mb-6">
-            <span className="inline-block px-3 py-1 text-xs font-semibold text-orange-400 bg-orange-400/10 rounded-full mb-3">
-              {t.verifyEmail.subtitle}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">{t.verifyEmail.title}</h1>
-            <p className="text-foreground-muted text-sm leading-relaxed">
-              {t.verifyEmail.messageLine1}
-              <br />
-              {t.verifyEmail.messageLine2}
-            </p>
-          </div>
-
-          {/* Resend Success Message */}
-          {showResendSuccess && (
-            <div className="mb-6 p-4 bg-primary/10 border border-primary/30 rounded-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-              <div>
-                <p className="text-primary font-medium text-sm">{t.verifyEmail.emailResent}</p>
-                <p className="text-foreground-muted text-xs">{t.verifyEmail.checkInbox}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Resend Button */}
-          <button
-            onClick={handleResend}
-            disabled={!canResend || isResending}
-            className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
-          >
-            {isResending ? (
-              <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span>{t.common.loading}</span>
-              </>
-            ) : canResend ? (
-              <>
-                <Send className="w-5 h-5" />
-                {t.verifyEmail.resendEmail}
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                {t.verifyEmail.resendIn} {countdown}s
-              </>
-            )}
-          </button>
-
-          {/* Back to Login Link */}
-          <p className="text-center mt-6 text-foreground-muted text-sm">
-            <Link 
-              href="/login" 
-              className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
-            >
-              {t.verifyEmail.backToLogin}
-            </Link>
-          </p>
-        </div>
-      </div>
+      <Suspense fallback={<div className="text-foreground-muted">Loading...</div>}>
+        <VerifyEmailContent />
+      </Suspense>
     </div>
   )
 }

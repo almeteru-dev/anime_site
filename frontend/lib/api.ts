@@ -131,6 +131,149 @@ export async function getAnimes(): Promise<Anime[]> {
   return res.json()
 }
 
+// Auth API Functions
+
+export async function verifyEmailToken(token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/verify-email?token=${encodeURIComponent(token)}`)
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Verification failed")
+  }
+}
+
+export async function resendVerificationEmail(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to resend verification")
+  }
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to send reset link")
+  }
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  const res = await fetch(`${API_URL}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to reset password")
+  }
+}
+
+export async function updateAge(params: { token: string; age: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/me/age`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ age: params.age }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to update age")
+  }
+}
+
+export async function updatePassword(params: { 
+  token: string; 
+  current_password: string; 
+  new_password: string 
+}): Promise<void> {
+  const res = await fetch(`${API_URL}/me/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ 
+      current_password: params.current_password, 
+      new_password: params.new_password 
+    }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to update password")
+  }
+}
+
+export async function requestOldEmailCode(params: { token: string; email: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/me/email/request-old`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ email: params.email }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to request code")
+  }
+}
+
+export async function verifyOldEmailCode(params: { token: string; code: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/me/email/verify-old`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ code: params.code }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Invalid code")
+  }
+}
+
+export async function requestNewEmailCode(params: { token: string; email: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/me/email/request-new`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ email: params.email }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to request code")
+  }
+}
+
+export async function verifyNewEmailCode(params: { token: string; code: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/me/email/verify-new`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ code: params.code }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Invalid code")
+  }
+}
+
 export async function getAnimeByID(id: string): Promise<Anime> {
   const res = await fetch(`${API_URL}/animes/${id}`, {
     cache: "no-store",
@@ -172,6 +315,32 @@ export async function getAnimeEpisodesBySlug(slug: string): Promise<Episode[]> {
     const data = await res.json().catch(() => ({}))
     throw new Error(data.error || "Failed to fetch episodes")
   }
+  return res.json()
+}
+
+export interface User {
+  id: number
+  username: string
+  email: string
+  avatar_url?: string
+  age?: number
+  role: string
+  created_at: string
+}
+
+export async function getMe(params: { token: string }): Promise<User> {
+  const res = await fetch(`${API_URL}/me`, {
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to fetch user profile")
+  }
+
   return res.json()
 }
 
