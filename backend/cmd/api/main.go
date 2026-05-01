@@ -108,6 +108,12 @@ func main() {
 				admin.POST("/animes/:id/episodes", handlers.AdminCreateEpisode)
 				admin.PUT("/episodes/:id", handlers.AdminUpdateEpisode)
 				admin.DELETE("/episodes/:id", handlers.AdminDeleteEpisode)
+
+				// Video Source routes
+				admin.POST("/episodes/:id/sources", handlers.AdminCreateVideoSource)
+				admin.PUT("/video-sources/:id", handlers.AdminUpdateVideoSource)
+				admin.DELETE("/video-sources/:id", handlers.AdminDeleteVideoSource)
+				admin.PUT("/video-sources/:id/default", handlers.AdminSetDefaultVideoSource)
 			}
 		}
 	}

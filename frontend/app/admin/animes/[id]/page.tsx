@@ -17,10 +17,16 @@ import {
   adminUpdateAnime,
   getAnimeByID,
   getAnimeEpisodesFiltered,
+  adminCreateVideoSource,
+  adminUpdateVideoSource,
+  adminDeleteVideoSource,
+  adminSetDefaultVideoSource,
   type AdminUpsertEpisodeInput,
+  type AdminUpsertVideoSourceInput,
   type AdminMeta,
   type Anime,
   type Episode,
+  type VideoSource,
   type VoiceGroup,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -46,10 +52,20 @@ export default function AdminEditAnimePage() {
   const [voiceGroups, setVoiceGroups] = useState<VoiceGroup[] | null>(null)
   const [episodesTab, setEpisodesTab] = useState<"voice_groups" | "episodes">("episodes")
   const [existingGroupsFilter, setExistingGroupsFilter] = useState<"all" | "dub" | "sub">("all")
-  const [selectedServerNumber, setSelectedServerNumber] = useState<number>(1)
   const [selectedGroupType, setSelectedGroupType] = useState<"dub" | "sub">("dub")
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [newGroupName, setNewGroupName] = useState("")
+
+  const [selectedEpisodeForSources, setSelectedEpisodeForSources] = useState<Episode | null>(null)
+  const [sourceForm, setSourceForm] = useState<AdminUpsertVideoSourceInput>({
+    label: "",
+    type: "iframe",
+    url: "",
+    is_default: false,
+    is_active: true,
+    sort_order: 0,
+  })
+  const [editingSourceId, setEditingSourceId] = useState<number | null>(null)
 
   const [voiceGroupForm, setVoiceGroupForm] = useState<{ name: string; type: "dub" | "sub" }>({
     name: "",
@@ -57,10 +73,8 @@ export default function AdminEditAnimePage() {
   })
   const [editingVoiceGroupId, setEditingVoiceGroupId] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<AdminUpsertEpisodeInput>({
-    server_number: 1,
     group_id: 0,
     number: 1,
-    video_url: "",
     duration: 24,
   })
 
@@ -179,10 +193,6 @@ export default function AdminEditAnimePage() {
   }, [selectedGroupId, selectedGroupType, voiceGroups])
 
   useEffect(() => {
-    setEpisodeForm((p) => ({ ...p, server_number: selectedServerNumber }))
-  }, [selectedServerNumber])
-
-  useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
@@ -192,7 +202,6 @@ export default function AdminEditAnimePage() {
         }
         const data = await getAnimeEpisodesFiltered({
           idOrSlug: params.id,
-          server_number: selectedServerNumber,
           group_id: selectedGroupId,
         })
         if (mounted) setEpisodes(data)
@@ -203,29 +212,24 @@ export default function AdminEditAnimePage() {
     return () => {
       mounted = false
     }
-  }, [params.id, selectedGroupId, selectedServerNumber])
+  }, [params.id, selectedGroupId])
 
   const resetEpisodeForm = () => {
     setEditingEpisodeId(null)
     setEpisodeForm({
-      server_number: selectedServerNumber,
       group_id: selectedGroupId || 0,
       number: 1,
-      video_url: "",
       duration: 24,
     })
   }
 
   const startEditEpisode = (ep: Episode) => {
-    setSelectedServerNumber(ep.server_number)
     if (ep.voice_group?.type) setSelectedGroupType(ep.voice_group.type)
     setSelectedGroupId(ep.group_id)
     setEditingEpisodeId(ep.id)
     setEpisodeForm({
-      server_number: ep.server_number,
       group_id: ep.group_id,
       number: ep.number,
-      video_url: ep.video_url,
       duration: ep.duration || 0,
     })
   }
@@ -328,7 +332,6 @@ export default function AdminEditAnimePage() {
 
     const input: AdminUpsertEpisodeInput = {
       ...episodeForm,
-      server_number: selectedServerNumber,
       group_id: selectedGroupId,
     }
 
@@ -377,8 +380,109 @@ export default function AdminEditAnimePage() {
       await adminDeleteEpisode({ token, episodeId: String(ep.id) })
       setEpisodes((prev) => (prev ? prev.filter((x) => x.id !== ep.id) : prev))
       if (editingEpisodeId === ep.id) resetEpisodeForm()
+      if (selectedEpisodeForSources?.id === ep.id) setSelectedEpisodeForSources(null)
     } catch (e: any) {
       setEpisodeError(e.message || "Failed to delete episode")
+    } finally {
+      setEpisodeSaving(false)
+    }
+  }
+
+  const saveSource = async () => {
+    if (!token || !selectedEpisodeForSources) return
+    setEpisodeSaving(true)
+    setEpisodeError(null)
+    try {
+      if (editingSourceId) {
+        const updated = await adminUpdateVideoSource({
+          token,
+          sourceId: String(editingSourceId),
+          input: sourceForm,
+        })
+        setSelectedEpisodeForSources((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            video_sources: (prev.video_sources || []).map((s) => (s.id === updated.id ? updated : s)),
+          }
+        })
+      } else {
+        const created = await adminCreateVideoSource({
+          token,
+          episodeId: String(selectedEpisodeForSources.id),
+          input: sourceForm,
+        })
+        setSelectedEpisodeForSources((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            video_sources: [...(prev.video_sources || []), created],
+          }
+        })
+      }
+      setSourceForm({
+        label: "",
+        type: "iframe",
+        url: "",
+        is_default: false,
+        is_active: true,
+        sort_order: 0,
+      })
+      setEditingSourceId(null)
+    } catch (e: any) {
+      setEpisodeError(e.message || "Failed to save video source")
+    } finally {
+      setEpisodeSaving(false)
+    }
+  }
+
+  const deleteSource = async (source: VideoSource) => {
+    if (!token || !selectedEpisodeForSources) return
+    if (selectedEpisodeForSources.video_sources?.length === 1) {
+      setEpisodeError("Cannot delete the last source")
+      return
+    }
+    const ok = window.confirm(`Delete source "${source.label}"?`)
+    if (!ok) return
+
+    setEpisodeSaving(true)
+    setEpisodeError(null)
+    try {
+      await adminDeleteVideoSource({ token, sourceId: String(source.id) })
+      setSelectedEpisodeForSources((prev) => {
+        if (!prev) return prev
+        const filtered = (prev.video_sources || []).filter((s) => s.id !== source.id)
+        if (source.is_default && filtered.length > 0) {
+          filtered[0].is_default = true
+        }
+        return { ...prev, video_sources: filtered }
+      })
+      if (editingSourceId === source.id) setEditingSourceId(null)
+    } catch (e: any) {
+      setEpisodeError(e.message || "Failed to delete source")
+    } finally {
+      setEpisodeSaving(false)
+    }
+  }
+
+  const setDefaultSource = async (sourceId: number) => {
+    if (!token || !selectedEpisodeForSources) return
+    setEpisodeSaving(true)
+    setEpisodeError(null)
+    try {
+      await adminSetDefaultVideoSource({ token, sourceId: String(sourceId) })
+      setSelectedEpisodeForSources((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          video_sources: (prev.video_sources || []).map((s) => ({
+            ...s,
+            is_default: s.id === sourceId,
+          })),
+        }
+      })
+    } catch (e: any) {
+      setEpisodeError(e.message || "Failed to set default source")
     } finally {
       setEpisodeSaving(false)
     }
@@ -657,15 +761,12 @@ export default function AdminEditAnimePage() {
                 className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
               >
                 <option value="">Select…</option>
-                {[...(meta?.kinds || []), ...(form.kind && !(meta?.kinds || []).some((k) => k.name === form.kind) ? [{ id: -1, name: form.kind }] : [])].map((k) => (
+                {(meta?.kinds || []).map((k) => (
                   <option key={k.id} value={k.name}>
                     {k.name}
                   </option>
                 ))}
               </select>
-              <Link href="/admin/kinds-ratings" target="_blank" className="text-xs text-primary hover:underline">
-                Manage kinds
-              </Link>
             </div>
 
             <div className="space-y-2">
@@ -676,15 +777,12 @@ export default function AdminEditAnimePage() {
                 className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
               >
                 <option value="">Select…</option>
-                {[...(meta?.ratings || []), ...(form.rating && !(meta?.ratings || []).some((r) => r.name === form.rating) ? [{ id: -1, name: form.rating }] : [])].map((r) => (
+                {(meta?.ratings || []).map((r) => (
                   <option key={r.id} value={r.name}>
                     {r.name}
                   </option>
                 ))}
               </select>
-              <Link href="/admin/kinds-ratings" target="_blank" className="text-xs text-primary hover:underline">
-                Manage ratings
-              </Link>
             </div>
 
             <div className="space-y-2 lg:col-span-2">
@@ -825,7 +923,7 @@ export default function AdminEditAnimePage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-foreground">Episodes</h2>
-            <p className="text-sm text-foreground-muted">Select server and voice group, then add or edit episodes</p>
+            <p className="text-sm text-foreground-muted">Select voice group, then add or edit episodes</p>
           </div>
           {editingEpisodeId && (
             <button
@@ -1044,30 +1142,6 @@ export default function AdminEditAnimePage() {
             <div className="mt-5 rounded-2xl border border-border/60 bg-background p-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <div className="text-xs font-semibold text-foreground-muted">Server</div>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => {
-                      setSelectedServerNumber(n)
-                      setEditingEpisodeId(null)
-                    }}
-                    className={cn(
-                      "rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
-                      selectedServerNumber === n
-                        ? "border-primary/40 bg-primary/10 text-foreground"
-                        : "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
-                    )}
-                  >
-                    Server {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <div className="text-xs font-semibold text-foreground-muted">Category</div>
               <div className="flex items-center gap-2">
                 {([
@@ -1121,7 +1195,7 @@ export default function AdminEditAnimePage() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 lg:col-span-2">
               <label className="text-xs font-semibold text-foreground-muted">Quick add group</label>
               <div className="flex items-center gap-2">
                 <input
@@ -1175,24 +1249,16 @@ export default function AdminEditAnimePage() {
                   className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-xs font-semibold text-foreground-muted">Video URL (direct or iframe src)</label>
-                <input
-                  value={episodeForm.video_url}
-                  onChange={(e) => setEpisodeForm((p) => ({ ...p, video_url: e.target.value }))}
-                  className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
-                />
-              </div>
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={saveEpisode}
-                disabled={!episodeForm.video_url.trim() || episodeSaving || !selectedGroupId}
+                disabled={episodeSaving || !selectedGroupId}
                 className={cn(
                   "inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold",
-                  !episodeForm.video_url.trim() || episodeSaving || !selectedGroupId
+                  episodeSaving || !selectedGroupId
                     ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
@@ -1211,26 +1277,40 @@ export default function AdminEditAnimePage() {
             ) : (
               <div className="space-y-2">
                 {episodes.map((ep) => (
-                  <div key={ep.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background-secondary/30 px-4 py-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-foreground truncate">Episode {ep.number}</div>
-                      <div className="text-xs text-foreground-muted truncate">{ep.video_url}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => startEditEpisode(ep)}
-                        className="rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteEpisode(ep)}
-                        className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15"
-                      >
-                        Delete
-                      </button>
+                  <div key={ep.id} className="flex flex-col gap-2 rounded-xl border border-border/50 bg-background-secondary/30 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-foreground truncate">Episode {ep.number}</div>
+                        <div className="text-xs text-foreground-muted truncate">{(ep.video_sources || []).length} sources</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEpisodeForSources(ep)}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                            selectedEpisodeForSources?.id === ep.id
+                              ? "border-primary/40 bg-primary/10 text-foreground"
+                              : "border-border/60 bg-background text-foreground-muted hover:text-foreground"
+                          )}
+                        >
+                          Sources
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEditEpisode(ep)}
+                          className="rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteEpisode(ep)}
+                          className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1238,6 +1318,174 @@ export default function AdminEditAnimePage() {
             )}
           </div>
         </div>
+
+        {selectedEpisodeForSources && (
+          <div className="mt-8 rounded-2xl border border-primary/30 bg-primary/5 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Video Sources for Episode #{selectedEpisodeForSources.number}</h3>
+                <p className="text-sm text-foreground-muted">Manage multiple servers/players for this episode</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedEpisodeForSources(null)}
+                className="text-foreground-muted hover:text-foreground text-sm font-semibold"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-5">
+                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">{editingSourceId ? "Edit Source" : "Add New Source"}</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted">Label (e.g. Kodik)</label>
+                    <input
+                      value={sourceForm.label}
+                      onChange={(e) => setSourceForm((p) => ({ ...p, label: e.target.value }))}
+                      placeholder="Server Name"
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted">Type</label>
+                    <select
+                      value={sourceForm.type}
+                      onChange={(e) => setSourceForm((p) => ({ ...p, type: e.target.value as "iframe" | "direct" }))}
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    >
+                      <option value="iframe">Iframe Embed</option>
+                      <option value="direct">Direct (Artplayer)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-xs font-semibold text-foreground-muted">URL</label>
+                    <input
+                      value={sourceForm.url}
+                      onChange={(e) => setSourceForm((p) => ({ ...p, url: e.target.value }))}
+                      placeholder="https://…"
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted">Order</label>
+                    <input
+                      type="number"
+                      value={sourceForm.sort_order}
+                      onChange={(e) => setSourceForm((p) => ({ ...p, sort_order: Number(e.target.value) }))}
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4 pt-6">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={sourceForm.is_active}
+                        onChange={(e) => setSourceForm((p) => ({ ...p, is_active: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+                      />
+                      <span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">Active</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={sourceForm.is_default}
+                        onChange={(e) => setSourceForm((p) => ({ ...p, is_default: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+                      />
+                      <span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">Default</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  {editingSourceId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSourceId(null)
+                        setSourceForm({ label: "", type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
+                      }}
+                      className="px-4 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={saveSource}
+                    disabled={!sourceForm.label.trim() || !sourceForm.url.trim() || episodeSaving}
+                    className={cn(
+                      "rounded-xl px-5 py-2.5 text-sm font-semibold",
+                      !sourceForm.label.trim() || !sourceForm.url.trim() || episodeSaving
+                        ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    )}
+                  >
+                    {episodeSaving ? "Saving…" : editingSourceId ? "Save Source" : "Add Source"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Current Sources</h4>
+                <div className="space-y-3">
+                  {(selectedEpisodeForSources.video_sources || []).map((s) => (
+                    <div key={s.id} className={cn(
+                      "flex items-center justify-between gap-4 rounded-xl border p-4",
+                      s.is_default ? "border-primary/40 bg-primary/5" : "border-border/60 bg-background"
+                    )}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-foreground">{s.label}</span>
+                          {s.is_default && <span className="text-[10px] font-bold uppercase bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Default</span>}
+                          {!s.is_active && <span className="text-[10px] font-bold uppercase bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Inactive</span>}
+                        </div>
+                        <div className="text-xs text-foreground-muted truncate mt-1">{s.type} • {s.url}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!s.is_default && (
+                          <button
+                            type="button"
+                            onClick={() => setDefaultSource(s.id)}
+                            className="p-2 text-foreground-muted hover:text-primary transition-colors"
+                            title="Set as Default"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSourceId(s.id)
+                            setSourceForm({
+                              label: s.label,
+                              type: s.type,
+                              url: s.url,
+                              is_default: s.is_default,
+                              is_active: s.is_active,
+                              sort_order: s.sort_order,
+                            })
+                          }}
+                          className="p-2 text-foreground-muted hover:text-foreground transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSource(s)}
+                          className="p-2 text-foreground-muted hover:text-red-400 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
           </>
         )}
       </div>

@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"sort"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
@@ -59,69 +59,95 @@ func GetAnimeByID(c *gin.Context) {
 	var episodes []models.Episode
 	_ = app.DB.Where("anime_id = ?", anime.ID).
 		Preload("VoiceGroup").
-		Order("server_number asc").
+		Preload("VideoSources").
 		Order("group_id asc").
 		Order("number asc").
 		Find(&episodes).Error
 
+	type VideoSourceItem struct {
+		ID        int64                  `json:"id"`
+		Label     string                 `json:"label"`
+		Type      models.VideoSourceType `json:"type"`
+		URL       string                 `json:"url"`
+		IsDefault bool                   `json:"is_default"`
+		IsActive  bool                   `json:"is_active"`
+		SortOrder int64                  `json:"sort_order"`
+	}
+
 	type EpisodeItem struct {
-		ID           int64  `json:"id"`
-		Number       int    `json:"number"`
-		VideoURL     string `json:"video_url"`
-		Duration     int    `json:"duration"`
-		GroupID      int64  `json:"group_id"`
-		ServerNumber int    `json:"server_number"`
+		ID           int64             `json:"id"`
+		Number       int               `json:"number"`
+		Duration     int               `json:"duration"`
+		GroupID      int64             `json:"group_id"`
+		VideoSources []VideoSourceItem `json:"video_sources"`
 	}
 
 	type VoiceGroupWithEpisodes struct {
-		ID       int64          `json:"id"`
-		Name     string         `json:"name"`
+		ID       int64                 `json:"id"`
+		Name     string                `json:"name"`
 		Type     models.VoiceGroupType `json:"type"`
-		Episodes []EpisodeItem  `json:"episodes"`
+		Episodes []EpisodeItem         `json:"episodes"`
 	}
 
-	type EpisodesByServer map[string]map[string][]VoiceGroupWithEpisodes
-
-	byServer := map[int]map[int64]*VoiceGroupWithEpisodes{}
+	byGroup := map[int64]*VoiceGroupWithEpisodes{}
 	for _, ep := range episodes {
-		if _, ok := byServer[ep.ServerNumber]; !ok {
-			byServer[ep.ServerNumber] = map[int64]*VoiceGroupWithEpisodes{}
-		}
-		g, ok := byServer[ep.ServerNumber][ep.GroupID]
+		g, ok := byGroup[ep.GroupID]
 		if !ok {
-			vg := VoiceGroupWithEpisodes{ID: ep.VoiceGroup.ID, Name: ep.VoiceGroup.Name, Type: ep.VoiceGroup.Type, Episodes: []EpisodeItem{}}
-			byServer[ep.ServerNumber][ep.GroupID] = &vg
+			vg := VoiceGroupWithEpisodes{
+				ID:       ep.VoiceGroup.ID,
+				Name:     ep.VoiceGroup.Name,
+				Type:     ep.VoiceGroup.Type,
+				Episodes: []EpisodeItem{},
+			}
+			byGroup[ep.GroupID] = &vg
 			g = &vg
 		}
-		g.Episodes = append(g.Episodes, EpisodeItem{ID: ep.ID, Number: ep.Number, VideoURL: ep.VideoURL, Duration: ep.Duration, GroupID: ep.GroupID, ServerNumber: ep.ServerNumber})
-	}
 
-	serverNums := make([]int, 0, len(byServer))
-	for sn := range byServer {
-		serverNums = append(serverNums, sn)
-	}
-	sort.Ints(serverNums)
-
-	result := EpisodesByServer{}
-	for _, sn := range serverNums {
-		groups := byServer[sn]
-		dub := make([]VoiceGroupWithEpisodes, 0)
-		sub := make([]VoiceGroupWithEpisodes, 0)
-		for _, g := range groups {
-			if g.Type == models.VoiceGroupTypeDub {
-				dub = append(dub, *g)
-			} else {
-				sub = append(sub, *g)
-			}
+		sources := make([]VideoSourceItem, 0)
+		for _, s := range ep.VideoSources {
+			sources = append(sources, VideoSourceItem{
+				ID:        s.ID,
+				Label:     s.Label,
+				Type:      s.Type,
+				URL:       s.URL,
+				IsDefault: s.IsDefault,
+				IsActive:  s.IsActive,
+				SortOrder: int64(s.SortOrder),
+			})
 		}
-		sort.Slice(dub, func(i, j int) bool { return dub[i].Name < dub[j].Name })
-		sort.Slice(sub, func(i, j int) bool { return sub[i].Name < sub[j].Name })
-		key := "server_" + strconv.Itoa(sn)
-		result[key] = map[string][]VoiceGroupWithEpisodes{
-			"dub": dub,
-			"sub": sub,
-		}
+		// Sort sources by sort_order
+		sort.Slice(sources, func(i, j int) bool {
+			return sources[i].SortOrder < sources[j].SortOrder
+		})
+
+		g.Episodes = append(g.Episodes, EpisodeItem{
+			ID:           ep.ID,
+			Number:       ep.Number,
+			Duration:     ep.Duration,
+			GroupID:      ep.GroupID,
+			VideoSources: sources,
+		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"anime": anime, "episodes": result})
+	dub := make([]VoiceGroupWithEpisodes, 0)
+	sub := make([]VoiceGroupWithEpisodes, 0)
+	for _, g := range byGroup {
+		if g.Type == models.VoiceGroupTypeDub {
+			dub = append(dub, *g)
+		} else {
+			sub = append(sub, *g)
+		}
+	}
+	sort.Slice(dub, func(i, j int) bool { return dub[i].Name < dub[j].Name })
+	sort.Slice(sub, func(i, j int) bool { return sub[i].Name < sub[j].Name })
+
+	result := map[string]interface{}{
+		"dub": dub,
+		"sub": sub,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"anime":    anime,
+		"episodes": map[string]interface{}{"default": result},
+	})
 }
