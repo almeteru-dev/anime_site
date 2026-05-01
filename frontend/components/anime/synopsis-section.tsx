@@ -1,7 +1,7 @@
 "use client"
 
-import { Info, Languages, Clock, Tv } from "lucide-react"
-import { type Anime, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
+import { Info, Languages, Tv } from "lucide-react"
+import { type Anime, getLocalizedDescription } from "@/lib/api"
 import { useLanguage } from "@/contexts/language-context"
 
 interface SynopsisSectionProps {
@@ -18,11 +18,31 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
 
   const details = {
     type: anime.kind || "TV",
+    status: anime.status?.name || "N/A",
+    studio: anime.studio?.name || "N/A",
     source: anime.source?.name || "N/A",
-    premiered: anime.aired_on ? new Date(anime.aired_on).toLocaleDateString() : "N/A",
-    aired: anime.aired_on ? new Date(anime.aired_on).toLocaleDateString() : "N/A",
+    airedOn: anime.aired_on ? new Date(anime.aired_on).toLocaleDateString() : "N/A",
+    releasedOn: anime.released_on ? new Date(anime.released_on).toLocaleDateString() : "N/A",
+    episodes: anime.episodes > 0 ? `${anime.episodes_aired ?? 0} of ${anime.episodes}` : "N/A",
     duration: `${anime.duration} min per ep`,
     rating: anime.rating || "N/A",
+  }
+
+  const labels = {
+    synopsis: locale === "ru" ? "Синопсис" : "Synopsis",
+    altTitles: locale === "ru" ? "Альтернативные названия" : "Alternative Titles",
+    details: locale === "ru" ? "Детали" : "Details",
+    type: locale === "ru" ? "Тип" : "Type",
+    status: locale === "ru" ? "Статус" : "Status",
+    studio: locale === "ru" ? "Студия" : "Studio",
+    source: locale === "ru" ? "Источник" : "Source",
+    releasedOn: locale === "ru" ? "Дата релиза" : "Released on",
+    airedOn: locale === "ru" ? "Дата старта" : "Aired on",
+    episodes: locale === "ru" ? "Вышло серий" : "Aired",
+    duration: locale === "ru" ? "Длительность" : "Duration",
+    rating: locale === "ru" ? "Рейтинг" : "Rating",
+    romaji: locale === "ru" ? "Ромадзи" : "Romaji",
+    russian: locale === "ru" ? "Русский" : "Russian",
   }
 
   return (
@@ -33,7 +53,7 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2 mb-4">
               <Info className="w-5 h-5 text-[#00E5FF]" />
-              <h2 className="text-xl font-bold text-white">Synopsis</h2>
+              <h2 className="text-xl font-bold text-white">{labels.synopsis}</h2>
             </div>
             <div className="bg-[#081229] rounded-xl p-6 border border-[#1A2847] shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)]">
               <p className="text-[#D1D9E6] leading-relaxed text-base">
@@ -45,18 +65,18 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
             <div className="bg-[#081229] rounded-xl p-6 border border-[#1A2847] shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)]">
               <div className="flex items-center gap-2 mb-4">
                 <Languages className="w-5 h-5 text-[#00E5FF]" />
-                <h3 className="text-lg font-semibold text-white">Alternative Titles</h3>
+                <h3 className="text-lg font-semibold text-white">{labels.altTitles}</h3>
               </div>
               <div className="space-y-2">
                 {alternativeTitles.romaji && (
                   <div className="flex gap-2">
-                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Romaji:</span>
+                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">{labels.romaji}:</span>
                     <span className="text-[#D1D9E6]">{alternativeTitles.romaji}</span>
                   </div>
                 )}
                 {alternativeTitles.russian && (
                   <div className="flex gap-2">
-                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">Russian:</span>
+                    <span className="text-[#A3CFFF] font-medium min-w-[80px]">{labels.russian}:</span>
                     <span className="text-[#D1D9E6]">{alternativeTitles.russian}</span>
                   </div>
                 )}
@@ -68,16 +88,19 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
               <Tv className="w-5 h-5 text-[#00E5FF]" />
-              <h2 className="text-xl font-bold text-white">Details</h2>
+              <h2 className="text-xl font-bold text-white">{labels.details}</h2>
             </div>
             <div className="bg-[#081229] rounded-xl p-6 border border-[#1A2847] shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)]">
               <div className="space-y-4">
-                <DetailRow label="Type" value={details.type} />
-                <DetailRow label="Source" value={details.source} />
-                <DetailRow label="Premiered" value={details.premiered} />
-                <DetailRow label="Aired" value={details.aired} />
-                <DetailRow label="Duration" value={details.duration} />
-                <DetailRow label="Rating" value={details.rating} />
+                {details.type !== "N/A" ? <DetailRow label={labels.type} value={details.type} /> : null}
+                {details.status !== "N/A" ? <DetailRow label={labels.status} value={details.status} /> : null}
+                {details.studio !== "N/A" ? <DetailRow label={labels.studio} value={details.studio} /> : null}
+                {details.source !== "N/A" ? <DetailRow label={labels.source} value={details.source} /> : null}
+                {details.airedOn !== "N/A" ? <DetailRow label={labels.airedOn} value={details.airedOn} /> : null}
+                {details.releasedOn !== "N/A" ? <DetailRow label={labels.releasedOn} value={details.releasedOn} /> : null}
+                {details.episodes !== "N/A" ? <DetailRow label={labels.episodes} value={details.episodes} /> : null}
+                {details.duration !== "N/A" ? <DetailRow label={labels.duration} value={details.duration} /> : null}
+                {details.rating !== "N/A" ? <DetailRow label={labels.rating} value={details.rating} /> : null}
               </div>
             </div>
           </div>
