@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useState } from 'react'
 import { FilterSidebar, type FilterState } from './filter-sidebar'
 import { AnimeGrid } from './anime-grid'
 import { MobileFilterSheet } from './mobile-filter-sheet'
-import { type Anime } from '@/lib/api'
+import { addToMyCollection, getMyCollection, type Anime, type WatchlistStatus } from '@/lib/api'
+import { useAuth } from '@/contexts/auth-context'
+import type { AnimeStatus } from '@/components/anime-status-manager'
+import { getCollectionMap, setCollectionStatus, subscribeCollection } from '@/lib/collection-cache'
 
 const ITEMS_PER_PAGE = 12
 
@@ -22,11 +25,51 @@ interface CatalogClientProps {
 }
 
 export function CatalogClient({ initialAnimes }: CatalogClientProps) {
+  const { token, user } = useAuth()
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilters)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [userStatuses, setUserStatuses] = useState<Record<string, AnimeStatus>>({})
+
+  useEffect(() => {
+    if (!user) {
+      setUserStatuses({})
+      return
+    }
+
+    setUserStatuses(getCollectionMap(user.id))
+    const unsub = subscribeCollection(user.id, () => {
+      setUserStatuses(getCollectionMap(user.id))
+    })
+    return unsub
+  }, [user])
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      if (!token || !user) return
+      try {
+        const data = await getMyCollection({ token })
+        if (!mounted) return
+        const next: Record<string, AnimeStatus> = {}
+        for (const entry of data) {
+          const s = (entry.collection_type?.name || '').toLowerCase() as AnimeStatus
+          if (s) next[String(entry.anime_id)] = s
+        }
+        setUserStatuses(next)
+        for (const [animeId, status] of Object.entries(next)) {
+          setCollectionStatus(user.id, animeId, status as WatchlistStatus)
+        }
+      } catch {
+        if (!mounted) return
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [token, user])
 
   // Filter anime based on applied filters and search query
   const filteredAnime = useMemo(() => {
@@ -134,6 +177,15 @@ export function CatalogClient({ initialAnimes }: CatalogClientProps) {
           totalPages={totalPages}
           onPageChange={handlePageChange}
           onMobileFilterToggle={() => setMobileFiltersOpen(true)}
+          userStatuses={userStatuses}
+          onStatusChange={async (animeId, newStatus) => {
+            if (!token || !user) return
+            if (!newStatus) return
+
+            setUserStatuses((prev) => ({ ...prev, [String(animeId)]: newStatus }))
+            setCollectionStatus(user.id, String(animeId), newStatus as WatchlistStatus)
+            await addToMyCollection({ animeId: String(animeId), status: newStatus as WatchlistStatus, token })
+          }}
         />
       </div>
 

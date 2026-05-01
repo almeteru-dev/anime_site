@@ -119,9 +119,9 @@ export const translations = {
     status: {
       addToList: "Add to List",
       changeStatus: "Change Status",
-      watching: "Watching",
+      watching: "In Progress",
       planned: "Planned",
-      completed: "Completed",
+      completed: "Watched",
       onHold: "On Hold",
       dropped: "Dropped",
       removeFromList: "Remove from List",
@@ -318,7 +318,7 @@ export const translations = {
     status: {
       addToList: "Добавить в список",
       changeStatus: "Изменить статус",
-      watching: "Смотрю",
+      watching: "В процессе",
       planned: "Запланировано",
       completed: "Просмотрено",
       onHold: "На паузе",

@@ -40,10 +40,11 @@ export function UserCollectionCard({
   const [imageError, setImageError] = useState(false)
 
   const statusColors = {
-    watched: "bg-emerald-500",
+    completed: "bg-emerald-500",
     planned: "bg-amber-500",
     dropped: "bg-red-500",
-    inProgress: "bg-primary",
+    on_hold: "bg-slate-500",
+    watching: "bg-primary",
   }
 
   const progress = currentEpisode ? (currentEpisode / episodes) * 100 : 0
@@ -77,7 +78,7 @@ export function UserCollectionCard({
               statusColors[status]
             )} />
             <span className="text-[10px] font-semibold text-foreground bg-background/60 backdrop-blur-sm px-2 py-0.5 rounded-md">
-              {t.status[status]}
+              {status === "on_hold" ? t.status.onHold : t.status[status]}
             </span>
           </div>
         )}
@@ -89,7 +90,7 @@ export function UserCollectionCard({
         </div>
 
         {/* Progress Bar for In Progress */}
-        {status === "inProgress" && currentEpisode && (
+        {status === "watching" && currentEpisode && (
           <div className="absolute bottom-2 left-2 right-2">
             <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1.5">
               <div className="flex justify-between text-xs text-foreground-muted mb-1">

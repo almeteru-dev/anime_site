@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
-import { Star, Play, Info, Check, Clock, XCircle, Film } from 'lucide-react'
+import { Star, Play, Info, Check, Clock, XCircle, Film, PauseCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { addToMyCollection, getAnimePosterUrl, getLocalizedDescription, getLocalizedTitle, removeFromMyCollection, type Anime, type WatchlistStatus } from '@/lib/api'
@@ -22,7 +22,7 @@ interface AnimeCardProps {
 
 // Status color configuration for visual indicators
 const statusColors = {
-  watched: {
+  completed: {
     border: "ring-2 ring-emerald-500/60",
     badge: "bg-emerald-500",
     glow: "shadow-[0_0_20px_rgba(16,185,129,0.3)]",
@@ -34,13 +34,19 @@ const statusColors = {
     glow: "shadow-[0_0_20px_rgba(245,158,11,0.3)]",
     icon: Clock,
   },
+  on_hold: {
+    border: "ring-2 ring-slate-400/50",
+    badge: "bg-slate-500",
+    glow: "shadow-[0_0_20px_rgba(148,163,184,0.25)]",
+    icon: PauseCircle,
+  },
   dropped: {
     border: "ring-2 ring-red-500/60",
     badge: "bg-red-500",
     glow: "shadow-[0_0_20px_rgba(239,68,68,0.3)]",
     icon: XCircle,
   },
-  inProgress: {
+  watching: {
     border: "ring-2 ring-primary/60",
     badge: "bg-primary",
     glow: "shadow-[0_0_20px_rgba(0,229,255,0.3)]",
@@ -61,6 +67,10 @@ export function AnimeCard({
   const [isHovered, setIsHovered] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [localStatus, setLocalStatus] = useState<AnimeStatus>(userStatus ?? null)
+
+  useEffect(() => {
+    setLocalStatus(userStatus ?? null)
+  }, [userStatus])
 
   const title = getLocalizedTitle(anime, locale)
   const posterUrl = getAnimePosterUrl(anime)
@@ -84,19 +94,8 @@ export function AnimeCard({
         return
       }
 
-      const mapStatus = (s: AnimeStatus): WatchlistStatus | null => {
-        if (s === 'inProgress') return 'watching'
-        if (s === 'planned') return 'planned'
-        if (s === 'watched') return 'completed'
-        return null
-      }
-
-      const status = mapStatus(newStatus)
-      if (!status) {
-        return
-      }
-
-      await addToMyCollection({ animeId, status, token })
+      if (!newStatus) return
+      await addToMyCollection({ animeId, status: newStatus as WatchlistStatus, token })
     }
   }, [onStatusChange, router, token])
 

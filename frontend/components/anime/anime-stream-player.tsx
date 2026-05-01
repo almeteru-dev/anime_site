@@ -17,6 +17,7 @@ import { useLanguage } from "@/contexts/language-context"
 import type { Anime, EpisodesByServer, WatchlistStatus } from "@/lib/api"
 import { addToMyCollection } from "@/lib/api"
 import { ChevronDown, Headphones } from "lucide-react"
+import { getCollectionMap, setCollectionStatus } from "@/lib/collection-cache"
 
 type StreamType = "dubbed" | "subbed"
 
@@ -80,7 +81,7 @@ export function AnimeStreamPlayer({
   episodesByServer: EpisodesByServer
   startWatchingNonce: number
 }) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { locale } = useLanguage()
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const artRef = useRef<ArtVideoPlayerHandle | null>(null)
@@ -92,6 +93,7 @@ export function AnimeStreamPlayer({
   const [resumeAt, setResumeAt] = useState(0)
   const [resumePlay, setResumePlay] = useState(false)
   const [autoplayTrailer, setAutoplayTrailer] = useState(false)
+  const [listStatus, setListStatus] = useState<WatchlistStatus | null>(null)
 
   const serverNumbers = useMemo(() => {
     const nums = Object.keys(episodesByServer)
@@ -155,10 +157,21 @@ export function AnimeStreamPlayer({
     return withAutoplay(src)
   }, [activeUrl, autoplayTrailer, selectedEpisode])
 
-  const handleUpdateList = async (animeId: string, status: any) => {
+  const handleUpdateList = async (animeId: string, status: WatchlistStatus) => {
     if (!token) throw new Error("Unauthorized")
-    await addToMyCollection({ animeId, status: status as WatchlistStatus, token })
+    await addToMyCollection({ animeId, status, token })
+    setListStatus(status)
+    if (user) setCollectionStatus(user.id, animeId, status)
   }
+
+  useEffect(() => {
+    if (!user) {
+      setListStatus(null)
+      return
+    }
+    const m = getCollectionMap(user.id)
+    setListStatus((m[String(anime.id)] as WatchlistStatus | undefined) || null)
+  }, [anime.id, user])
 
   const chooseFirstPlayable = () => {
     const hasAny = serverNumbers.some((n) => {
@@ -283,7 +296,7 @@ export function AnimeStreamPlayer({
             ))}
           </div>
 
-          <AddToUserList animeId={String(anime.id)} onUpdate={handleUpdateList} />
+          <AddToUserList animeId={String(anime.id)} onUpdate={handleUpdateList} initialStatus={listStatus} />
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4">

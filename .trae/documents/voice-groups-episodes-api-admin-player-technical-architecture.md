@@ -1,4 +1,5 @@
 ## 1.Architecture design
+
 ```mermaid
 graph TD
   A["User Browser"] --> B["Next.js (React) Frontend"]
@@ -24,27 +25,36 @@ graph TD
 ```
 
 ## 2.Technology Description
-- Frontend: Next.js@14 (React@18) + TypeScript + tailwindcss + shadcn/ui
-- Backend: Go + gin-gonic/gin + GORM
-- Database: PostgreSQL
-- Player: HTML5 video + iframe support (based on stored `video_url`)
+
+* Frontend: Next.js\@14 (React\@18) + TypeScript + tailwindcss + shadcn/ui
+
+* Backend: Go + gin-gonic/gin + GORM
+
+* Database: PostgreSQL
+
+* Player: HTML5 video + iframe support (based on stored `video_url`)
 
 ## 3.Route definitions
-| Route | Purpose |
-|-------|---------|
-| / | Home (anime list + RU/EN toggle) |
-| /anime/:slug | Anime details with embedded Player and episode selection |
-| /admin/login | Admin authentication |
+
+| Route             | Purpose                                                                  |
+| ----------------- | ------------------------------------------------------------------------ |
+| /                 | Home (anime list + RU/EN toggle)                                         |
+| /anime/:slug      | Anime details with embedded Player and episode selection                 |
+| /admin/login      | Admin authentication                                                     |
 | /admin/animes/:id | Admin anime editor (step-by-step tabs including voice groups + episodes) |
 
 ## 4.API definitions (If it includes backend services)
 
 ### 4.1 Core API
+
 **Get anime by slug with nested episodes**
+
 ```
 GET /api/animes/:slug
 ```
+
 Response (conceptual TypeScript shapes):
+
 ```ts
 type VoiceGroupDTO = {
   id: string
@@ -76,20 +86,28 @@ type AnimeDetailsResponse = {
   }
 }
 ```
+
 Notes:
-- Viewer-facing responses MUST filter to `is_published=true`.
-- Group ordering: `display_order ASC`, then RU/EN fallback.
-- Episode ordering: `episode_number ASC`.
+
+* Viewer-facing responses MUST filter to `is_published=true`.
+
+* Group ordering: `display_order ASC`, then RU/EN fallback.
+
+* Episode ordering: `episode_number ASC`.
 
 ### 4.2 Admin API (minimum)
-- Manage voice groups
+
+* Manage voice groups
+
 ```
 GET /api/admin/animes/:id/voice-groups
 POST /api/admin/animes/:id/voice-groups
 PUT /api/admin/voice-groups/:id
 DELETE /api/admin/voice-groups/:id
 ```
-- Manage episodes
+
+* Manage episodes
+
 ```
 GET /api/admin/animes/:id/episodes?voice_group_id=...&server_number=...
 POST /api/admin/animes/:id/episodes
@@ -98,6 +116,7 @@ DELETE /api/admin/episodes/:id
 ```
 
 ## 5.Server architecture diagram (If it includes backend services)
+
 ```mermaid
 graph TD
   A["Gin Router"] --> B["Handler Layer (HTTP)"]
@@ -116,6 +135,7 @@ graph TD
 ## 6.Data model(if applicable)
 
 ### 6.1 Data model definition
+
 ```mermaid
 erDiagram
   ANIMES ||--o{ VOICE_GROUPS : has
@@ -148,6 +168,7 @@ erDiagram
 ```
 
 ### 6.2 Data Definition Language
+
 ```sql
 CREATE TABLE voice_groups (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -176,3 +197,4 @@ CREATE TABLE episodes (
 CREATE INDEX idx_episodes_anime_vg_ep ON episodes(anime_id, voice_group_id, episode_number);
 CREATE INDEX idx_episodes_published ON episodes(is_published);
 ```
+
