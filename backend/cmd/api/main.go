@@ -73,6 +73,10 @@ func main() {
 			admin.Use(middleware.AdminOnly())
 			{
 				admin.GET("/meta", handlers.AdminGetMeta)
+				admin.GET("/genres", handlers.AdminListGenres)
+				admin.POST("/genres", handlers.AdminCreateGenre)
+				admin.PUT("/genres/:id", handlers.AdminUpdateGenre)
+				admin.DELETE("/genres/:id", handlers.AdminDeleteGenre)
 				admin.GET("/statuses", handlers.AdminListStatuses)
 				admin.POST("/statuses", handlers.AdminCreateStatus)
 				admin.PUT("/statuses/:id", handlers.AdminUpdateStatus)
@@ -99,6 +103,7 @@ func main() {
 				admin.DELETE("/voice-groups/:id", handlers.AdminDeleteVoiceGroup)
 				admin.POST("/animes", handlers.AdminCreateAnime)
 				admin.PUT("/animes/:id", handlers.AdminUpdateAnime)
+				admin.PUT("/animes/:id/genres", handlers.AdminSetAnimeGenres)
 				admin.DELETE("/animes/:id", handlers.AdminDeleteAnime)
 				admin.POST("/animes/:id/episodes", handlers.AdminCreateEpisode)
 				admin.PUT("/episodes/:id", handlers.AdminUpdateEpisode)

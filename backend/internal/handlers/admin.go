@@ -196,8 +196,13 @@ func AdminCreateAnime(c *gin.Context) {
 
 	if len(input.GenreIDs) > 0 {
 		var genres []models.Genre
-		if err := app.DB.Where("id IN ?", input.GenreIDs).Find(&genres).Error; err == nil {
-			_ = app.DB.Model(&anime).Association("Genres").Replace(genres)
+		if err := app.DB.Where("id IN ?", input.GenreIDs).Find(&genres).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := setAnimeGenres(anime.ID, input.GenreIDs); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 	}
 
@@ -328,39 +333,58 @@ func AdminUpdateAnime(c *gin.Context) {
     anime.ImageURL = input.PosterURL
 
     tx := app.DB.Begin()
-    if err := tx.Save(&anime).Error; err != nil {
-        tx.Rollback()
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update anime"})
-        return
-    }
+	if err := tx.Save(&anime).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    if len(input.GenreIDs) > 0 {
-        var genres []models.Genre
-        if err := tx.Where("id IN ?", input.GenreIDs).Find(&genres).Error; err == nil {
-            _ = tx.Model(&anime).Association("Genres").Replace(genres)
-        }
-    } else {
-        _ = tx.Model(&anime).Association("Genres").Clear()
-    }
+	if len(input.GenreIDs) > 0 {
+		var genres []models.Genre
+		if err := tx.Where("id IN ?", input.GenreIDs).Find(&genres).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := setAnimeGenresTx(tx, anime.ID, input.GenreIDs); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	} else {
+		if err := setAnimeGenresTx(tx, anime.ID, []int{}); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
 
     var tRU models.AnimeTranslation
     _ = tx.Where("anime_id = ? AND language_id = ?", anime.ID, ru.ID).
         FirstOrCreate(&tRU, models.AnimeTranslation{AnimeID: anime.ID, LanguageID: ru.ID})
     tRU.Title = input.TitleRU
     tRU.Description = input.DescriptionRU
-    _ = tx.Save(&tRU).Error
+	if err := tx.Save(&tRU).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
     var tEN models.AnimeTranslation
     _ = tx.Where("anime_id = ? AND language_id = ?", anime.ID, en.ID).
         FirstOrCreate(&tEN, models.AnimeTranslation{AnimeID: anime.ID, LanguageID: en.ID})
     tEN.Title = input.TitleENRomaji
     tEN.Description = input.DescriptionEN
-    _ = tx.Save(&tEN).Error
+	if err := tx.Save(&tEN).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    if err := tx.Commit().Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update anime"})
-        return
-    }
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
     var updated models.Anime
     _ = app.DB.Preload("Studio").Preload("Status").Preload("Source").Preload("Genres").Preload("Translations.Language").First(&updated, anime.ID).Error

@@ -37,10 +37,12 @@ export const ArtVideoPlayer = forwardRef<ArtVideoPlayerHandle, ArtVideoPlayerPro
     useEffect(() => {
       if (!containerRef.current) return
 
+      const safePoster = typeof poster === "string" ? poster : ""
+
       const art = new Artplayer({
         container: containerRef.current,
         url,
-        poster,
+        poster: safePoster,
         autoplay: false,
         muted: false,
         pip: true,

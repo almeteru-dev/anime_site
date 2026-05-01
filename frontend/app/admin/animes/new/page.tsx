@@ -13,6 +13,8 @@ export default function AdminAddAnimePage() {
   const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [genresMode, setGenresMode] = useState<"grid" | "list">("grid")
+  const [genreQuery, setGenreQuery] = useState("")
 
   const [form, setForm] = useState<AdminCreateAnimeInput>({
     url: "",
@@ -68,6 +70,19 @@ export default function AdminAddAnimePage() {
       }
     })
   }
+
+  const allGenres = meta?.genres || []
+
+  const filteredGenres = useMemo(() => {
+    const q = genreQuery.trim().toLowerCase()
+    if (!q) return allGenres
+    return allGenres.filter((g) => g.name.toLowerCase().includes(q))
+  }, [allGenres, genreQuery])
+
+  const selectedGenres = useMemo(() => {
+    const selected = new Set(form.genre_ids)
+    return allGenres.filter((g) => selected.has(g.id))
+  }, [allGenres, form.genre_ids])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -325,29 +340,111 @@ export default function AdminAddAnimePage() {
 
             <div className="space-y-2 lg:col-span-2">
               <label className="text-xs font-semibold text-foreground-muted">Genres</label>
-              <div className="rounded-xl border border-border/60 bg-background p-3 max-h-48 overflow-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {(meta?.genres || []).map((g) => {
-                    const active = form.genre_ids.includes(g.id)
-                    return (
-                      <button
-                        type="button"
-                        key={g.id}
-                        onClick={() => toggleGenre(g.id)}
-                        className={cn(
-                          "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border transition-colors",
-                          active
-                            ? "border-primary/40 bg-primary/10 text-foreground"
-                            : "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
-                        )}
-                      >
-                        <span className="truncate">{g.name}</span>
-                        <span className={cn("text-xs", active ? "text-primary" : "text-foreground-subtle")}>#{g.id}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background p-1">
+                {([
+                  { key: "grid" as const, label: "Grid" },
+                  { key: "list" as const, label: "List" },
+                ] as const).map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setGenresMode(t.key)}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                      genresMode === t.key
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
+
+              {genresMode === "grid" ? (
+                <div className="rounded-xl border border-border/60 bg-background p-3 max-h-48 overflow-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {allGenres.map((g) => {
+                      const active = form.genre_ids.includes(g.id)
+                      return (
+                        <button
+                          type="button"
+                          key={g.id}
+                          onClick={() => toggleGenre(g.id)}
+                          className={cn(
+                            "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border transition-colors",
+                            active
+                              ? "border-primary/40 bg-primary/10 text-foreground"
+                              : "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
+                          )}
+                        >
+                          <span className="truncate">{g.name}</span>
+                          <span className={cn("text-xs", active ? "text-primary" : "text-foreground-subtle")}>#{g.id}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/60 bg-background p-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <input
+                        value={genreQuery}
+                        onChange={(e) => setGenreQuery(e.target.value)}
+                        placeholder="Search genres…"
+                        className="w-full h-10 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+                      />
+                      <div className="rounded-xl border border-border/60 bg-background-secondary/20 max-h-56 overflow-auto p-2">
+                        <div className="space-y-1">
+                          {filteredGenres.map((g) => {
+                            const active = form.genre_ids.includes(g.id)
+                            return (
+                              <button
+                                key={g.id}
+                                type="button"
+                                onClick={() => toggleGenre(g.id)}
+                                className={cn(
+                                  "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm border transition-colors",
+                                  active
+                                    ? "border-primary/40 bg-primary/10 text-foreground"
+                                    : "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
+                                )}
+                              >
+                                <span className="truncate">{g.name}</span>
+                                <span className={cn("text-xs", active ? "text-primary" : "text-foreground-subtle")}>#{g.id}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-foreground-muted">Selected</div>
+                      <div className="rounded-xl border border-border/60 bg-background-secondary/20 min-h-14 p-3">
+                        {selectedGenres.length === 0 ? (
+                          <div className="text-sm text-foreground-muted">No genres selected.</div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedGenres.map((g) => (
+                              <button
+                                key={g.id}
+                                type="button"
+                                onClick={() => toggleGenre(g.id)}
+                                className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground hover:bg-background-tertiary/30"
+                              >
+                                <span>{g.name}</span>
+                                <span className="text-xs text-red-400">Remove</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

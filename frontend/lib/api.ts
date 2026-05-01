@@ -482,6 +482,67 @@ export async function adminDeleteSource(params: { token: string; id: number }): 
   if (!res.ok) throw new Error((data as any).error || "Failed to delete source")
 }
 
+export async function adminListGenres(params: { token: string }): Promise<Genre[]> {
+  const res = await fetch(`${API_URL}/admin/genres`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to fetch genres")
+  return data
+}
+
+export async function adminCreateGenre(params: { token: string; name: string }): Promise<Genre> {
+  const res = await fetch(`${API_URL}/admin/genres`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to create genre")
+  return data
+}
+
+export async function adminUpdateGenre(params: { token: string; id: number; name: string }): Promise<Genre> {
+  const res = await fetch(`${API_URL}/admin/genres/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update genre")
+  return data
+}
+
+export async function adminDeleteGenre(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/genres/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to delete genre")
+}
+
+export async function adminSetAnimeGenres(params: { token: string; animeId: string; genre_ids: number[] }): Promise<Genre[]> {
+  const res = await fetch(`${API_URL}/admin/animes/${params.animeId}/genres`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ genre_ids: params.genre_ids }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as any).error || "Failed to update anime genres")
+  return (data as any).genres || []
+}
+
 export interface AdminUpsertEpisodeInput {
   server_number: number
   group_id: number

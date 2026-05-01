@@ -218,3 +218,68 @@ func AdminDeleteSource(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 }
 
+func AdminListGenres(c *gin.Context) {
+	var items []models.Genre
+	if err := app.DB.Order("name asc").Find(&items).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch genres"})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+func AdminCreateGenre(c *gin.Context) {
+	var input NameInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+	var exists int64
+	_ = app.DB.Model(&models.Genre{}).Where("name = ?", name).Count(&exists)
+	if exists > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Genre already exists"})
+		return
+	}
+	item := models.Genre{Name: name}
+	if err := app.DB.Create(&item).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create genre"})
+		return
+	}
+	c.JSON(http.StatusCreated, item)
+}
+
+func AdminUpdateGenre(c *gin.Context) {
+	var input NameInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+	var item models.Genre
+	if err := app.DB.First(&item, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Genre not found"})
+		return
+	}
+	item.Name = name
+	if err := app.DB.Save(&item).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update genre"})
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func AdminDeleteGenre(c *gin.Context) {
+	if err := app.DB.Delete(&models.Genre{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": mapDeleteRefError("genre", err)})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}

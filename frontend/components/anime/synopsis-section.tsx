@@ -30,6 +30,7 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
 
   const labels = {
     synopsis: locale === "ru" ? "Синопсис" : "Synopsis",
+    genres: locale === "ru" ? "Жанры" : "Genres",
     altTitles: locale === "ru" ? "Альтернативные названия" : "Alternative Titles",
     details: locale === "ru" ? "Детали" : "Details",
     type: locale === "ru" ? "Тип" : "Type",
@@ -59,6 +60,22 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
               <p className="text-[#D1D9E6] leading-relaxed text-base">
                 {getLocalizedDescription(anime, locale)}
               </p>
+
+			  {(anime.genres || []).length > 0 ? (
+				<div className="mt-5">
+				  <div className="text-sm font-semibold text-white mb-2">{labels.genres}</div>
+				  <div className="flex flex-wrap gap-2">
+					{(anime.genres || []).map((g) => (
+					  <span
+						key={g.id}
+						className="inline-flex items-center gap-2 rounded-lg border border-[#1A2847] bg-[#0D1A3A] px-3 py-1.5 text-sm text-[#D1D9E6]"
+					  >
+						<span className="truncate max-w-[180px]">{g.name}</span>
+					  </span>
+					))}
+				  </div>
+				</div>
+			  ) : null}
             </div>
 
             {/* Alternative Titles */}
