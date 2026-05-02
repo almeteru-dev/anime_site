@@ -4,21 +4,108 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
 )
 
+func splitCSVParam(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		v := strings.TrimSpace(p)
+		if v == "" {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
+}
+
 func GetAnimes(c *gin.Context) {
 	var animes []models.Anime
-	// Preload Studio, Status, Source, Genres and Translations
-	err := app.DB.Preload("Studio").
+
+	q := strings.TrimSpace(c.Query("q"))
+	genres := splitCSVParam(c.Query("genres"))
+	types := splitCSVParam(c.Query("types"))
+	statuses := splitCSVParam(c.Query("statuses"))
+	yearFromRaw := strings.TrimSpace(c.Query("year_from"))
+	yearToRaw := strings.TrimSpace(c.Query("year_to"))
+	minRatingRaw := strings.TrimSpace(c.Query("min_rating"))
+	releaseUnknownRaw := strings.TrimSpace(c.Query("release_unknown"))
+	releaseUnknown := releaseUnknownRaw == "1" || strings.EqualFold(releaseUnknownRaw, "true")
+
+	db := app.DB.Model(&models.Anime{}).
+		Preload("Studio").
 		Preload("Status").
 		Preload("Source").
 		Preload("Genres").
-		Preload("Translations.Language").
-		Find(&animes).Error
+		Preload("Translations.Language")
+
+	if q != "" {
+		like := "%" + strings.ToLower(q) + "%"
+		db = db.Joins("LEFT JOIN anime_translations at ON at.anime_id = anime.id").
+			Where("LOWER(anime.name) LIKE ? OR LOWER(at.title) LIKE ?", like, like).
+			Distinct("anime.*")
+	}
+
+	if len(genres) > 0 {
+		sub := app.DB.Table("anime_genres ag").
+			Select("ag.anime_id").
+			Joins("JOIN genres g ON g.id = ag.genre_id").
+			Where("g.name IN ?", genres).
+			Group("ag.anime_id").
+			Having("COUNT(DISTINCT g.name) = ?", len(genres))
+		db = db.Where("anime.id IN (?)", sub)
+	}
+
+	if len(statuses) > 0 {
+		db = db.Joins("LEFT JOIN statuses s ON s.id = anime.status_id").
+			Where("s.name IN ?", statuses).
+			Distinct("anime.*")
+	}
+
+	if len(types) > 0 {
+		db = db.Where("anime.kind IN ?", types)
+	}
+
+	if releaseUnknown {
+		db = db.Where("anime.aired_on IS NULL")
+	}
+
+	if !releaseUnknown && (yearFromRaw != "" || yearToRaw != "") {
+		yearFrom := 0
+		yearTo := 9999
+		if yearFromRaw != "" {
+			if v, err := strconv.Atoi(yearFromRaw); err == nil {
+				yearFrom = v
+			}
+		}
+		if yearToRaw != "" {
+			if v, err := strconv.Atoi(yearToRaw); err == nil {
+				yearTo = v
+			}
+		}
+		if yearFrom > yearTo {
+			yearFrom, yearTo = yearTo, yearFrom
+		}
+
+		db = db.Where(
+			"(anime.aired_on IS NOT NULL AND EXTRACT(YEAR FROM anime.aired_on) BETWEEN ? AND ?)",
+			yearFrom,
+			yearTo,
+		)
+	}
+
+	if minRatingRaw != "" {
+		if v, err := strconv.ParseFloat(minRatingRaw, 64); err == nil {
+			db = db.Where("anime.score >= ?", v)
+		}
+	}
+
+	err := db.Order("anime.score desc").Find(&animes).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch animes"})

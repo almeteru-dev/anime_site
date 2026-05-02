@@ -56,6 +56,7 @@ func main() {
 		api.POST("/forgot-password", handlers.ForgotPassword)
 		api.POST("/reset-password", handlers.ResetPassword)
 
+		api.GET("/catalog/meta", handlers.GetPublicCatalogMeta)
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
 		api.GET("/animes/:id/episodes", handlers.GetAnimeEpisodes)
