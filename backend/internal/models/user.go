@@ -12,7 +12,10 @@ type User struct {
 	AvatarURL    string    `gorm:"type:varchar(500)" json:"avatar_url"`
 	Age          int       `json:"age"`
 	IsVerified   bool      `gorm:"default:false" json:"is_verified"`
-	Role         string    `gorm:"default:'user';type:varchar(20)" json:"role"`
+	Role         string    `gorm:"not null;default:'user';type:varchar(20)" json:"role"`
+	TokenVersion int       `gorm:"not null;default:1" json:"-"`
+	IsBanned     bool      `gorm:"default:false" json:"is_banned"`
+	BanReason    *string   `gorm:"type:text" json:"ban_reason"`
 	CreatedAt    time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 }
 

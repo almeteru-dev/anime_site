@@ -316,15 +316,29 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	if user.IsBanned {
+		reason := "No reason provided"
+		if user.BanReason != nil && strings.TrimSpace(*user.BanReason) != "" {
+			reason = strings.TrimSpace(*user.BanReason)
+		}
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":      fmt.Sprintf("You have been banned. Reason: %s", reason),
+			"error_code": "BANNED",
+			"ban_reason": reason,
+		})
+		return
+	}
+
 	if !user.IsVerified {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Please verify your email before logging in"})
 		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
+		"user_id":       user.ID,
+		"role":          user.Role,
+		"token_version": user.TokenVersion,
+		"exp":           time.Now().Add(time.Hour * 72).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))

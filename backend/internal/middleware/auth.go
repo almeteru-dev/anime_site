@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,6 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/models"
+	"gorm.io/gorm"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -47,17 +51,141 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", int64(claims["user_id"].(float64)))
-		c.Set("role", claims["role"].(string))
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.Abort()
+			return
+		}
+		userID := int64(userIDFloat)
+
+		tokenVersionFloat, ok := claims["token_version"].(float64)
+		if !ok {
+			c.SetCookie("token", "", -1, "/", "", false, true)
+			c.SetCookie("user", "", -1, "/", "", false, true)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
+			c.Abort()
+			return
+		}
+		tokenVersion := int(tokenVersionFloat)
+
+		var user models.User
+		err = app.DB.Select("id", "role", "token_version", "is_banned", "ban_reason", "is_verified").First(&user, userID).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.SetCookie("token", "", -1, "/", "", false, true)
+				c.SetCookie("user", "", -1, "/", "", false, true)
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
+				c.Abort()
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate user"})
+			c.Abort()
+			return
+		}
+
+		if user.TokenVersion != tokenVersion {
+			c.SetCookie("token", "", -1, "/", "", false, true)
+			c.SetCookie("user", "", -1, "/", "", false, true)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
+			c.Abort()
+			return
+		}
+
+		if user.IsBanned {
+			reason := ""
+			if user.BanReason != nil {
+				reason = *user.BanReason
+			}
+			c.SetCookie("token", "", -1, "/", "", false, true)
+			c.SetCookie("user", "", -1, "/", "", false, true)
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":      "You have been banned. Reason: " + reason,
+				"error_code": "BANNED",
+				"ban_reason": reason,
+			})
+			c.Abort()
+			return
+		}
+
+		if !user.IsVerified {
+			c.SetCookie("token", "", -1, "/", "", false, true)
+			c.SetCookie("user", "", -1, "/", "", false, true)
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":      "Account is not verified",
+				"error_code": "NOT_VERIFIED",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", user.ID)
+		c.Set("role", user.Role)
+		c.Next()
+	}
+}
+
+func roleLevel(role string) int {
+	switch role {
+	case "root":
+		return 4
+	case "admin":
+		return 3
+	case "moderator":
+		return 2
+	case "user":
+		return 1
+	default:
+		return 0
+	}
+}
+
+func RequireMinRole(minRole string) gin.HandlerFunc {
+	min := roleLevel(minRole)
+	return func(c *gin.Context) {
+		roleAny, exists := c.Get("role")
+		role, ok := roleAny.(string)
+		if !exists || !ok || roleLevel(role) < min {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient privileges"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func DenyModeratorDelete() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleAny, _ := c.Get("role")
+		role, _ := roleAny.(string)
+		if role == "moderator" && strings.EqualFold(c.Request.Method, "DELETE") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Moderators cannot delete content"})
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, exists := c.Get("role")
-		if !exists || role != "admin" {
+		roleAny, exists := c.Get("role")
+		role, _ := roleAny.(string)
+		if !exists || (role != "admin" && role != "root") {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func RootOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleAny, exists := c.Get("role")
+		role, _ := roleAny.(string)
+		if !exists || role != "root" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Root access required"})
 			c.Abort()
 			return
 		}

@@ -58,6 +58,12 @@ func Seed(db *gorm.DB) {
 	}
 	db.FirstOrCreate(&adminUser, models.User{Email: "admin@animevista.com"})
 
+	var rootCount int64
+	db.Model(&models.User{}).Where("role = ?", "root").Count(&rootCount)
+	if rootCount == 0 {
+		db.Model(&models.User{}).Where("id = ?", adminUser.ID).Update("role", "root")
+	}
+
 	// 1.6. Collection Types
 	collectionTypes := []struct {
 		Name   string
