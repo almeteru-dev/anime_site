@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/animes", label: "Anime", icon: List },
     { href: "/admin/animes/new", label: "Add Anime", icon: PlusCircle },
     { href: "/admin/kinds-ratings", label: "Kinds & Ratings", icon: Sliders },
+    { href: "/admin/video-labels", label: "Video Labels", icon: Tags },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/settings", label: "Settings", icon: Settings },
     { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },

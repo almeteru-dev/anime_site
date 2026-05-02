@@ -17,6 +17,7 @@ import {
   adminUpdateAnime,
   getAnimeByID,
   getAnimeEpisodesFiltered,
+  adminListVideoLabels,
   adminCreateVideoSource,
   adminUpdateVideoSource,
   adminDeleteVideoSource,
@@ -27,6 +28,7 @@ import {
   type Anime,
   type Episode,
   type VideoSource,
+  type VideoLabel,
   type VoiceGroup,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -57,8 +59,9 @@ export default function AdminEditAnimePage() {
   const [newGroupName, setNewGroupName] = useState("")
 
   const [selectedEpisodeForSources, setSelectedEpisodeForSources] = useState<Episode | null>(null)
+  const [videoLabels, setVideoLabels] = useState<VideoLabel[] | null>(null)
   const [sourceForm, setSourceForm] = useState<AdminUpsertVideoSourceInput>({
-    label: "",
+    label_id: null,
     type: "iframe",
     url: "",
     is_default: false,
@@ -112,9 +115,10 @@ export default function AdminEditAnimePage() {
     ;(async () => {
       if (!token) return
       try {
-        const [m, a] = await Promise.all([adminGetMeta({ token }), getAnimeByID(params.id)])
+        const [m, a, vl] = await Promise.all([adminGetMeta({ token }), getAnimeByID(params.id), adminListVideoLabels({ token })])
         if (!mounted) return
         setMeta(m)
+        setVideoLabels(vl)
 
         const ru = pickTranslation(a, "ru")
         const en = pickTranslation(a, "en")
@@ -146,6 +150,7 @@ export default function AdminEditAnimePage() {
       mounted = false
     }
   }, [params.id, token])
+
 
   useEffect(() => {
     let mounted = true
@@ -434,7 +439,7 @@ export default function AdminEditAnimePage() {
         })
       }
       setSourceForm({
-        label: "",
+        label_id: null,
         type: "iframe",
         url: "",
         is_default: false,
@@ -1357,13 +1362,27 @@ export default function AdminEditAnimePage() {
                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">{editingSourceId ? "Edit Source" : "Add New Source"}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground-muted">Label (e.g. Kodik)</label>
-                    <input
-                      value={sourceForm.label}
-                      onChange={(e) => setSourceForm((p) => ({ ...p, label: e.target.value }))}
-                      placeholder="Server Name"
+                    <label className="text-xs font-semibold text-foreground-muted">Label</label>
+                    <select
+                      value={sourceForm.label_id ? String(sourceForm.label_id) : ""}
+                      onChange={(e) => setSourceForm((p) => ({ ...p, label_id: e.target.value ? Number(e.target.value) : null }))}
                       className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
-                    />
+                    >
+                      <option value="">Select label…</option>
+                      {(videoLabels || []).map((l) => (
+                        <option key={l.id} value={String(l.id)}>
+                          {l.name}{l.is_external_player ? " (External)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {sourceForm.label_id ? (
+                      <div className="text-[11px] text-foreground-subtle">
+                        {(videoLabels || []).find((x) => x.id === sourceForm.label_id)?.is_external_player
+                          ? "External player: Dub/Sub selection will be hidden on Watch page."
+                          : "Standard player: Dub/Sub selection remains available."
+                        }
+                      </div>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-foreground-muted">Type</label>
@@ -1421,7 +1440,7 @@ export default function AdminEditAnimePage() {
                       type="button"
                       onClick={() => {
                         setEditingSourceId(null)
-                        setSourceForm({ label: "", type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
+                        setSourceForm({ label_id: null, type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
                       }}
                       className="px-4 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
                     >
@@ -1431,10 +1450,10 @@ export default function AdminEditAnimePage() {
                   <button
                     type="button"
                     onClick={saveSource}
-                    disabled={!sourceForm.label.trim() || !sourceForm.url.trim() || episodeSaving}
+                    disabled={!sourceForm.label_id || !sourceForm.url.trim() || episodeSaving}
                     className={cn(
                       "rounded-xl px-5 py-2.5 text-sm font-semibold",
-                      !sourceForm.label.trim() || !sourceForm.url.trim() || episodeSaving
+                      !sourceForm.label_id || !sourceForm.url.trim() || episodeSaving
                         ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                         : "bg-primary text-primary-foreground hover:bg-primary/90"
                     )}
@@ -1475,8 +1494,9 @@ export default function AdminEditAnimePage() {
                           type="button"
                           onClick={() => {
                             setEditingSourceId(s.id)
+                            const guessed = (videoLabels || []).find((x) => x.name === s.label)?.id || null
                             setSourceForm({
-                              label: s.label,
+                              label_id: s.label_id || guessed,
                               type: s.type,
                               url: s.url,
                               is_default: s.is_default,

@@ -12,6 +12,7 @@ const (
 type VideoSource struct {
 	ID        int64           `gorm:"primaryKey;autoIncrement" json:"id"`
 	EpisodeID int64           `gorm:"not null;index" json:"episode_id"`
+	LabelID   *int64          `gorm:"index" json:"label_id"`
 	Label     string          `gorm:"not null;type:varchar(255)" json:"label"`
 	Type      VideoSourceType `gorm:"not null;type:video_source_type;default:'iframe'" json:"type"`
 	URL       string          `gorm:"not null;type:varchar(500)" json:"url"`
@@ -19,6 +20,8 @@ type VideoSource struct {
 	IsActive  bool            `gorm:"default:true" json:"is_active"`
 	SortOrder int             `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time       `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+
+	VideoLabel *VideoLabel `gorm:"foreignKey:LabelID" json:"video_label,omitempty"`
 
 	Episode Episode `gorm:"foreignKey:EpisodeID;constraint:OnDelete:CASCADE" json:"-"`
 }

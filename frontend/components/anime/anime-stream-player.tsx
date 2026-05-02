@@ -135,6 +135,8 @@ export function AnimeStreamPlayer({
     return sources.find(s => s.id === selectedSourceId) || sources.find(s => s.is_default) || sources[0] || null
   }, [selectedSourceId, sources])
 
+  const hideLanguageSelector = !!selectedSource?.video_label?.is_external_player
+
   const fallbackTrailer = "https://www.youtube.com/watch?v=I1Pk4UUJQg4."
   const trailerUrl = anime.trailer_url || fallbackTrailer
 
@@ -267,7 +269,7 @@ export function AnimeStreamPlayer({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4">
-          {(dubbedGroups.length > 0 || subbedGroups.length > 0) ? (
+          {!hideLanguageSelector && (dubbedGroups.length > 0 || subbedGroups.length > 0) ? (
             <>
               {dubbedGroups.length > 0 ? (
                 <div>
@@ -323,9 +325,9 @@ export function AnimeStreamPlayer({
                 </div>
               ) : null}
             </>
-          ) : (
+          ) : !hideLanguageSelector ? (
             <div className="text-sm text-[#A3CFFF]">No episodes yet. Trailer is available.</div>
-          )}
+          ) : null}
 
           {selectedGroupId && episodeList.length > 0 ? (
             <div>

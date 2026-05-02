@@ -49,10 +49,20 @@ export interface VoiceGroup {
   type: "dub" | "sub"
 }
 
+export interface VideoLabel {
+  id: number
+  name: string
+  is_external_player: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 export interface VideoSource {
   id: number
   episode_id: number
+  label_id?: number | null
   label: string
+  video_label?: VideoLabel | null
   type: "iframe" | "direct"
   url: string
   is_default: boolean
@@ -794,12 +804,65 @@ export async function adminDeleteEpisode(params: {
 // Video Source API Functions
 
 export interface AdminUpsertVideoSourceInput {
-  label: string
+  label_id?: number | null
+  label?: string
   type: "iframe" | "direct"
   url: string
   is_default?: boolean
   is_active?: boolean
   sort_order?: number
+}
+
+export async function adminListVideoLabels(params: { token: string }): Promise<VideoLabel[]> {
+  const res = await fetch(`${API_URL}/admin/video-labels`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  if (!res.ok) throw new Error((await res.json()).error || "Failed to fetch video labels")
+  return res.json()
+}
+
+export async function adminCreateVideoLabel(params: {
+  token: string
+  name: string
+  is_external_player: boolean
+}): Promise<VideoLabel> {
+  const res = await fetch(`${API_URL}/admin/video-labels`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name, is_external_player: params.is_external_player }),
+  })
+  if (!res.ok) throw new Error((await res.json()).error || "Failed to create video label")
+  return res.json()
+}
+
+export async function adminUpdateVideoLabel(params: {
+  token: string
+  id: number
+  name: string
+  is_external_player: boolean
+}): Promise<VideoLabel> {
+  const res = await fetch(`${API_URL}/admin/video-labels/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ name: params.name, is_external_player: params.is_external_player }),
+  })
+  if (!res.ok) throw new Error((await res.json()).error || "Failed to update video label")
+  return res.json()
+}
+
+export async function adminDeleteVideoLabel(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/video-labels/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  if (!res.ok) throw new Error((await res.json()).error || "Failed to delete video label")
 }
 
 export async function adminCreateVideoSource(params: {

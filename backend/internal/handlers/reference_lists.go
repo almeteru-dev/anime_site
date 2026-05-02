@@ -152,6 +152,78 @@ func AdminDeleteStudio(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 }
 
+type VideoLabelInput struct {
+	Name             string `json:"name"`
+	IsExternalPlayer bool   `json:"is_external_player"`
+}
+
+func AdminListVideoLabels(c *gin.Context) {
+	var items []models.VideoLabel
+	if err := app.DB.Order("name asc").Find(&items).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video labels"})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+func AdminCreateVideoLabel(c *gin.Context) {
+	var input VideoLabelInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+	var exists int64
+	_ = app.DB.Model(&models.VideoLabel{}).Where("name = ?", name).Count(&exists)
+	if exists > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Video label already exists"})
+		return
+	}
+	item := models.VideoLabel{Name: name, IsExternalPlayer: input.IsExternalPlayer}
+	if err := app.DB.Create(&item).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create video label"})
+		return
+	}
+	c.JSON(http.StatusCreated, item)
+}
+
+func AdminUpdateVideoLabel(c *gin.Context) {
+	var input VideoLabelInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+	var item models.VideoLabel
+	if err := app.DB.First(&item, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Video label not found"})
+		return
+	}
+	item.Name = name
+	item.IsExternalPlayer = input.IsExternalPlayer
+	if err := app.DB.Save(&item).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update video label"})
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func AdminDeleteVideoLabel(c *gin.Context) {
+	if err := app.DB.Delete(&models.VideoLabel{}, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": mapDeleteRefError("video label", err)})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
 func AdminListSources(c *gin.Context) {
 	var items []models.Source
 	if err := app.DB.Order("name asc").Find(&items).Error; err != nil {

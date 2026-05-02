@@ -88,6 +88,7 @@ func main() {
 				// Content management (moderator/admin/root)
 				admin.GET("/meta", handlers.AdminGetMeta)
 				admin.GET("/voice-groups", handlers.AdminListVoiceGroups)
+				admin.GET("/video-labels", handlers.AdminListVideoLabels)
 				admin.POST("/animes", handlers.AdminCreateAnime)
 				admin.PUT("/animes/:id", handlers.AdminUpdateAnime)
 				admin.PUT("/animes/:id/genres", handlers.AdminSetAnimeGenres)
@@ -129,6 +130,9 @@ func main() {
 					adminAdmin.POST("/ratings", handlers.AdminCreateRating)
 					adminAdmin.PUT("/ratings/:id", handlers.AdminUpdateRating)
 					adminAdmin.DELETE("/ratings/:id", handlers.AdminDeleteRating)
+					adminAdmin.POST("/video-labels", handlers.AdminCreateVideoLabel)
+					adminAdmin.PUT("/video-labels/:id", handlers.AdminUpdateVideoLabel)
+					adminAdmin.DELETE("/video-labels/:id", handlers.AdminDeleteVideoLabel)
 					// voice-groups list is available for moderators via GET /admin/voice-groups
 					adminAdmin.POST("/voice-groups", handlers.AdminCreateVoiceGroup)
 					adminAdmin.PUT("/voice-groups/:id", handlers.AdminUpdateVoiceGroup)

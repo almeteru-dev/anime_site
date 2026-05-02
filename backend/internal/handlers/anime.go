@@ -202,18 +202,27 @@ func GetAnimeByID(c *gin.Context) {
 	_ = app.DB.Where("anime_id = ?", anime.ID).
 		Preload("VoiceGroup").
 		Preload("VideoSources").
+		Preload("VideoSources.VideoLabel").
 		Order("group_id asc").
 		Order("number asc").
 		Find(&episodes).Error
 
+	type VideoLabelItem struct {
+		ID               int64  `json:"id"`
+		Name             string `json:"name"`
+		IsExternalPlayer bool   `json:"is_external_player"`
+	}
+
 	type VideoSourceItem struct {
-		ID        int64                  `json:"id"`
-		Label     string                 `json:"label"`
-		Type      models.VideoSourceType `json:"type"`
-		URL       string                 `json:"url"`
-		IsDefault bool                   `json:"is_default"`
-		IsActive  bool                   `json:"is_active"`
-		SortOrder int64                  `json:"sort_order"`
+		ID         int64                  `json:"id"`
+		LabelID    *int64                 `json:"label_id"`
+		Label      string                 `json:"label"`
+		Type       models.VideoSourceType `json:"type"`
+		URL        string                 `json:"url"`
+		IsDefault  bool                   `json:"is_default"`
+		IsActive   bool                   `json:"is_active"`
+		SortOrder  int64                  `json:"sort_order"`
+		VideoLabel *VideoLabelItem        `json:"video_label,omitempty"`
 	}
 
 	type EpisodeItem struct {
@@ -247,14 +256,20 @@ func GetAnimeByID(c *gin.Context) {
 
 		sources := make([]VideoSourceItem, 0)
 		for _, s := range ep.VideoSources {
+			var vl *VideoLabelItem
+			if s.VideoLabel != nil && s.LabelID != nil {
+				vl = &VideoLabelItem{ID: s.VideoLabel.ID, Name: s.VideoLabel.Name, IsExternalPlayer: s.VideoLabel.IsExternalPlayer}
+			}
 			sources = append(sources, VideoSourceItem{
-				ID:        s.ID,
-				Label:     s.Label,
-				Type:      s.Type,
-				URL:       s.URL,
-				IsDefault: s.IsDefault,
-				IsActive:  s.IsActive,
-				SortOrder: int64(s.SortOrder),
+				ID:         s.ID,
+				LabelID:    s.LabelID,
+				Label:      s.Label,
+				Type:       s.Type,
+				URL:        s.URL,
+				IsDefault:  s.IsDefault,
+				IsActive:   s.IsActive,
+				SortOrder:  int64(s.SortOrder),
+				VideoLabel: vl,
 			})
 		}
 		// Sort sources by sort_order

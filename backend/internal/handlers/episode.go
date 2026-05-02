@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,6 +12,18 @@ import (
 	"github.com/seva/animevista/internal/models"
 	"gorm.io/gorm"
 )
+
+func getOrCreateVideoLabelByName(tx *gorm.DB, name string) (*models.VideoLabel, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return nil, errors.New("name is required")
+	}
+	label := models.VideoLabel{Name: trimmed}
+	if err := tx.Where("name = ?", trimmed).FirstOrCreate(&label).Error; err != nil {
+		return nil, err
+	}
+	return &label, nil
+}
 
 func GetAnimeEpisodes(c *gin.Context) {
 	identifier := c.Param("id")
@@ -38,7 +51,7 @@ func GetAnimeEpisodes(c *gin.Context) {
 
 	q := app.DB.Where("anime_id = ?", animeID).Preload("VoiceGroup").Preload("VideoSources", func(db *gorm.DB) *gorm.DB {
 		return db.Order("sort_order asc")
-	}).Order("number asc")
+	}).Preload("VideoSources.VideoLabel").Order("number asc")
 
 	if groupID != 0 {
 		q = q.Where("group_id = ?", groupID)
@@ -107,10 +120,16 @@ func AdminCreateEpisode(c *gin.Context) {
 			return err
 		}
 
+		label, err := getOrCreateVideoLabelByName(tx, "Server 1")
+		if err != nil {
+			return err
+		}
+
 		// Create default video source
 		source := models.VideoSource{
 			EpisodeID: ep.ID,
-			Label:     "Server 1",
+			LabelID:   &label.ID,
+			Label:     label.Name,
 			Type:      models.VideoSourceTypeIframe,
 			URL:       "", // Admin will need to edit this
 			IsDefault: true,
@@ -200,7 +219,8 @@ func AdminDeleteEpisode(c *gin.Context) {
 // Video Source Handlers
 
 type AdminUpsertVideoSourceInput struct {
-	Label     string                 `json:"label" binding:"required"`
+	LabelID   *int64                 `json:"label_id"`
+	Label     string                 `json:"label"`
 	Type      models.VideoSourceType `json:"type" binding:"required"`
 	URL       string                 `json:"url" binding:"required"`
 	IsDefault bool                   `json:"is_default"`
@@ -224,7 +244,7 @@ func AdminCreateVideoSource(c *gin.Context) {
 
 	source := models.VideoSource{
 		EpisodeID: epID,
-		Label:     input.Label,
+		Label:     strings.TrimSpace(input.Label),
 		Type:      input.Type,
 		URL:       input.URL,
 		IsDefault: input.IsDefault,
@@ -232,7 +252,28 @@ func AdminCreateVideoSource(c *gin.Context) {
 		SortOrder: input.SortOrder,
 	}
 
+	if input.LabelID == nil && strings.TrimSpace(input.Label) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "label_id or label is required"})
+		return
+	}
+
 	err = app.DB.Transaction(func(tx *gorm.DB) error {
+		if input.LabelID != nil {
+			var label models.VideoLabel
+			if err := tx.First(&label, *input.LabelID).Error; err != nil {
+				return err
+			}
+			source.LabelID = &label.ID
+			source.Label = label.Name
+		} else {
+			label, err := getOrCreateVideoLabelByName(tx, input.Label)
+			if err != nil {
+				return err
+			}
+			source.LabelID = &label.ID
+			source.Label = label.Name
+		}
+
 		if source.IsDefault {
 			if err := tx.Model(&models.VideoSource{}).Where("episode_id = ?", epID).Update("is_default", false).Error; err != nil {
 				return err
@@ -246,6 +287,7 @@ func AdminCreateVideoSource(c *gin.Context) {
 		return
 	}
 
+	_ = app.DB.Preload("VideoLabel").First(&source, source.ID).Error
 	c.JSON(http.StatusCreated, source)
 }
 
@@ -263,7 +305,30 @@ func AdminUpdateVideoSource(c *gin.Context) {
 		return
 	}
 
-	source.Label = input.Label
+	if input.LabelID == nil && strings.TrimSpace(input.Label) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "label_id or label is required"})
+		return
+	}
+
+	var resolvedLabel *models.VideoLabel
+	if input.LabelID != nil {
+		var label models.VideoLabel
+		if err := app.DB.First(&label, *input.LabelID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown label"})
+			return
+		}
+		resolvedLabel = &label
+	} else {
+		label, err := getOrCreateVideoLabelByName(app.DB, input.Label)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid label"})
+			return
+		}
+		resolvedLabel = label
+	}
+
+	source.LabelID = &resolvedLabel.ID
+	source.Label = resolvedLabel.Name
 	source.Type = input.Type
 	source.URL = input.URL
 	source.IsDefault = input.IsDefault
@@ -284,6 +349,7 @@ func AdminUpdateVideoSource(c *gin.Context) {
 		return
 	}
 
+	_ = app.DB.Preload("VideoLabel").First(&source, source.ID).Error
 	c.JSON(http.StatusOK, source)
 }
 
