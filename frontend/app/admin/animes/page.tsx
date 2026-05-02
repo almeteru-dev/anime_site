@@ -1,46 +1,80 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { PlusCircle, Trash2, Pencil, Search } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/contexts/auth-context"
-import { adminDeleteAnime, getAnimes, getLocalizedTitle, type Anime } from "@/lib/api"
+import { adminDeleteAnime, adminGetMeta, getAnimes, getLocalizedTitle, type AdminMeta, type Anime } from "@/lib/api"
 
 export default function AdminAnimesPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { locale } = useLanguage()
   const [animes, setAnimes] = useState<Anime[] | null>(null)
+  const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [query, setQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
+
+  const [studio, setStudio] = useState("")
+  const [source, setSource] = useState("")
+  const [rating, setRating] = useState("")
+  const [sortBy, setSortBy] = useState<"score" | "studio" | "source" | "rating">("score")
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc")
+
+  const queryDebounce = useRef<number | null>(null)
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
+      if (!token) return
       try {
-        const data = await getAnimes()
-        if (mounted) setAnimes(data)
+        const m = await adminGetMeta({ token })
+        if (mounted) setMeta(m)
       } catch (e: any) {
-        if (mounted) setError(e.message || "Failed to load")
+        if (mounted) setError(e.message || "Failed to load metadata")
       }
     })()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [token])
+
+  useEffect(() => {
+    let mounted = true
+    if (queryDebounce.current) window.clearTimeout(queryDebounce.current)
+    queryDebounce.current = window.setTimeout(() => {
+      ;(async () => {
+        try {
+          const data = await getAnimes({
+            q: query.trim() || undefined,
+            studios: studio ? [studio] : undefined,
+            sources: source ? [source] : undefined,
+            ratings: rating ? [rating] : undefined,
+            sort_by: sortBy,
+            sort_dir: sortDir,
+          })
+          if (mounted) setAnimes(data)
+        } catch (e: any) {
+          if (mounted) {
+            setError(e.message || "Failed to load")
+            setAnimes([])
+          }
+        }
+      })()
+    }, 250)
+    return () => {
+      mounted = false
+      if (queryDebounce.current) window.clearTimeout(queryDebounce.current)
+    }
+  }, [query, rating, sortBy, sortDir, source, studio])
 
   const filtered = useMemo(() => {
-    if (!animes) return []
-    const q = query.trim().toLowerCase()
-    if (!q) return animes
-    return animes.filter((a) => {
-      const title = getLocalizedTitle(a, locale).toLowerCase()
-      return title.includes(q) || a.url.toLowerCase().includes(q)
-    })
-  }, [animes, locale, query])
+    return animes || []
+  }, [animes])
 
   const handleDelete = async (id: string) => {
     if (!token) return
+    if (user?.role === "moderator") return
     const ok = window.confirm("Delete this anime? This cannot be undone.")
     if (!ok) return
 
@@ -79,6 +113,67 @@ export default function AdminAnimesPage() {
           />
         </div>
 
+        <div className="px-4 py-3 border-b border-border/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="score">Sort: Score</option>
+            <option value="studio">Sort: Studio</option>
+            <option value="source">Sort: Source</option>
+            <option value="rating">Sort: Rating</option>
+          </select>
+
+          <select
+            value={sortDir}
+            onChange={(e) => setSortDir(e.target.value as any)}
+            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="desc">Direction: Desc</option>
+            <option value="asc">Direction: Asc</option>
+          </select>
+
+          <select
+            value={studio}
+            onChange={(e) => setStudio(e.target.value)}
+            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">Studio: All</option>
+            {(meta?.studios || []).map((s) => (
+              <option key={s.id} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">Source: All</option>
+            {(meta?.sources || []).map((s) => (
+              <option key={s.id} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={rating}
+            onChange={(e) => setRating(e.target.value)}
+            className="h-10 rounded-xl border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">Rating: All</option>
+            {(meta?.ratings || []).map((r) => (
+              <option key={r.id} value={r.name}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {error && (
           <div className="px-4 py-3 text-sm text-red-400 border-b border-red-500/30 bg-red-500/10">{error}</div>
         )}
@@ -115,13 +210,15 @@ export default function AdminAnimesPage() {
                           <Pencil className="w-3.5 h-3.5" />
                           Edit
                         </Link>
-                        <button
-                          className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15"
-                          onClick={() => handleDelete(String(a.id))}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
+                        {user?.role !== "moderator" ? (
+                          <button
+                            className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/15"
+                            onClick={() => handleDelete(String(a.id))}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

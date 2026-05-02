@@ -12,6 +12,7 @@ interface AnimeGridProps {
   anime: Anime[]
   searchQuery: string
   onSearchChange: (query: string) => void
+  resultCount: number
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
@@ -25,6 +26,7 @@ export function AnimeGrid({
   anime,
   searchQuery,
   onSearchChange,
+  resultCount,
   currentPage,
   totalPages,
   onPageChange,
@@ -38,7 +40,7 @@ export function AnimeGrid({
       <SearchBar
         value={searchQuery}
         onChange={onSearchChange}
-        resultCount={anime.length}
+        resultCount={resultCount}
         onMobileFilterToggle={onMobileFilterToggle}
       />
 

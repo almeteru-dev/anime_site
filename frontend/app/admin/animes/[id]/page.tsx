@@ -38,7 +38,7 @@ function pickTranslation(anime: Anime, code: "ru" | "en") {
 
 export default function AdminEditAnimePage() {
   const params = useParams<{ id: string }>()
-  const { token } = useAuth()
+  const { token, user: me } = useAuth()
   const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -236,6 +236,10 @@ export default function AdminEditAnimePage() {
 
   const quickAddGroup = async () => {
     if (!token) return
+    if (me?.role === "moderator") {
+      setEpisodeError("Moderators cannot manage voice groups")
+      return
+    }
     const name = newGroupName.trim()
     if (!name) return
     setEpisodeSaving(true)
@@ -258,6 +262,10 @@ export default function AdminEditAnimePage() {
 
   const saveVoiceGroup = async () => {
     if (!token) return
+    if (me?.role === "moderator") {
+      setEpisodeError("Moderators cannot manage voice groups")
+      return
+    }
     const name = voiceGroupForm.name.trim()
     if (!name) return
 
@@ -295,6 +303,10 @@ export default function AdminEditAnimePage() {
 
   const deleteVoiceGroup = async (g: VoiceGroup) => {
     if (!token) return
+    if (me?.role === "moderator") {
+      setEpisodeError("Moderators cannot manage voice groups")
+      return
+    }
     const ok = window.confirm(`Delete voice group "${g.name}"? This will also delete related episodes.`)
     if (!ok) return
 
@@ -372,6 +384,7 @@ export default function AdminEditAnimePage() {
 
   const deleteEpisode = async (ep: Episode) => {
     if (!token) return
+    if (me?.role === "moderator") return
     const ok = window.confirm(`Delete episode ${ep.number}?`)
     if (!ok) return
     setEpisodeSaving(true)
@@ -438,6 +451,7 @@ export default function AdminEditAnimePage() {
 
   const deleteSource = async (source: VideoSource) => {
     if (!token || !selectedEpisodeForSources) return
+    if (me?.role === "moderator") return
     if (selectedEpisodeForSources.video_sources?.length === 1) {
       setEpisodeError("Cannot delete the last source")
       return
@@ -531,8 +545,8 @@ export default function AdminEditAnimePage() {
           duration: form.duration,
           rating: form.rating,
           episodes_aired: form.episodes_aired,
-          aired_on: form.aired_on || null,
-          released_on: form.released_on || null,
+          aired_on: form.aired_on || undefined,
+          released_on: form.released_on || undefined,
           trailer_url: form.trailer_url,
           score: form.score,
           episodes: form.episodes,
@@ -943,10 +957,13 @@ export default function AdminEditAnimePage() {
         )}
 
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-border/60 bg-background p-1">
-          {([
-            { key: "voice_groups" as const, label: "Voice Groups" },
-            { key: "episodes" as const, label: "Episode Manager" },
-          ] as const).map((t) => (
+          {(me?.role === "moderator"
+            ? ([{ key: "episodes" as const, label: "Episode Manager" }] as const)
+            : ([
+                { key: "voice_groups" as const, label: "Voice Groups" },
+                { key: "episodes" as const, label: "Episode Manager" },
+              ] as const)
+          ).map((t) => (
             <button
               key={t.key}
               type="button"
@@ -963,7 +980,7 @@ export default function AdminEditAnimePage() {
           ))}
         </div>
 
-        {episodesTab === "voice_groups" ? (
+        {episodesTab === "voice_groups" && me?.role !== "moderator" ? (
           <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-2xl border border-border/60 bg-background p-5">
               <h3 className="text-sm font-semibold text-foreground mb-4">{editingVoiceGroupId ? "Edit Voice Group" : "Add Voice Group"}</h3>

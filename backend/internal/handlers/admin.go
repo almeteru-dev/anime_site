@@ -132,12 +132,17 @@ func AdminCreateAnime(c *gin.Context) {
         return
     }
 
-    var exists int64
-    _ = app.DB.Model(&models.Anime{}).Where("url = ?", slug).Count(&exists)
-    if exists > 0 {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Slug already exists"})
-        return
-    }
+	var existing models.Anime
+	if err := app.DB.Select("id", "url", "name").Where("url = ?", slug).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":        "Anime already exists",
+			"error_code":   "ANIME_EXISTS",
+			"existing_id":  existing.ID,
+			"existing_url": existing.URL,
+			"existing_name": existing.Name,
+		})
+		return
+	}
 
 	airedOn, err := parseOptionalDate(input.AiredOn)
 	if err != nil {

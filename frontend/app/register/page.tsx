@@ -6,6 +6,7 @@ import { ArrowLeft, User, Mail, Lock, ShieldCheck, Eye, EyeOff, Check } from "lu
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useRouter } from "next/navigation"
+import { PasswordChecklist } from "@/components/password-checklist"
 
 export default function RegisterPage() {
   const { t } = useLanguage()
@@ -22,10 +23,13 @@ export default function RegisterPage() {
     confirmPassword: "",
   })
   const [focusedField, setFocusedField] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFieldErrors({})
     if (formData.password !== formData.confirmPassword) {
+      setFieldErrors({ confirmPassword: "Passwords do not match" })
       setError("Passwords do not match")
       return
     }
@@ -33,22 +37,27 @@ export default function RegisterPage() {
     // Password validation
     const password = formData.password
     if (password.length < 10) {
+      setFieldErrors({ password: "Password must be at least 10 characters long" })
       setError("Password must be at least 10 characters long")
       return
     }
     if (!/[A-Z]/.test(password)) {
+      setFieldErrors({ password: "Password must contain at least one uppercase letter" })
       setError("Password must contain at least one uppercase letter")
       return
     }
     if (!/[0-9]/.test(password)) {
+      setFieldErrors({ password: "Password must contain at least one digit" })
       setError("Password must contain at least one digit")
       return
     }
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setFieldErrors({ password: "Password must contain at least one special character" })
       setError("Password must contain at least one special character")
       return
     }
     if (!/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$/.test(password)) {
+      setFieldErrors({ password: "Password must only contain English letters, digits, and special characters" })
       setError("Password must only contain English letters, digits, and special characters")
       return
     }
@@ -248,6 +257,8 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {fieldErrors.password ? <div className="text-xs text-red-500">{fieldErrors.password}</div> : null}
+              <PasswordChecklist password={formData.password} />
             </div>
 
             {/* Confirm Password Field */}
@@ -282,6 +293,9 @@ export default function RegisterPage() {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {fieldErrors.confirmPassword ? (
+                <div className="text-xs text-red-500">{fieldErrors.confirmPassword}</div>
+              ) : null}
             </div>
 
             {/* Terms Checkbox */}

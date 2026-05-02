@@ -8,7 +8,7 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 import { useSearchParams } from "next/navigation"
 import { verifyEmailToken } from "@/lib/api"
 
-function VerifyConfirmContent() {
+function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading" | "success" | "error") => void }) {
   const { t } = useLanguage()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
@@ -26,9 +26,11 @@ function VerifyConfirmContent() {
       try {
         await verifyEmailToken(token)
         setStatus("success")
+        onStatusChange("success")
       } catch (err: any) {
         setStatus("error")
         setErrorMessage(err.message)
+        onStatusChange("error")
       }
     }
 
@@ -143,8 +145,6 @@ function VerifyConfirmContent() {
 
 export default function VerifyConfirmPage() {
   const { t } = useLanguage()
-  const searchParams = useSearchParams()
-  const token = searchParams.get("token")
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
 
   return (
@@ -226,7 +226,7 @@ export default function VerifyConfirmPage() {
         }`} />
         
         <Suspense fallback={<div className="text-foreground-muted text-center py-12">Loading verification...</div>}>
-          <VerifyConfirmContent />
+          <VerifyConfirmContent onStatusChange={setStatus} />
         </Suspense>
       </div>
     </div>

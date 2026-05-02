@@ -38,6 +38,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { error_code?: string; ban_reason?: string } | undefined
+      if (detail?.error_code === 'BANNED') {
+        const reason = detail?.ban_reason ? ` Reason: ${detail.ban_reason}` : ''
+        sessionStorage.setItem('force_logout_message', `You have been banned.${reason}`)
+      } else if (detail?.error_code === 'NOT_VERIFIED') {
+        sessionStorage.setItem('force_logout_message', 'Your account is not verified.')
+      } else if (detail?.error_code === 'REVOKED') {
+        sessionStorage.setItem('force_logout_message', 'Your session is no longer valid. Please sign in again.')
+      }
+
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/login')
+    }
+
+    window.addEventListener('auth:force-logout', handler)
+    return () => window.removeEventListener('auth:force-logout', handler)
+  }, [router])
+
   const login = (newToken: string, newUser: User) => {
     setToken(newToken)
     setUser(newUser)

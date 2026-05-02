@@ -31,6 +31,20 @@ func GetAnimes(c *gin.Context) {
 	genres := splitCSVParam(c.Query("genres"))
 	types := splitCSVParam(c.Query("types"))
 	statuses := splitCSVParam(c.Query("statuses"))
+	studios := splitCSVParam(c.Query("studios"))
+	sources := splitCSVParam(c.Query("sources"))
+	ratings := splitCSVParam(c.Query("ratings"))
+	completeOnlyRaw := strings.TrimSpace(c.Query("complete_only"))
+	completeOnly := completeOnlyRaw == "1" || strings.EqualFold(completeOnlyRaw, "true")
+	sortBy := strings.TrimSpace(c.Query("sort_by"))
+	sortDirRaw := strings.TrimSpace(c.Query("sort_dir"))
+	sortDir := "desc"
+	if strings.EqualFold(sortDirRaw, "asc") {
+		sortDir = "asc"
+	}
+	if sortBy == "" {
+		sortBy = "score"
+	}
 	yearFromRaw := strings.TrimSpace(c.Query("year_from"))
 	yearToRaw := strings.TrimSpace(c.Query("year_to"))
 	minRatingRaw := strings.TrimSpace(c.Query("min_rating"))
@@ -43,6 +57,10 @@ func GetAnimes(c *gin.Context) {
 		Preload("Source").
 		Preload("Genres").
 		Preload("Translations.Language")
+
+	if completeOnly {
+		db = db.Where("anime.studio_id IS NOT NULL AND anime.source_id IS NOT NULL AND anime.rating IS NOT NULL AND anime.rating <> ''")
+	}
 
 	if q != "" {
 		like := "%" + strings.ToLower(q) + "%"
@@ -65,6 +83,25 @@ func GetAnimes(c *gin.Context) {
 		db = db.Joins("LEFT JOIN statuses s ON s.id = anime.status_id").
 			Where("s.name IN ?", statuses).
 			Distinct("anime.*")
+	}
+
+	if len(studios) > 0 {
+		db = db.Where("anime.studio_id IS NOT NULL")
+		db = db.Joins("LEFT JOIN studios st ON st.id = anime.studio_id").
+			Where("st.name IN ?", studios).
+			Distinct("anime.*")
+	}
+
+	if len(sources) > 0 {
+		db = db.Where("anime.source_id IS NOT NULL")
+		db = db.Joins("LEFT JOIN sources so ON so.id = anime.source_id").
+			Where("so.name IN ?", sources).
+			Distinct("anime.*")
+	}
+
+	if len(ratings) > 0 {
+		db = db.Where("anime.rating IS NOT NULL AND anime.rating <> ''")
+		db = db.Where("anime.rating IN ?", ratings)
 	}
 
 	if len(types) > 0 {
@@ -105,7 +142,25 @@ func GetAnimes(c *gin.Context) {
 		}
 	}
 
-	err := db.Order("anime.score desc").Find(&animes).Error
+	switch sortBy {
+	case "studio":
+		db = db.Where("anime.studio_id IS NOT NULL")
+		db = db.Joins("JOIN studios st_sort ON st_sort.id = anime.studio_id")
+		db = db.Order("st_sort.name " + sortDir).Order("anime.score desc")
+	case "source":
+		db = db.Where("anime.source_id IS NOT NULL")
+		db = db.Joins("JOIN sources so_sort ON so_sort.id = anime.source_id")
+		db = db.Order("so_sort.name " + sortDir).Order("anime.score desc")
+	case "rating":
+		db = db.Where("anime.rating IS NOT NULL AND anime.rating <> ''")
+		db = db.Order("anime.rating " + sortDir).Order("anime.score desc")
+	case "score":
+		fallthrough
+	default:
+		db = db.Order("anime.score " + sortDir)
+	}
+
+	err := db.Find(&animes).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch animes"})

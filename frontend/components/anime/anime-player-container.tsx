@@ -73,7 +73,12 @@ export function AnimePlayerContainer({
 
   const sources = useMemo<PlayerSource[]>(() => {
     const trailerFallback = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
-    const baseUrl = (episode?.video_url || anime.trailer_url || trailerFallback).trim()
+    const episodeUrl =
+      episode?.video_sources?.find((s) => s.is_default && s.is_active)?.url ||
+      episode?.video_sources?.find((s) => s.is_active)?.url ||
+      episode?.video_sources?.[0]?.url ||
+      ""
+    const baseUrl = (episodeUrl || anime.trailer_url || trailerFallback).trim()
 
     const s1: PlayerSource = {
       id: "server1_sub",
@@ -99,7 +104,7 @@ export function AnimePlayerContainer({
     }
 
     return [s1, s1Dub, placeholder]
-  }, [anime.trailer_url, episode?.video_url])
+  }, [anime.trailer_url, episode?.video_sources])
 
   const active = useMemo(() => {
     return (

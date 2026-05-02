@@ -93,7 +93,11 @@ export function AnimeStatusManager({
     setIsLoading(true)
     try {
       await onStatusChange(animeId, newStatus)
-      const statusLabel = newStatus ? t.status[newStatus] : ""
+      const statusLabel = newStatus
+        ? newStatus === "on_hold"
+          ? t.status.onHold
+          : t.status[newStatus]
+        : ""
       setToastMessage(`${t.status.statusChanged} ${statusLabel}`)
       setShowToast(true)
       setTimeout(() => setShowToast(false), 3000)
@@ -181,7 +185,13 @@ export function AnimeStatusManager({
           ),
           isLoading && "opacity-70 cursor-not-allowed"
         )}
-        aria-label={currentStatus ? t.status[currentStatus] : t.status.addToList}
+        aria-label={
+          currentStatus
+            ? currentStatus === "on_hold"
+              ? t.status.onHold
+              : t.status[currentStatus]
+            : t.status.addToList
+        }
       >
         {isLoading ? (
           <div className={cn(
@@ -197,7 +207,11 @@ export function AnimeStatusManager({
         {variant !== "icon" && (
           <>
             <span>
-              {currentStatus ? t.status[currentStatus] : t.status.addToList}
+              {currentStatus
+                ? currentStatus === "on_hold"
+                  ? t.status.onHold
+                  : t.status[currentStatus]
+                : t.status.addToList}
             </span>
             <ChevronDown className={cn(
               "transition-transform duration-200",

@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders } from "lucide-react"
+import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { roleLevel } from "@/lib/roles"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, token, logout, isLoading } = useAuth()
@@ -16,18 +17,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return null
   }
 
-  if (!isLoading && user?.role !== "admin") {
-    router.push("/")
-    return null
+  if (!isLoading) {
+    const lvl = roleLevel(user?.role || "user")
+    if (lvl < roleLevel("moderator")) {
+      router.push("/")
+      return null
+    }
+    if (user?.role === "moderator") {
+      const allowed = pathname === "/admin/animes" || pathname === "/admin/animes/new" || pathname.startsWith("/admin/animes/")
+      if (!allowed) {
+        router.push("/admin/animes")
+        return null
+      }
+    }
   }
 
   const nav = [
     { href: "/admin/animes", label: "Anime", icon: List },
     { href: "/admin/animes/new", label: "Add Anime", icon: PlusCircle },
     { href: "/admin/kinds-ratings", label: "Kinds & Ratings", icon: Sliders },
-    { href: "/admin/users", label: "Users", icon: Users, disabled: true },
+    { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/settings", label: "Settings", icon: Settings },
     { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },
   ]
+
+  const visibleNav = nav.filter((item) => {
+    if (user?.role === "moderator") {
+      return item.href === "/admin/animes" || item.href === "/admin/animes/new"
+    }
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <nav className="px-3 py-4 flex-1">
-            {nav.map((item) => {
+            {visibleNav.map((item) => {
               const Icon = item.icon
               const active = pathname === item.href
               return (

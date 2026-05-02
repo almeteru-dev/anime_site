@@ -283,6 +283,8 @@ func Seed(db *gorm.DB) {
 			StatusID:   &releasedStatus.ID,
 			SourceID:   &mangaSource.ID,
 			StudioID:   &madhouse.ID,
+			Kind:       "tv",
+			Rating:     "pg-13",
 			ImageURL:   a.Poster,
 			TrailerURL: defaultTrailer,
 			AiredOn:    a.AiredOn,

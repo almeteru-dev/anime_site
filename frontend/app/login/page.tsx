@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Lock, Eye, EyeOff, Check } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
@@ -19,6 +19,14 @@ export default function LoginPage() {
     password: "",
   })
   const [focusedField, setFocusedField] = useState<string | null>(null)
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem("force_logout_message")
+    if (msg) {
+      setError(msg)
+      sessionStorage.removeItem("force_logout_message")
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

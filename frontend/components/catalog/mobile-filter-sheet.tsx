@@ -8,9 +8,16 @@ interface MobileFilterSheetProps {
   isOpen: boolean
   onClose: () => void
   filters: FilterState
-  onFiltersChange: (filters: FilterState) => void
-  onApply: () => void
   onReset: () => void
+  genreOptions: string[]
+  statusOptions: string[]
+  studioOptions: string[]
+  sourceOptions: string[]
+  ratingOptions: string[]
+  typeOptions: string[]
+  onFiltersChange: (filters: FilterState) => void
+  onYearsChange: (years: { min: number; max: number }) => void
+  onMinRatingChange: (minRating: number) => void
 }
 
 export function MobileFilterSheet({
@@ -18,14 +25,16 @@ export function MobileFilterSheet({
   onClose,
   filters,
   onFiltersChange,
-  onApply,
   onReset,
+  genreOptions,
+  statusOptions,
+  studioOptions,
+  sourceOptions,
+  ratingOptions,
+  typeOptions,
+  onYearsChange,
+  onMinRatingChange,
 }: MobileFilterSheetProps) {
-  const handleApply = () => {
-    onApply()
-    onClose()
-  }
-
   return (
     <>
       {/* Backdrop */}
@@ -62,8 +71,15 @@ export function MobileFilterSheet({
             <div className="[&>aside]:w-full [&>aside>div]:rounded-none [&>aside>div]:border-0 [&>aside>div]:bg-transparent [&>aside>div]:shadow-none">
               <FilterSidebar
                 filters={filters}
+                genreOptions={genreOptions}
+                statusOptions={statusOptions}
+                studioOptions={studioOptions}
+                sourceOptions={sourceOptions}
+                ratingOptions={ratingOptions}
+                typeOptions={typeOptions}
                 onFiltersChange={onFiltersChange}
-                onApply={handleApply}
+                onYearsChange={onYearsChange}
+                onMinRatingChange={onMinRatingChange}
                 onReset={onReset}
               />
             </div>

@@ -121,8 +121,280 @@ export interface Anime {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
-export async function getAnimes(): Promise<Anime[]> {
-  const res = await fetch(`${API_URL}/animes`, {
+type ApiErrorPayload = {
+  error?: string
+  error_code?: string
+  ban_reason?: string
+}
+
+function maybeForceLogout(payload: ApiErrorPayload) {
+  if (typeof window === "undefined") return
+  const code = payload?.error_code
+  if (code !== "BANNED" && code !== "REVOKED" && code !== "NOT_VERIFIED") return
+  window.dispatchEvent(
+    new CustomEvent("auth:force-logout", {
+      detail: { error_code: code, ban_reason: payload?.ban_reason || "" },
+    })
+  )
+}
+
+export interface CatalogMeta {
+  genres: Genre[]
+  statuses: Status[]
+  studios: Studio[]
+  sources: Source[]
+  ratings: RatingOption[]
+  kinds: KindOption[]
+  year_min: number
+  year_max: number
+}
+
+export type GetAnimesParams = {
+  q?: string
+  genres?: string[]
+  types?: string[]
+  statuses?: string[]
+  studios?: string[]
+  sources?: string[]
+  ratings?: string[]
+  year_from?: number
+  year_to?: number
+  min_rating?: number
+  release_unknown?: boolean
+  complete_only?: boolean
+  sort_by?: "score" | "studio" | "source" | "rating"
+  sort_dir?: "asc" | "desc"
+}
+
+export type AdminUser = {
+  id: number
+  username: string
+  email: string
+  role: string
+  is_verified: boolean
+  is_banned: boolean
+  ban_reason: string | null
+  created_at: string
+}
+
+export type AdminListUsersResponse = {
+  users: AdminUser[]
+  total: number
+}
+
+export async function adminListUsers(params: {
+  token: string
+  q?: string
+  role?: "all" | "user" | "moderator" | "admin" | "root"
+  status?: "all" | "active" | "not_verified" | "banned"
+  page?: number
+  limit?: number
+}): Promise<AdminListUsersResponse> {
+  const qs = new URLSearchParams()
+  if (params.q?.trim()) qs.set("q", params.q.trim())
+  if (params.role && params.role !== "all") qs.set("role", params.role)
+  if (params.status && params.status !== "all") qs.set("status", params.status)
+  if (typeof params.page === "number") qs.set("page", String(params.page))
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit))
+
+  const res = await fetch(`${API_URL}/admin/users?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to fetch users")
+  }
+  return data
+}
+
+export async function adminGetUser(params: { token: string; id: string }): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}`, {
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+    },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to fetch user")
+  }
+  return data
+}
+
+export async function adminUpdateUser(params: {
+  token: string
+  id: string
+  input: { username?: string; email?: string; role?: "user" | "moderator" | "admin"; is_verified?: boolean }
+}): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify(params.input),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to update user")
+  }
+  return data
+}
+
+export async function adminResetUserPasswordDefault(params: { token: string; id: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}/reset-password-default`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+    },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to reset password")
+  }
+}
+
+export async function adminSetDefaultPassword(params: { token: string; password: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/settings/default-password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ password: params.password }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to update default password")
+  }
+}
+
+export async function adminCreateUser(params: {
+  token: string
+  input: { username: string; email: string; password: string; role: "user" | "moderator" | "admin" }
+}): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify(params.input),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to create user")
+  }
+  return data
+}
+
+export async function adminTransferRoot(params: {
+  token: string
+  target_user_id: number
+  password: string
+}): Promise<{ message: string; force_logout?: boolean }> {
+  const res = await fetch(`${API_URL}/admin/root/transfer`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ target_user_id: params.target_user_id, password: params.password }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to transfer root")
+  }
+  return data
+}
+
+export async function adminBanUser(params: {
+  token: string
+  id: string
+  reason: string
+}): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}/ban`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ reason: params.reason }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to ban user")
+  }
+  return data
+}
+
+export async function adminUnbanUser(params: { token: string; id: string }): Promise<AdminUser> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}/unban`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+    },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to unban user")
+  }
+  return data
+}
+
+export async function adminDeleteUser(params: { token: string; id: string }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/users/${params.id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+    },
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to delete user")
+  }
+}
+
+export async function getCatalogMeta(): Promise<CatalogMeta> {
+  const res = await fetch(`${API_URL}/catalog/meta`, {
+    cache: "no-store",
+  })
+  if (!res.ok) {
+    throw new Error("Failed to fetch catalog meta")
+  }
+  return res.json()
+}
+
+export async function getAnimes(params?: GetAnimesParams): Promise<Anime[]> {
+  const sp = new URLSearchParams()
+  if (params?.q) sp.set("q", params.q)
+  if (params?.genres?.length) sp.set("genres", params.genres.join(","))
+  if (params?.types?.length) sp.set("types", params.types.join(","))
+  if (params?.statuses?.length) sp.set("statuses", params.statuses.join(","))
+  if (params?.studios?.length) sp.set("studios", params.studios.join(","))
+  if (params?.sources?.length) sp.set("sources", params.sources.join(","))
+  if (params?.ratings?.length) sp.set("ratings", params.ratings.join(","))
+  if (typeof params?.year_from === "number") sp.set("year_from", String(params.year_from))
+  if (typeof params?.year_to === "number") sp.set("year_to", String(params.year_to))
+  if (typeof params?.min_rating === "number") sp.set("min_rating", String(params.min_rating))
+  if (params?.release_unknown) sp.set("release_unknown", "1")
+  if (params?.complete_only) sp.set("complete_only", "1")
+  if (params?.sort_by) sp.set("sort_by", params.sort_by)
+  if (params?.sort_dir) sp.set("sort_dir", params.sort_dir)
+
+  const url = sp.size ? `${API_URL}/animes?${sp.toString()}` : `${API_URL}/animes`
+  const res = await fetch(url, {
     cache: "no-store",
   })
   if (!res.ok) {
@@ -188,6 +460,7 @@ export async function updateAge(params: { token: string; age: number }): Promise
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update age")
   }
 }
@@ -210,6 +483,7 @@ export async function updatePassword(params: {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update password")
   }
 }
@@ -225,6 +499,7 @@ export async function requestOldEmailCode(params: { token: string; email: string
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to request code")
   }
 }
@@ -240,6 +515,7 @@ export async function verifyOldEmailCode(params: { token: string; code: string }
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Invalid code")
   }
 }
@@ -255,6 +531,7 @@ export async function requestNewEmailCode(params: { token: string; email: string
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to request code")
   }
 }
@@ -270,6 +547,7 @@ export async function verifyNewEmailCode(params: { token: string; code: string }
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Invalid code")
   }
 }
@@ -338,6 +616,7 @@ export async function getMe(params: { token: string }): Promise<User> {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to fetch user profile")
   }
 
@@ -345,6 +624,8 @@ export async function getMe(params: { token: string }): Promise<User> {
 }
 
 export type WatchlistStatus = "watching" | "planned" | "completed" | "on_hold" | "dropped"
+
+export type UserListStatus = WatchlistStatus
 
 export interface UserCollectionEntry {
   id: number
@@ -378,6 +659,7 @@ export async function addToMyCollection(params: {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update collection")
   }
 }
@@ -395,6 +677,7 @@ export async function removeFromMyCollection(params: {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to remove from collection")
   }
 }
@@ -411,6 +694,7 @@ export async function getMyCollection(params: {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to fetch collection")
   }
 
@@ -455,6 +739,7 @@ export async function adminCreateEpisode(params: {
     }
   })() : null
   if (!res.ok) {
+    if (data && typeof data === "object") maybeForceLogout(data as any)
     throw new Error((data as any)?.error || raw || "Failed to create episode")
   }
   return data as Episode
@@ -483,6 +768,7 @@ export async function adminUpdateEpisode(params: {
     }
   })() : null
   if (!res.ok) {
+    if (data && typeof data === "object") maybeForceLogout(data as any)
     throw new Error((data as any)?.error || raw || "Failed to update episode")
   }
   return data as Episode
@@ -500,6 +786,7 @@ export async function adminDeleteEpisode(params: {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to delete episode")
   }
 }
@@ -531,6 +818,7 @@ export async function adminCreateVideoSource(params: {
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to create video source")
   }
   return data
@@ -552,6 +840,7 @@ export async function adminUpdateVideoSource(params: {
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update video source")
   }
   return data
@@ -569,6 +858,7 @@ export async function adminDeleteVideoSource(params: {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to delete video source")
   }
 }
@@ -585,6 +875,7 @@ export async function adminSetDefaultVideoSource(params: {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to set default video source")
   }
 }
@@ -599,6 +890,7 @@ export async function adminListVoiceGroups(params: { token: string }): Promise<V
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to fetch voice groups")
   }
 
@@ -620,6 +912,7 @@ export async function adminCreateVoiceGroup(params: {
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to create voice group")
   }
   return data
@@ -640,6 +933,7 @@ export async function adminUpdateVoiceGroup(params: {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update voice group")
   }
   return data
@@ -657,6 +951,7 @@ export async function adminDeleteVoiceGroup(params: {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to delete voice group")
   }
 }
@@ -687,6 +982,7 @@ export async function adminGetMeta(params: { token: string }): Promise<AdminMeta
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to fetch admin metadata")
   }
 
@@ -698,6 +994,9 @@ export interface AdminCreateAnimeInput {
   kind?: string
   duration?: number
   rating?: string
+  episodes_aired?: number
+  aired_on?: string
+  released_on?: string
   trailer_url?: string
   score?: number
   episodes?: number
@@ -727,7 +1026,10 @@ export async function adminCreateAnime(params: {
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(data.error || "Failed to create anime")
+    maybeForceLogout(data)
+    const err: any = new Error(data.error || "Failed to create anime")
+    err.payload = data
+    throw err
   }
 
   return data
@@ -749,6 +1051,7 @@ export async function adminUpdateAnime(params: {
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to update anime")
   }
 
@@ -768,6 +1071,7 @@ export async function adminDeleteAnime(params: {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || "Failed to delete anime")
   }
 }
@@ -810,7 +1114,11 @@ async function adminListMetaItem<T>(token: string, path: string): Promise<T[]> {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   })
-  if (!res.ok) throw new Error(`Failed to fetch ${path}`)
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
+    throw new Error((data as any).error || `Failed to fetch ${path}`)
+  }
   return res.json()
 }
 
@@ -824,7 +1132,10 @@ async function adminCreateMetaItem<T>(token: string, path: string, name: string)
     body: JSON.stringify({ name }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Failed to create ${path}`)
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || `Failed to create ${path}`)
+  }
   return data
 }
 
@@ -838,7 +1149,10 @@ async function adminUpdateMetaItem<T>(token: string, path: string, id: number, n
     body: JSON.stringify({ name }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Failed to update ${path}`)
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || `Failed to update ${path}`)
+  }
   return data
 }
 
@@ -849,6 +1163,7 @@ async function adminDeleteMetaItem(token: string, path: string, id: number): Pro
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
+    maybeForceLogout(data)
     throw new Error(data.error || `Failed to delete ${path}`)
   }
 }
@@ -903,6 +1218,9 @@ export async function adminSetAnimeGenres(params: {
     body: JSON.stringify({ genre_ids: params.genre_ids }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || "Failed to set genres")
+  if (!res.ok) {
+    maybeForceLogout(data)
+    throw new Error(data.error || "Failed to set genres")
+  }
   return data
 }

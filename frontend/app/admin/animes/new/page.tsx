@@ -13,8 +13,10 @@ export default function AdminAddAnimePage() {
   const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [existingAnime, setExistingAnime] = useState<{ id: number; url?: string; name?: string } | null>(null)
   const [genresMode, setGenresMode] = useState<"grid" | "list">("grid")
   const [genreQuery, setGenreQuery] = useState("")
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false)
 
   const [form, setForm] = useState<AdminCreateAnimeInput>({
     url: "",
@@ -86,16 +88,33 @@ export default function AdminAddAnimePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setAttemptedSubmit(true)
     if (!token) return
+    if (!form.title_ru.trim() || !form.title_en_romaji.trim()) {
+      setError("Title (RU) and Title (Romaji) are required")
+      return
+    }
     if (!canSubmit) return
 
     setIsLoading(true)
     setError(null)
+    setExistingAnime(null)
     try {
       await adminCreateAnime({ token, input: form })
       window.location.href = "/admin/animes"
     } catch (e: any) {
-      setError(e.message || "Failed to create")
+      const payload = e?.payload
+      if (payload?.error_code === "ANIME_EXISTS" && typeof payload?.existing_id === "number") {
+        setExistingAnime({
+          id: payload.existing_id,
+          url: typeof payload.existing_url === "string" ? payload.existing_url : undefined,
+          name: typeof payload.existing_name === "string" ? payload.existing_name : undefined,
+        })
+        const label = payload.existing_name || payload.existing_url || String(payload.existing_id)
+        setError(`Anime already exists: ${label}`)
+      } else {
+        setError(e.message || "Failed to create")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -122,6 +141,13 @@ export default function AdminAddAnimePage() {
           {error && (
             <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
+              {existingAnime ? (
+                <div className="mt-2">
+                  <Link className="text-primary hover:underline" href={`/admin/animes/${existingAnime.id}`}>
+                    Open existing anime
+                  </Link>
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -162,20 +188,30 @@ export default function AdminAddAnimePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground-muted">Title (RU)</label>
+              <label className="text-xs font-semibold text-foreground-muted">Title (RU) *</label>
               <input
                 value={form.title_ru}
                 onChange={(e) => setForm((p) => ({ ...p, title_ru: e.target.value }))}
-                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+                required
+                aria-invalid={attemptedSubmit && !form.title_ru.trim()}
+                className={cn(
+                  "w-full h-11 rounded-xl bg-background border px-4 text-sm text-foreground outline-none focus:border-primary/50",
+                  attemptedSubmit && !form.title_ru.trim() ? "border-red-500/60" : "border-border/60"
+                )}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground-muted">Title (Romaji)</label>
+              <label className="text-xs font-semibold text-foreground-muted">Title (Romaji) *</label>
               <input
                 value={form.title_en_romaji}
                 onChange={(e) => setForm((p) => ({ ...p, title_en_romaji: e.target.value }))}
-                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+                required
+                aria-invalid={attemptedSubmit && !form.title_en_romaji.trim()}
+                className={cn(
+                  "w-full h-11 rounded-xl bg-background border px-4 text-sm text-foreground outline-none focus:border-primary/50",
+                  attemptedSubmit && !form.title_en_romaji.trim() ? "border-red-500/60" : "border-border/60"
+                )}
               />
             </div>
 
