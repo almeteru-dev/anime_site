@@ -149,6 +149,7 @@ func main() {
 
 					adminAdmin.PUT("/settings/default-password", middleware.RootOnly(), handlers.AdminSetDefaultPassword)
 					adminAdmin.POST("/root/transfer", handlers.AdminTransferRoot)
+					adminAdmin.POST("/email/test-verification", middleware.RootOnly(), handlers.AdminTestVerificationEmail)
 				}
 			}
 		}

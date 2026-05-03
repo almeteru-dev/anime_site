@@ -214,15 +214,15 @@ func GetAnimeByID(c *gin.Context) {
 	}
 
 	type VideoSourceItem struct {
-		ID         int64                  `json:"id"`
-		LabelID    *int64                 `json:"label_id"`
-		Label      string                 `json:"label"`
-		Type       models.VideoSourceType `json:"type"`
-		URL        string                 `json:"url"`
-		IsDefault  bool                   `json:"is_default"`
-		IsActive   bool                   `json:"is_active"`
-		SortOrder  int64                  `json:"sort_order"`
-		VideoLabel *VideoLabelItem        `json:"video_label,omitempty"`
+		ID        int64                  `json:"id"`
+		LabelID   *int64                 `json:"label_id"`
+		Label     string                 `json:"label"`
+		Type      models.VideoSourceType `json:"type"`
+		URL       string                 `json:"url"`
+		IsDefault bool                   `json:"is_default"`
+		IsActive  bool                   `json:"is_active"`
+		SortOrder int64                  `json:"sort_order"`
+		VideoLabel *VideoLabelItem       `json:"video_label,omitempty"`
 	}
 
 	type EpisodeItem struct {
@@ -261,14 +261,14 @@ func GetAnimeByID(c *gin.Context) {
 				vl = &VideoLabelItem{ID: s.VideoLabel.ID, Name: s.VideoLabel.Name, IsExternalPlayer: s.VideoLabel.IsExternalPlayer}
 			}
 			sources = append(sources, VideoSourceItem{
-				ID:         s.ID,
-				LabelID:    s.LabelID,
-				Label:      s.Label,
-				Type:       s.Type,
-				URL:        s.URL,
-				IsDefault:  s.IsDefault,
-				IsActive:   s.IsActive,
-				SortOrder:  int64(s.SortOrder),
+				ID:        s.ID,
+				LabelID:   s.LabelID,
+				Label:     s.Label,
+				Type:      s.Type,
+				URL:       s.URL,
+				IsDefault: s.IsDefault,
+				IsActive:  s.IsActive,
+				SortOrder: int64(s.SortOrder),
 				VideoLabel: vl,
 			})
 		}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -15,8 +16,17 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"github.com/seva/animevista/internal/service"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func publicWebBaseURL() string {
+	base := strings.TrimSpace(os.Getenv("WEB_BASE_URL"))
+	if base == "" {
+		base = "http://localhost:3000"
+	}
+	return strings.TrimRight(base, "/")
+}
 
 type RegisterInput struct {
 	Username string `json:"username" binding:"required"`
@@ -123,7 +133,11 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Verification link for user %s: http://localhost:3000/verify-confirm?token=%s", user.Email, token)
+	verificationLink := publicWebBaseURL() + "/verify-confirm?token=" + url.QueryEscape(token)
+	log.Printf("Verification link for user %s: %s", user.Email, verificationLink)
+	if err := service.SendVerificationEmail(user.Email, verificationLink); err != nil {
+		log.Printf("failed to send verification email to %s: %v", user.Email, err)
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful. Please check your email for verification link."})
 }
@@ -197,7 +211,11 @@ func ResendVerification(c *gin.Context) {
 		return
 	}
 
-	log.Printf("New verification link for user %s: http://localhost:3000/verify-confirm?token=%s", user.Email, token)
+	verificationLink := publicWebBaseURL() + "/verify-confirm?token=" + url.QueryEscape(token)
+	log.Printf("New verification link for user %s: %s", user.Email, verificationLink)
+	if err := service.SendVerificationEmail(user.Email, verificationLink); err != nil {
+		log.Printf("failed to resend verification email to %s: %v", user.Email, err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification email resent successfully"})
 }
