@@ -285,6 +285,32 @@ export async function adminSetDefaultPassword(params: { token: string; password:
   }
 }
 
+export async function adminSetPrivateMode(params: { token: string; enabled: boolean }): Promise<void> {
+	const res = await fetch(`${API_URL}/admin/settings/private-mode`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({ enabled: params.enabled }),
+	})
+
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to update private mode")
+	}
+}
+
+export async function getPublicSettings(): Promise<{ private_mode: boolean }> {
+	const res = await fetch(`${API_URL}/settings/public`, { cache: "no-store" })
+	if (!res.ok) {
+		throw new Error("Failed to fetch settings")
+	}
+	const data = await res.json().catch(() => ({}))
+	return { private_mode: data.private_mode === true }
+}
+
 export async function adminCreateUser(params: {
   token: string
   input: { username: string; email: string; password: string; role: "user" | "moderator" | "admin" }
@@ -709,6 +735,36 @@ export async function getMyCollection(params: {
   }
 
   return res.json()
+}
+
+export async function rateAnime(params: {
+	 token: string
+	 animeId: number
+	 rating: number
+}): Promise<void> {
+	const res = await fetch(`${API_URL}/anime/rate`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({ anime_id: params.animeId, rating: params.rating }),
+	})
+
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}))
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to save rating")
+	}
+}
+
+export async function getAnimeAverageRating(animeId: number): Promise<number> {
+	const res = await fetch(`${API_URL}/anime/${animeId}/rating`, { cache: "no-store" })
+	if (!res.ok) {
+		throw new Error("Failed to fetch rating")
+	}
+	const data = await res.json().catch(() => ({}))
+	return typeof data.average_rating === "number" ? data.average_rating : 0
 }
 
 export interface AdminMeta {

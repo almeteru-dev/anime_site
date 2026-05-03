@@ -17,8 +17,8 @@ export function Footer() {
                 <span className="text-primary-foreground font-bold text-lg">A</span>
               </div>
               <span className="text-xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
+                <span className="text-foreground">Lycoris</span>
+                <span className="text-primary">Lib</span>
               </span>
             </a>
             <p className="text-foreground-muted text-sm mt-2">
@@ -76,7 +76,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-border text-center">
           <p className="text-foreground-muted text-sm">
-            © {new Date().getFullYear()} AnimeVista. {t.footer.copyright}
+            © {new Date().getFullYear()} LycorisLib. {t.footer.copyright}
           </p>
           <p className="text-foreground-muted/60 text-xs mt-2">
             {t.footer.disclaimer}

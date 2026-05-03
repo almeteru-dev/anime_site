@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedToken && savedUser) {
       setToken(savedToken)
       setUser(JSON.parse(savedUser))
+
+	  document.cookie = `auth_token=${encodeURIComponent(savedToken)}; Path=/; SameSite=Lax`
     }
     setIsLoading(false)
   }, [])
@@ -54,6 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+
+	  document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
       router.push('/login')
     }
 
@@ -66,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser)
     localStorage.setItem('token', newToken)
     localStorage.setItem('user', JSON.stringify(newUser))
+
+	document.cookie = `auth_token=${encodeURIComponent(newToken)}; Path=/; SameSite=Lax`
     router.push('/')
   }
 
@@ -74,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+
+	document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
     router.push('/login')
   }
 

@@ -16,7 +16,7 @@ export function Header() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">
-                AnimeVista
+                LycorisLib
               </h1>
               <p className="text-xs text-[#8BA3C7] -mt-0.5">Release Schedule</p>
             </div>

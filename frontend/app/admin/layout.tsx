@@ -13,22 +13,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
 
   if (!isLoading && (!token || !user)) {
-    router.push("/login")
+    router.push("/")
     return null
   }
 
   if (!isLoading) {
     const lvl = roleLevel(user?.role || "user")
-    if (lvl < roleLevel("moderator")) {
+    if (lvl < roleLevel("admin")) {
       router.push("/")
       return null
-    }
-    if (user?.role === "moderator") {
-      const allowed = pathname === "/admin/animes" || pathname === "/admin/animes/new" || pathname.startsWith("/admin/animes/")
-      if (!allowed) {
-        router.push("/admin/animes")
-        return null
-      }
     }
   }
 
@@ -42,12 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },
   ]
 
-  const visibleNav = nav.filter((item) => {
-    if (user?.role === "moderator") {
-      return item.href === "/admin/animes" || item.href === "/admin/animes/new"
-    }
-    return true
-  })
+  const visibleNav = nav
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <div>
                 <div className="text-sm font-semibold text-foreground">Admin CMS</div>
-                <div className="text-xs text-foreground-muted">AnimeVista</div>
+                <div className="text-xs text-foreground-muted">LycorisLib</div>
               </div>
             </div>
           </div>

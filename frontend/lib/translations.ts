@@ -36,7 +36,7 @@ export const translations = {
       forgotPassword: "Forgot Password?",
       signingIn: "Signing In...",
       loginButton: "Login",
-      newToAnimeVista: "New to AnimeVista?",
+      newToAnimeVista: "New to LycorisLib?",
       joinNow: "Join now",
       backToHome: "Back to Home",
     },
@@ -67,7 +67,7 @@ export const translations = {
       contact: "Contact",
       faq: "FAQ",
       copyright: "All rights reserved.",
-      disclaimer: "AnimeVista does not store any files on its servers. All content is provided by non-affiliated third parties.",
+      disclaimer: "LycorisLib does not store any files on its servers. All content is provided by non-affiliated third parties.",
     },
     // Profile Page
     profile: {
@@ -235,7 +235,7 @@ export const translations = {
       forgotPassword: "Забыли пароль?",
       signingIn: "Вход...",
       loginButton: "Войти",
-      newToAnimeVista: "Впервые на AnimeVista?",
+      newToAnimeVista: "Впервые на LycorisLib?",
       joinNow: "Присоединиться",
       backToHome: "На главную",
     },
@@ -266,7 +266,7 @@ export const translations = {
       contact: "Контакты",
       faq: "FAQ",
       copyright: "Все права защищены.",
-      disclaimer: "AnimeVista не хранит файлы на своих серверах. Весь контент предоставляется сторонними источниками.",
+      disclaimer: "LycorisLib не хранит файлы на своих серверах. Весь контент предоставляется сторонними источниками.",
     },
     // Profile Page
     profile: {

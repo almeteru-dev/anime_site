@@ -15,6 +15,10 @@ type AdminSetDefaultPasswordInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type AdminSetPrivateModeInput struct {
+	Enabled bool `json:"enabled"`
+}
+
 func AdminSetDefaultPassword(c *gin.Context) {
 	roleAny, _ := c.Get("role")
 	role, _ := roleAny.(string)
@@ -48,7 +52,7 @@ func AdminSetDefaultPassword(c *gin.Context) {
 }
 
 func getDefaultPassword() string {
-	const fallback = "AnimeVista$1"
+	const fallback = "LycorisLib$1"
 	var s models.AppSetting
 	if err := app.DB.First(&s, "key = ?", "default_password").Error; err != nil {
 		return fallback
@@ -57,4 +61,44 @@ func getDefaultPassword() string {
 		return fallback
 	}
 	return s.Value
+}
+
+func AdminSetPrivateMode(c *gin.Context) {
+	roleAny, _ := c.Get("role")
+	role, _ := roleAny.(string)
+	if role != "root" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Root access required"})
+		return
+	}
+
+	var input AdminSetPrivateModeInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	val := "false"
+	if input.Enabled {
+		val = "true"
+	}
+
+	setting := models.AppSetting{Key: "private_mode", Value: val, UpdatedAt: time.Now()}
+	if err := app.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+	}).Create(&setting).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update private mode"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Updated", "enabled": input.Enabled})
+}
+
+func GetPublicSettings(c *gin.Context) {
+	enabled := false
+	var s models.AppSetting
+	if err := app.DB.First(&s, "key = ?", "private_mode").Error; err == nil {
+		enabled = strings.EqualFold(strings.TrimSpace(s.Value), "true") || strings.TrimSpace(s.Value) == "1"
+	}
+	c.JSON(http.StatusOK, gin.H{"private_mode": enabled})
 }

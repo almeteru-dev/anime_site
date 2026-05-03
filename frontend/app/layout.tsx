@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'AnimeVista - Stream Your Favorite Anime',
+  title: 'LycorisLib - Stream Your Favorite Anime',
   description: 'Discover and stream the best anime titles. Watch latest episodes, trending series, and top-rated anime all in one place.',
   keywords: ['anime', 'streaming', 'watch anime', 'anime catalog', 'latest episodes'],
 }

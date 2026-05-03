@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/handlers"
 	"github.com/seva/animevista/internal/middleware"
+	"github.com/seva/animevista/internal/service"
 )
 
 func main() {
@@ -20,6 +24,12 @@ func main() {
 
 	// Initialize Database
 	app.InitDB()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if app.Ent != nil {
+		service.StartAnimeAverageRatingWorker(ctx, app.Ent)
+	}
 
 	// Initialize Gin router
 	r := gin.Default()
@@ -57,14 +67,17 @@ func main() {
 		api.POST("/reset-password", handlers.ResetPassword)
 
 		api.GET("/catalog/meta", handlers.GetPublicCatalogMeta)
+		api.GET("/settings/public", handlers.GetPublicSettings)
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
 		api.GET("/animes/:id/episodes", handlers.GetAnimeEpisodes)
+		api.GET("/anime/:id/rating", handlers.GetAnimeAverageRating)
 
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			protected.POST("/anime/rate", handlers.RateAnime)
 			protected.GET("/me", handlers.GetMe)
 			protected.PUT("/me/age", handlers.UpdateAge)
 			protected.PUT("/me/password", handlers.UpdatePassword)
@@ -148,6 +161,7 @@ func main() {
 					adminAdmin.DELETE("/users/:id", handlers.AdminDeleteUser)
 
 					adminAdmin.PUT("/settings/default-password", middleware.RootOnly(), handlers.AdminSetDefaultPassword)
+					adminAdmin.PUT("/settings/private-mode", middleware.RootOnly(), handlers.AdminSetPrivateMode)
 					adminAdmin.POST("/root/transfer", handlers.AdminTransferRoot)
 					adminAdmin.POST("/email/test-verification", middleware.RootOnly(), handlers.AdminTestVerificationEmail)
 				}

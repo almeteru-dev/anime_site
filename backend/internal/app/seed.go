@@ -51,12 +51,12 @@ func Seed(db *gorm.DB) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
 	adminUser := models.User{
 		Username:     "admin",
-		Email:        "admin@animevista.com",
+		Email:        "admin@lycoris.tv",
 		PasswordHash: string(hashedPassword),
 		Role:         "admin",
 		IsVerified:   true,
 	}
-	db.FirstOrCreate(&adminUser, models.User{Email: "admin@animevista.com"})
+	db.FirstOrCreate(&adminUser, models.User{Email: "admin@lycoris.tv"})
 
 	var rootCount int64
 	db.Model(&models.User{}).Where("role = ?", "root").Count(&rootCount)

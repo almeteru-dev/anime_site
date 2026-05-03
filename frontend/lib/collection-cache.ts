@@ -4,8 +4,8 @@ export type CollectionStatus = WatchlistStatus
 
 type CollectionMap = Record<string, CollectionStatus>
 
-const KEY_PREFIX = "animevista:collection:v1:"
-const EVENT_NAME = "animevista:collection"
+const KEY_PREFIX = "lycorislib:collection:v1:"
+const EVENT_NAME = "lycorislib:collection"
 
 function key(userId: number) {
   return `${KEY_PREFIX}${userId}`
@@ -54,4 +54,3 @@ export function subscribeCollection(userId: number, cb: () => void) {
     window.removeEventListener("storage", cb)
   }
 }
-
