@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { getMyCollection, rateAnime } from "@/lib/api"
+import { getMyAnimeRating, getMyCollection, rateAnime } from "@/lib/api"
 
 export function AnimeRating({ animeId }: { animeId: number }) {
   const { token } = useAuth()
@@ -10,18 +10,34 @@ export function AnimeRating({ animeId }: { animeId: number }) {
   const [value, setValue] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+	const didInitValue = useRef(false)
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
       if (!token) {
         if (mounted) setIsWatched(null)
+		if (mounted) setValue("")
+		if (mounted) setError(null)
+        didInitValue.current = false
         return
       }
       try {
-        const items = await getMyCollection({ token })
+        const itemsPromise = getMyCollection({ token })
+        const ratingPromise = getMyAnimeRating({ token, animeId }).catch(() => null)
+        const items = await itemsPromise
+        const myRating = await ratingPromise
         const entry = items.find((x) => x.anime_id === animeId)
         if (mounted) setIsWatched(entry?.collection_type?.name === "completed")
+        if (mounted && !didInitValue.current) {
+          if (typeof myRating === "number" && Number.isFinite(myRating)) {
+            const n = Math.trunc(myRating)
+            if (n >= 0 && n <= 9) {
+              setValue(String(n))
+            }
+          }
+          didInitValue.current = true
+        }
       } catch {
         if (mounted) setIsWatched(false)
       }
@@ -91,4 +107,3 @@ export function AnimeRating({ animeId }: { animeId: number }) {
     </div>
   )
 }
-

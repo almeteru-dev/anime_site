@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,15 +14,17 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/seva/animevista/ent/anime"
 	"github.com/seva/animevista/ent/predicate"
+	"github.com/seva/animevista/ent/schedule"
 )
 
 // AnimeQuery is the builder for querying Anime entities.
 type AnimeQuery struct {
 	config
-	ctx        *QueryContext
-	order      []anime.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Anime
+	ctx           *QueryContext
+	order         []anime.OrderOption
+	inters        []Interceptor
+	predicates    []predicate.Anime
+	withSchedules *ScheduleQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -56,6 +59,28 @@ func (_q *AnimeQuery) Unique(unique bool) *AnimeQuery {
 func (_q *AnimeQuery) Order(o ...anime.OrderOption) *AnimeQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QuerySchedules chains the current query on the "schedules" edge.
+func (_q *AnimeQuery) QuerySchedules() *ScheduleQuery {
+	query := (&ScheduleClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(anime.Table, anime.FieldID, selector),
+			sqlgraph.To(schedule.Table, schedule.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, anime.SchedulesTable, anime.SchedulesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Anime entity from the query.
@@ -245,15 +270,27 @@ func (_q *AnimeQuery) Clone() *AnimeQuery {
 		return nil
 	}
 	return &AnimeQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]anime.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Anime{}, _q.predicates...),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]anime.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.Anime{}, _q.predicates...),
+		withSchedules: _q.withSchedules.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithSchedules tells the query-builder to eager-load the nodes that are connected to
+// the "schedules" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AnimeQuery) WithSchedules(opts ...func(*ScheduleQuery)) *AnimeQuery {
+	query := (&ScheduleClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSchedules = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -262,12 +299,12 @@ func (_q *AnimeQuery) Clone() *AnimeQuery {
 // Example:
 //
 //	var v []struct {
-//		AverageRating float64 `json:"average_rating,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Anime.Query().
-//		GroupBy(anime.FieldAverageRating).
+//		GroupBy(anime.FieldName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *AnimeQuery) GroupBy(field string, fields ...string) *AnimeGroupBy {
@@ -285,11 +322,11 @@ func (_q *AnimeQuery) GroupBy(field string, fields ...string) *AnimeGroupBy {
 // Example:
 //
 //	var v []struct {
-//		AverageRating float64 `json:"average_rating,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Anime.Query().
-//		Select(anime.FieldAverageRating).
+//		Select(anime.FieldName).
 //		Scan(ctx, &v)
 func (_q *AnimeQuery) Select(fields ...string) *AnimeSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
@@ -332,8 +369,11 @@ func (_q *AnimeQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *AnimeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Anime, error) {
 	var (
-		nodes = []*Anime{}
-		_spec = _q.querySpec()
+		nodes       = []*Anime{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withSchedules != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Anime).scanValues(nil, columns)
@@ -341,6 +381,7 @@ func (_q *AnimeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Anime,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Anime{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -352,7 +393,45 @@ func (_q *AnimeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Anime,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withSchedules; query != nil {
+		if err := _q.loadSchedules(ctx, query, nodes,
+			func(n *Anime) { n.Edges.Schedules = []*Schedule{} },
+			func(n *Anime, e *Schedule) { n.Edges.Schedules = append(n.Edges.Schedules, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *AnimeQuery) loadSchedules(ctx context.Context, query *ScheduleQuery, nodes []*Anime, init func(*Anime), assign func(*Anime, *Schedule)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Anime)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(schedule.FieldAnimeID)
+	}
+	query.Where(predicate.Schedule(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(anime.SchedulesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AnimeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "anime_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *AnimeQuery) sqlCount(ctx context.Context) (int, error) {

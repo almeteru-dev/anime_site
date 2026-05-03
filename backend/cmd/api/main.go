@@ -67,6 +67,7 @@ func main() {
 		api.POST("/reset-password", handlers.ResetPassword)
 
 		api.GET("/catalog/meta", handlers.GetPublicCatalogMeta)
+		api.GET("/schedule", handlers.GetSchedule)
 		api.GET("/settings/public", handlers.GetPublicSettings)
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
@@ -78,6 +79,7 @@ func main() {
 		protected.Use(middleware.AuthMiddleware())
 		{
 			protected.POST("/anime/rate", handlers.RateAnime)
+			protected.GET("/anime/:id/my-rating", handlers.GetMyAnimeRating)
 			protected.GET("/me", handlers.GetMe)
 			protected.PUT("/me/age", handlers.UpdateAge)
 			protected.PUT("/me/password", handlers.UpdatePassword)
@@ -100,6 +102,11 @@ func main() {
 			{
 				// Content management (moderator/admin/root)
 				admin.GET("/meta", handlers.AdminGetMeta)
+				admin.GET("/schedule", handlers.AdminListSchedule)
+				admin.GET("/schedule/animes", handlers.AdminListOngoingAnimes)
+				admin.POST("/schedule", handlers.AdminCreateSchedule)
+				admin.PUT("/schedule/:id", handlers.AdminUpdateSchedule)
+				admin.DELETE("/schedule/:id", handlers.AdminDeleteSchedule)
 				admin.GET("/voice-groups", handlers.AdminListVoiceGroups)
 				admin.GET("/video-labels", handlers.AdminListVideoLabels)
 				admin.POST("/animes", handlers.AdminCreateAnime)
@@ -162,6 +169,8 @@ func main() {
 
 					adminAdmin.PUT("/settings/default-password", middleware.RootOnly(), handlers.AdminSetDefaultPassword)
 					adminAdmin.PUT("/settings/private-mode", middleware.RootOnly(), handlers.AdminSetPrivateMode)
+					adminAdmin.PUT("/settings/schedule-timezone", middleware.RootOnly(), handlers.AdminSetScheduleTimezone)
+					adminAdmin.POST("/schedule/purge-old", middleware.RootOnly(), handlers.AdminPurgeOldSchedules)
 					adminAdmin.POST("/root/transfer", handlers.AdminTransferRoot)
 					adminAdmin.POST("/email/test-verification", middleware.RootOnly(), handlers.AdminTestVerificationEmail)
 				}

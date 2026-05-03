@@ -147,14 +147,14 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-6">
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-xl">A</span>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center overflow-hidden">
+                  <img src="/favicon.svg" alt="LycorisLib" className="w-7 h-7" />
                 </div>
                 <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <span className="text-2xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
+                <span className="text-foreground">Lycoris</span>
+                <span className="text-primary">Lib</span>
               </span>
             </Link>
           </div>

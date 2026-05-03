@@ -1,16 +1,22 @@
 "use client";
 
-import { Bell, BellRing, Clock } from "lucide-react";
-import { AnimeRelease } from "@/lib/schedule-data";
+import { Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-interface AnimeCardProps {
-  anime: AnimeRelease;
-  onToggleReminder: (id: string) => void;
+type ScheduleCardItem = {
+  time: string
+  title: string
+  episode: number
+  posterUrl: string
+  slug: string
 }
 
-export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
+interface AnimeCardProps {
+  anime: ScheduleCardItem;
+}
+
+export function AnimeCard({ anime }: AnimeCardProps) {
   return (
     <div className="group relative flex items-center gap-4 p-4 bg-[#0A1628] border border-[#1A2744] rounded-xl transition-all duration-300 hover:border-[#00E5FF]/50 hover:shadow-xl hover:shadow-[#00E5FF]/10 hover:bg-[#0D1A30]">
       {/* Time */}
@@ -22,7 +28,7 @@ export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
       </div>
 
       {/* Poster */}
-      <Link href="/catalog" className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-black/30 ring-1 ring-[#1A2744] group-hover:ring-[#00E5FF]/30 transition-all duration-300">
+      <Link href={`/anime/${encodeURIComponent(anime.slug)}`} className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-black/30 ring-1 ring-[#1A2744] group-hover:ring-[#00E5FF]/30 transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1A2744] to-[#0A1628]" />
         <Image
           src={anime.posterUrl}
@@ -40,7 +46,7 @@ export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
       </Link>
 
       {/* Info */}
-      <Link href="/catalog" className="flex-1 min-w-0">
+      <Link href={`/anime/${encodeURIComponent(anime.slug)}`} className="flex-1 min-w-0">
         <h3 className="font-bold text-white text-base leading-snug truncate group-hover:text-[#00E5FF] transition-colors duration-200">
           {anime.title}
         </h3>
@@ -51,26 +57,6 @@ export function AnimeCard({ anime, onToggleReminder }: AnimeCardProps) {
           <span className="text-[#8BA3C7] text-xs">New Episode</span>
         </div>
       </Link>
-
-      {/* Remind Button */}
-      <button
-        onClick={() => onToggleReminder(anime.id)}
-        className={`relative flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
-          anime.isReminded
-            ? "bg-[#00E5FF]/15 text-[#00E5FF] shadow-lg shadow-[#00E5FF]/20"
-            : "bg-[#1A2744] text-[#8BA3C7] hover:bg-[#00E5FF]/10 hover:text-[#00E5FF]"
-        }`}
-        aria-label={anime.isReminded ? "Remove reminder" : "Set reminder"}
-      >
-        {anime.isReminded ? (
-          <BellRing className="w-5 h-5" />
-        ) : (
-          <Bell className="w-5 h-5" />
-        )}
-        {anime.isReminded && (
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E5FF] rounded-full animate-pulse" />
-        )}
-      </button>
     </div>
   );
 }

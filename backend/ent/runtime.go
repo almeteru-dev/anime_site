@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/seva/animevista/ent/anime"
+	"github.com/seva/animevista/ent/schedule"
 	"github.com/seva/animevista/ent/schema"
 	"github.com/seva/animevista/ent/userrating"
 )
@@ -17,15 +18,27 @@ func init() {
 	animeFields := schema.Anime{}.Fields()
 	_ = animeFields
 	// animeDescAverageRating is the schema descriptor for average_rating field.
-	animeDescAverageRating := animeFields[1].Descriptor()
+	animeDescAverageRating := animeFields[4].Descriptor()
 	// anime.DefaultAverageRating holds the default value on creation for the average_rating field.
 	anime.DefaultAverageRating = animeDescAverageRating.Default.(float64)
 	// animeDescUpdatedAt is the schema descriptor for updated_at field.
-	animeDescUpdatedAt := animeFields[2].Descriptor()
+	animeDescUpdatedAt := animeFields[5].Descriptor()
 	// anime.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	anime.DefaultUpdatedAt = animeDescUpdatedAt.Default.(func() time.Time)
 	// anime.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	anime.UpdateDefaultUpdatedAt = animeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	scheduleFields := schema.Schedule{}.Fields()
+	_ = scheduleFields
+	// scheduleDescCreatedAt is the schema descriptor for created_at field.
+	scheduleDescCreatedAt := scheduleFields[4].Descriptor()
+	// schedule.DefaultCreatedAt holds the default value on creation for the created_at field.
+	schedule.DefaultCreatedAt = scheduleDescCreatedAt.Default.(func() time.Time)
+	// scheduleDescUpdatedAt is the schema descriptor for updated_at field.
+	scheduleDescUpdatedAt := scheduleFields[5].Descriptor()
+	// schedule.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	schedule.DefaultUpdatedAt = scheduleDescUpdatedAt.Default.(func() time.Time)
+	// schedule.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	schedule.UpdateDefaultUpdatedAt = scheduleDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userratingFields := schema.UserRating{}.Fields()
 	_ = userratingFields
 	// userratingDescRating is the schema descriptor for rating field.

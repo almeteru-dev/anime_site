@@ -17,11 +17,38 @@ type Anime struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int64 `json:"id,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// URL holds the value of the "url" field.
+	URL string `json:"url,omitempty"`
+	// Image holds the value of the "image" field.
+	Image string `json:"image,omitempty"`
 	// AverageRating holds the value of the "average_rating" field.
 	AverageRating float64 `json:"average_rating,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the AnimeQuery when eager-loading is set.
+	Edges        AnimeEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// AnimeEdges holds the relations/edges for other nodes in the graph.
+type AnimeEdges struct {
+	// Schedules holds the value of the schedules edge.
+	Schedules []*Schedule `json:"schedules,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// SchedulesOrErr returns the Schedules value or an error if the edge
+// was not loaded in eager-loading.
+func (e AnimeEdges) SchedulesOrErr() ([]*Schedule, error) {
+	if e.loadedTypes[0] {
+		return e.Schedules, nil
+	}
+	return nil, &NotLoadedError{edge: "schedules"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -33,6 +60,8 @@ func (*Anime) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case anime.FieldID:
 			values[i] = new(sql.NullInt64)
+		case anime.FieldName, anime.FieldURL, anime.FieldImage:
+			values[i] = new(sql.NullString)
 		case anime.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
@@ -56,6 +85,24 @@ func (_m *Anime) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int64(value.Int64)
+		case anime.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case anime.FieldURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field url", values[i])
+			} else if value.Valid {
+				_m.URL = value.String
+			}
+		case anime.FieldImage:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field image", values[i])
+			} else if value.Valid {
+				_m.Image = value.String
+			}
 		case anime.FieldAverageRating:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field average_rating", values[i])
@@ -81,6 +128,11 @@ func (_m *Anime) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
+// QuerySchedules queries the "schedules" edge of the Anime entity.
+func (_m *Anime) QuerySchedules() *ScheduleQuery {
+	return NewAnimeClient(_m.config).QuerySchedules(_m)
+}
+
 // Update returns a builder for updating this Anime.
 // Note that you need to call Anime.Unwrap() before calling this method if this Anime
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -104,6 +156,15 @@ func (_m *Anime) String() string {
 	var builder strings.Builder
 	builder.WriteString("Anime(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("url=")
+	builder.WriteString(_m.URL)
+	builder.WriteString(", ")
+	builder.WriteString("image=")
+	builder.WriteString(_m.Image)
+	builder.WriteString(", ")
 	builder.WriteString("average_rating=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AverageRating))
 	builder.WriteString(", ")

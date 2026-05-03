@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Anime is the client for interacting with the Anime builders.
 	Anime *AnimeClient
+	// Schedule is the client for interacting with the Schedule builders.
+	Schedule *ScheduleClient
 	// UserRating is the client for interacting with the UserRating builders.
 	UserRating *UserRatingClient
 
@@ -148,6 +150,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Anime = NewAnimeClient(tx.config)
+	tx.Schedule = NewScheduleClient(tx.config)
 	tx.UserRating = NewUserRatingClient(tx.config)
 }
 

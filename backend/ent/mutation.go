@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/seva/animevista/ent/anime"
 	"github.com/seva/animevista/ent/predicate"
+	"github.com/seva/animevista/ent/schedule"
 	"github.com/seva/animevista/ent/userrating"
 )
 
@@ -26,6 +27,7 @@ const (
 
 	// Node types.
 	TypeAnime      = "Anime"
+	TypeSchedule   = "Schedule"
 	TypeUserRating = "UserRating"
 )
 
@@ -35,10 +37,16 @@ type AnimeMutation struct {
 	op                Op
 	typ               string
 	id                *int64
+	name              *string
+	url               *string
+	image             *string
 	average_rating    *float64
 	addaverage_rating *float64
 	updated_at        *time.Time
 	clearedFields     map[string]struct{}
+	schedules         map[int64]struct{}
+	removedschedules  map[int64]struct{}
+	clearedschedules  bool
 	done              bool
 	oldValue          func(context.Context) (*Anime, error)
 	predicates        []predicate.Anime
@@ -148,6 +156,127 @@ func (m *AnimeMutation) IDs(ctx context.Context) ([]int64, error) {
 	}
 }
 
+// SetName sets the "name" field.
+func (m *AnimeMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *AnimeMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Anime entity.
+// If the Anime object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AnimeMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *AnimeMutation) ResetName() {
+	m.name = nil
+}
+
+// SetURL sets the "url" field.
+func (m *AnimeMutation) SetURL(s string) {
+	m.url = &s
+}
+
+// URL returns the value of the "url" field in the mutation.
+func (m *AnimeMutation) URL() (r string, exists bool) {
+	v := m.url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldURL returns the old "url" field's value of the Anime entity.
+// If the Anime object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AnimeMutation) OldURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldURL: %w", err)
+	}
+	return oldValue.URL, nil
+}
+
+// ResetURL resets all changes to the "url" field.
+func (m *AnimeMutation) ResetURL() {
+	m.url = nil
+}
+
+// SetImage sets the "image" field.
+func (m *AnimeMutation) SetImage(s string) {
+	m.image = &s
+}
+
+// Image returns the value of the "image" field in the mutation.
+func (m *AnimeMutation) Image() (r string, exists bool) {
+	v := m.image
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImage returns the old "image" field's value of the Anime entity.
+// If the Anime object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AnimeMutation) OldImage(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImage: %w", err)
+	}
+	return oldValue.Image, nil
+}
+
+// ClearImage clears the value of the "image" field.
+func (m *AnimeMutation) ClearImage() {
+	m.image = nil
+	m.clearedFields[anime.FieldImage] = struct{}{}
+}
+
+// ImageCleared returns if the "image" field was cleared in this mutation.
+func (m *AnimeMutation) ImageCleared() bool {
+	_, ok := m.clearedFields[anime.FieldImage]
+	return ok
+}
+
+// ResetImage resets all changes to the "image" field.
+func (m *AnimeMutation) ResetImage() {
+	m.image = nil
+	delete(m.clearedFields, anime.FieldImage)
+}
+
 // SetAverageRating sets the "average_rating" field.
 func (m *AnimeMutation) SetAverageRating(f float64) {
 	m.average_rating = &f
@@ -240,6 +369,60 @@ func (m *AnimeMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
+// AddScheduleIDs adds the "schedules" edge to the Schedule entity by ids.
+func (m *AnimeMutation) AddScheduleIDs(ids ...int64) {
+	if m.schedules == nil {
+		m.schedules = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.schedules[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSchedules clears the "schedules" edge to the Schedule entity.
+func (m *AnimeMutation) ClearSchedules() {
+	m.clearedschedules = true
+}
+
+// SchedulesCleared reports if the "schedules" edge to the Schedule entity was cleared.
+func (m *AnimeMutation) SchedulesCleared() bool {
+	return m.clearedschedules
+}
+
+// RemoveScheduleIDs removes the "schedules" edge to the Schedule entity by IDs.
+func (m *AnimeMutation) RemoveScheduleIDs(ids ...int64) {
+	if m.removedschedules == nil {
+		m.removedschedules = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.schedules, ids[i])
+		m.removedschedules[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSchedules returns the removed IDs of the "schedules" edge to the Schedule entity.
+func (m *AnimeMutation) RemovedSchedulesIDs() (ids []int64) {
+	for id := range m.removedschedules {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SchedulesIDs returns the "schedules" edge IDs in the mutation.
+func (m *AnimeMutation) SchedulesIDs() (ids []int64) {
+	for id := range m.schedules {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSchedules resets all changes to the "schedules" edge.
+func (m *AnimeMutation) ResetSchedules() {
+	m.schedules = nil
+	m.clearedschedules = false
+	m.removedschedules = nil
+}
+
 // Where appends a list predicates to the AnimeMutation builder.
 func (m *AnimeMutation) Where(ps ...predicate.Anime) {
 	m.predicates = append(m.predicates, ps...)
@@ -274,7 +457,16 @@ func (m *AnimeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AnimeMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 5)
+	if m.name != nil {
+		fields = append(fields, anime.FieldName)
+	}
+	if m.url != nil {
+		fields = append(fields, anime.FieldURL)
+	}
+	if m.image != nil {
+		fields = append(fields, anime.FieldImage)
+	}
 	if m.average_rating != nil {
 		fields = append(fields, anime.FieldAverageRating)
 	}
@@ -289,6 +481,12 @@ func (m *AnimeMutation) Fields() []string {
 // schema.
 func (m *AnimeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case anime.FieldName:
+		return m.Name()
+	case anime.FieldURL:
+		return m.URL()
+	case anime.FieldImage:
+		return m.Image()
 	case anime.FieldAverageRating:
 		return m.AverageRating()
 	case anime.FieldUpdatedAt:
@@ -302,6 +500,12 @@ func (m *AnimeMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *AnimeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case anime.FieldName:
+		return m.OldName(ctx)
+	case anime.FieldURL:
+		return m.OldURL(ctx)
+	case anime.FieldImage:
+		return m.OldImage(ctx)
 	case anime.FieldAverageRating:
 		return m.OldAverageRating(ctx)
 	case anime.FieldUpdatedAt:
@@ -315,6 +519,27 @@ func (m *AnimeMutation) OldField(ctx context.Context, name string) (ent.Value, e
 // type.
 func (m *AnimeMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case anime.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case anime.FieldURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetURL(v)
+		return nil
+	case anime.FieldImage:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImage(v)
+		return nil
 	case anime.FieldAverageRating:
 		v, ok := value.(float64)
 		if !ok {
@@ -373,7 +598,11 @@ func (m *AnimeMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *AnimeMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(anime.FieldImage) {
+		fields = append(fields, anime.FieldImage)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -386,6 +615,11 @@ func (m *AnimeMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *AnimeMutation) ClearField(name string) error {
+	switch name {
+	case anime.FieldImage:
+		m.ClearImage()
+		return nil
+	}
 	return fmt.Errorf("unknown Anime nullable field %s", name)
 }
 
@@ -393,6 +627,15 @@ func (m *AnimeMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *AnimeMutation) ResetField(name string) error {
 	switch name {
+	case anime.FieldName:
+		m.ResetName()
+		return nil
+	case anime.FieldURL:
+		m.ResetURL()
+		return nil
+	case anime.FieldImage:
+		m.ResetImage()
+		return nil
 	case anime.FieldAverageRating:
 		m.ResetAverageRating()
 		return nil
@@ -405,50 +648,724 @@ func (m *AnimeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AnimeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.schedules != nil {
+		edges = append(edges, anime.EdgeSchedules)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *AnimeMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case anime.EdgeSchedules:
+		ids := make([]ent.Value, 0, len(m.schedules))
+		for id := range m.schedules {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AnimeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedschedules != nil {
+		edges = append(edges, anime.EdgeSchedules)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *AnimeMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case anime.EdgeSchedules:
+		ids := make([]ent.Value, 0, len(m.removedschedules))
+		for id := range m.removedschedules {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AnimeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedschedules {
+		edges = append(edges, anime.EdgeSchedules)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *AnimeMutation) EdgeCleared(name string) bool {
+	switch name {
+	case anime.EdgeSchedules:
+		return m.clearedschedules
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *AnimeMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Anime unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *AnimeMutation) ResetEdge(name string) error {
+	switch name {
+	case anime.EdgeSchedules:
+		m.ResetSchedules()
+		return nil
+	}
 	return fmt.Errorf("unknown Anime edge %s", name)
+}
+
+// ScheduleMutation represents an operation that mutates the Schedule nodes in the graph.
+type ScheduleMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int64
+	release_datetime  *time.Time
+	episode_number    *int
+	addepisode_number *int
+	created_at        *time.Time
+	updated_at        *time.Time
+	clearedFields     map[string]struct{}
+	anime             *int64
+	clearedanime      bool
+	done              bool
+	oldValue          func(context.Context) (*Schedule, error)
+	predicates        []predicate.Schedule
+}
+
+var _ ent.Mutation = (*ScheduleMutation)(nil)
+
+// scheduleOption allows management of the mutation configuration using functional options.
+type scheduleOption func(*ScheduleMutation)
+
+// newScheduleMutation creates new mutation for the Schedule entity.
+func newScheduleMutation(c config, op Op, opts ...scheduleOption) *ScheduleMutation {
+	m := &ScheduleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSchedule,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withScheduleID sets the ID field of the mutation.
+func withScheduleID(id int64) scheduleOption {
+	return func(m *ScheduleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Schedule
+		)
+		m.oldValue = func(ctx context.Context) (*Schedule, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Schedule.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSchedule sets the old Schedule of the mutation.
+func withSchedule(node *Schedule) scheduleOption {
+	return func(m *ScheduleMutation) {
+		m.oldValue = func(context.Context) (*Schedule, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ScheduleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ScheduleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Schedule entities.
+func (m *ScheduleMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ScheduleMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ScheduleMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Schedule.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAnimeID sets the "anime_id" field.
+func (m *ScheduleMutation) SetAnimeID(i int64) {
+	m.anime = &i
+}
+
+// AnimeID returns the value of the "anime_id" field in the mutation.
+func (m *ScheduleMutation) AnimeID() (r int64, exists bool) {
+	v := m.anime
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnimeID returns the old "anime_id" field's value of the Schedule entity.
+// If the Schedule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduleMutation) OldAnimeID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnimeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnimeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnimeID: %w", err)
+	}
+	return oldValue.AnimeID, nil
+}
+
+// ResetAnimeID resets all changes to the "anime_id" field.
+func (m *ScheduleMutation) ResetAnimeID() {
+	m.anime = nil
+}
+
+// SetReleaseDatetime sets the "release_datetime" field.
+func (m *ScheduleMutation) SetReleaseDatetime(t time.Time) {
+	m.release_datetime = &t
+}
+
+// ReleaseDatetime returns the value of the "release_datetime" field in the mutation.
+func (m *ScheduleMutation) ReleaseDatetime() (r time.Time, exists bool) {
+	v := m.release_datetime
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseDatetime returns the old "release_datetime" field's value of the Schedule entity.
+// If the Schedule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduleMutation) OldReleaseDatetime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseDatetime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseDatetime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseDatetime: %w", err)
+	}
+	return oldValue.ReleaseDatetime, nil
+}
+
+// ResetReleaseDatetime resets all changes to the "release_datetime" field.
+func (m *ScheduleMutation) ResetReleaseDatetime() {
+	m.release_datetime = nil
+}
+
+// SetEpisodeNumber sets the "episode_number" field.
+func (m *ScheduleMutation) SetEpisodeNumber(i int) {
+	m.episode_number = &i
+	m.addepisode_number = nil
+}
+
+// EpisodeNumber returns the value of the "episode_number" field in the mutation.
+func (m *ScheduleMutation) EpisodeNumber() (r int, exists bool) {
+	v := m.episode_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEpisodeNumber returns the old "episode_number" field's value of the Schedule entity.
+// If the Schedule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduleMutation) OldEpisodeNumber(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEpisodeNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEpisodeNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEpisodeNumber: %w", err)
+	}
+	return oldValue.EpisodeNumber, nil
+}
+
+// AddEpisodeNumber adds i to the "episode_number" field.
+func (m *ScheduleMutation) AddEpisodeNumber(i int) {
+	if m.addepisode_number != nil {
+		*m.addepisode_number += i
+	} else {
+		m.addepisode_number = &i
+	}
+}
+
+// AddedEpisodeNumber returns the value that was added to the "episode_number" field in this mutation.
+func (m *ScheduleMutation) AddedEpisodeNumber() (r int, exists bool) {
+	v := m.addepisode_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEpisodeNumber resets all changes to the "episode_number" field.
+func (m *ScheduleMutation) ResetEpisodeNumber() {
+	m.episode_number = nil
+	m.addepisode_number = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ScheduleMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ScheduleMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Schedule entity.
+// If the Schedule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduleMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ScheduleMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ScheduleMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ScheduleMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Schedule entity.
+// If the Schedule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ScheduleMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearAnime clears the "anime" edge to the Anime entity.
+func (m *ScheduleMutation) ClearAnime() {
+	m.clearedanime = true
+	m.clearedFields[schedule.FieldAnimeID] = struct{}{}
+}
+
+// AnimeCleared reports if the "anime" edge to the Anime entity was cleared.
+func (m *ScheduleMutation) AnimeCleared() bool {
+	return m.clearedanime
+}
+
+// AnimeIDs returns the "anime" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AnimeID instead. It exists only for internal usage by the builders.
+func (m *ScheduleMutation) AnimeIDs() (ids []int64) {
+	if id := m.anime; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAnime resets all changes to the "anime" edge.
+func (m *ScheduleMutation) ResetAnime() {
+	m.anime = nil
+	m.clearedanime = false
+}
+
+// Where appends a list predicates to the ScheduleMutation builder.
+func (m *ScheduleMutation) Where(ps ...predicate.Schedule) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ScheduleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ScheduleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Schedule, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ScheduleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ScheduleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Schedule).
+func (m *ScheduleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ScheduleMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.anime != nil {
+		fields = append(fields, schedule.FieldAnimeID)
+	}
+	if m.release_datetime != nil {
+		fields = append(fields, schedule.FieldReleaseDatetime)
+	}
+	if m.episode_number != nil {
+		fields = append(fields, schedule.FieldEpisodeNumber)
+	}
+	if m.created_at != nil {
+		fields = append(fields, schedule.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, schedule.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ScheduleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case schedule.FieldAnimeID:
+		return m.AnimeID()
+	case schedule.FieldReleaseDatetime:
+		return m.ReleaseDatetime()
+	case schedule.FieldEpisodeNumber:
+		return m.EpisodeNumber()
+	case schedule.FieldCreatedAt:
+		return m.CreatedAt()
+	case schedule.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ScheduleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case schedule.FieldAnimeID:
+		return m.OldAnimeID(ctx)
+	case schedule.FieldReleaseDatetime:
+		return m.OldReleaseDatetime(ctx)
+	case schedule.FieldEpisodeNumber:
+		return m.OldEpisodeNumber(ctx)
+	case schedule.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case schedule.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Schedule field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ScheduleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case schedule.FieldAnimeID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnimeID(v)
+		return nil
+	case schedule.FieldReleaseDatetime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseDatetime(v)
+		return nil
+	case schedule.FieldEpisodeNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEpisodeNumber(v)
+		return nil
+	case schedule.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case schedule.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Schedule field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ScheduleMutation) AddedFields() []string {
+	var fields []string
+	if m.addepisode_number != nil {
+		fields = append(fields, schedule.FieldEpisodeNumber)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ScheduleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case schedule.FieldEpisodeNumber:
+		return m.AddedEpisodeNumber()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ScheduleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case schedule.FieldEpisodeNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEpisodeNumber(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Schedule numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ScheduleMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ScheduleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ScheduleMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Schedule nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ScheduleMutation) ResetField(name string) error {
+	switch name {
+	case schedule.FieldAnimeID:
+		m.ResetAnimeID()
+		return nil
+	case schedule.FieldReleaseDatetime:
+		m.ResetReleaseDatetime()
+		return nil
+	case schedule.FieldEpisodeNumber:
+		m.ResetEpisodeNumber()
+		return nil
+	case schedule.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case schedule.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Schedule field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ScheduleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.anime != nil {
+		edges = append(edges, schedule.EdgeAnime)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ScheduleMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case schedule.EdgeAnime:
+		if id := m.anime; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ScheduleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ScheduleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ScheduleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedanime {
+		edges = append(edges, schedule.EdgeAnime)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ScheduleMutation) EdgeCleared(name string) bool {
+	switch name {
+	case schedule.EdgeAnime:
+		return m.clearedanime
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ScheduleMutation) ClearEdge(name string) error {
+	switch name {
+	case schedule.EdgeAnime:
+		m.ClearAnime()
+		return nil
+	}
+	return fmt.Errorf("unknown Schedule unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ScheduleMutation) ResetEdge(name string) error {
+	switch name {
+	case schedule.EdgeAnime:
+		m.ResetAnime()
+		return nil
+	}
+	return fmt.Errorf("unknown Schedule edge %s", name)
 }
 
 // UserRatingMutation represents an operation that mutates the UserRating nodes in the graph.

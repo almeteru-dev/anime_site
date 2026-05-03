@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { type Anime, getAnimePosterUrl, getLocalizedTitle } from "@/lib/api"
 import { useLanguage } from "@/contexts/language-context"
-import { AnimeRating } from "@/components/anime/anime-rating"
 
 interface HeroHeaderProps {
   anime: Anime
@@ -55,12 +54,9 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
             </div>
 
             {/* Episodes */}
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <Film className="w-4 h-4 text-[#A3CFFF]" />
-                <span>{anime.episodes} Episodes</span>
-              </div>
-              <AnimeRating animeId={anime.id} />
+            <div className="flex items-center gap-1.5">
+              <Film className="w-4 h-4 text-[#A3CFFF]" />
+              <span>{anime.episodes} Episodes</span>
             </div>
 
             {/* Duration */}

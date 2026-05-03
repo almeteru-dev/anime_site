@@ -1,6 +1,6 @@
-# AnimeVista — Fullstack Anime Platform
+# LycorisLib — Fullstack Anime Platform
 
-AnimeVista is a modern platform designed for tracking anime, managing personal collections, and engaging with the community.
+LycorisLib is a modern platform designed for tracking anime, managing personal collections, and engaging with the community.
 
 ## 🎨 Frontend
 The frontend is built with **Next.js** using the **App Router** architecture.

@@ -11,9 +11,19 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  applicationName: "LycorisLib",
   title: 'LycorisLib - Stream Your Favorite Anime',
   description: 'Discover and stream the best anime titles. Watch latest episodes, trending series, and top-rated anime all in one place.',
   keywords: ['anime', 'streaming', 'watch anime', 'anime catalog', 'latest episodes'],
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png" }],
+  },
 }
 
 export const viewport: Viewport = {

@@ -72,7 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser))
 
 	document.cookie = `auth_token=${encodeURIComponent(newToken)}; Path=/; SameSite=Lax`
-    router.push('/')
+
+	window.location.assign('/')
   }
 
   const logout = () => {

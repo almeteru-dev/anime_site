@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/seva/animevista/ent/anime"
+	"github.com/seva/animevista/ent/schedule"
 	"github.com/seva/animevista/ent/userrating"
 )
 
@@ -75,6 +76,7 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			anime.Table:      anime.ValidColumn,
+			schedule.Table:   schedule.ValidColumn,
 			userrating.Table: userrating.ValidColumn,
 		})
 	})

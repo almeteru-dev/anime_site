@@ -11,7 +11,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#33CCFF] flex items-center justify-center shadow-lg shadow-[#00E5FF]/20">
-                <span className="text-[#040D1F] font-bold text-lg">A</span>
+                <img src="/favicon.svg" alt="LycorisLib" className="w-6 h-6" />
               </div>
             </div>
             <div>

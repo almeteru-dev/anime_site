@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { ArtVideoPlayer, type ArtVideoPlayerHandle } from "@/components/anime/art-video-player"
 import { AddToUserList } from "@/components/anime/add-to-user-list"
+import { AnimeRating } from "@/components/anime/anime-rating"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
 import type { Anime, EpisodesByServer, WatchlistStatus, VideoSource, UserListStatus } from "@/lib/api"
@@ -351,6 +352,10 @@ export function AnimeStreamPlayer({
                   </button>
                 ))}
               </div>
+
+				<div className="mt-3">
+					<AnimeRating animeId={anime.id} />
+				</div>
             </div>
           ) : null}
         </div>

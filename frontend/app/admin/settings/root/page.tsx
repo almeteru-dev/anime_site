@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Eye, EyeOff, Save } from "lucide-react"
+import { Eye, EyeOff, Save, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { adminSetDefaultPassword, adminSetPrivateMode, getPublicSettings } from "@/lib/api"
+import { adminPurgeOldSchedules, adminSetDefaultPassword, adminSetPrivateMode, adminSetScheduleTimezone, getPublicSettings } from "@/lib/api"
 import { PasswordChecklist } from "@/components/password-checklist"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { labelForScheduleTimezone, SCHEDULE_TIMEZONE_OPTIONS } from "@/lib/timezone"
 
 function clientPasswordError(pw: string): string | null {
   if (pw.length < 10) return "Password must be at least 10 characters long"
@@ -26,6 +27,8 @@ export default function RootSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [privateMode, setPrivateMode] = useState<boolean | null>(null)
+	const [scheduleTimezone, setScheduleTimezone] = useState<string>("Etc/GMT-5")
+	const [timezoneDraft, setTimezoneDraft] = useState<string>("Etc/GMT-5")
 
   const pwError = useMemo(() => (pw.trim() ? clientPasswordError(pw) : null), [pw])
 
@@ -40,7 +43,10 @@ export default function RootSettingsPage() {
     ;(async () => {
       try {
         const s = await getPublicSettings()
-        if (mounted) setPrivateMode(s.private_mode)
+			if (!mounted) return
+			setPrivateMode(s.private_mode)
+			setScheduleTimezone(s.schedule_timezone)
+			setTimezoneDraft(s.schedule_timezone)
       } catch {
         if (mounted) setPrivateMode(null)
       }
@@ -101,6 +107,58 @@ export default function RootSettingsPage() {
       setIsBusy(false)
     }
   }
+
+	const onSaveTimezone = async () => {
+		if (!token) return
+		if (me?.role !== "root") {
+			setError("Root access required")
+			return
+		}
+		const next = timezoneDraft.trim()
+		if (!next) {
+			setError("Timezone is required")
+			return
+		}
+		setError(null)
+		setNotice(null)
+		const ok = window.confirm(
+			"This will recalculate all existing schedules so their local times remain correct in the new timezone. Continue?"
+		)
+		if (!ok) return
+		setIsBusy(true)
+		try {
+			const res = await adminSetScheduleTimezone({ token, timezone: next })
+			setScheduleTimezone(res.timezone)
+			setTimezoneDraft(res.timezone)
+			const recalculated = typeof (res as any).recalculated === "number" ? (res as any).recalculated : 0
+			setNotice(`Timezone updated to ${res.timezone}. Recalculated ${recalculated} schedules.`)
+		} catch (e: any) {
+			setError(e?.message || "Failed to update timezone")
+		} finally {
+			setIsBusy(false)
+		}
+	}
+
+	const onPurgeSchedules = async () => {
+		if (!token) return
+		if (me?.role !== "root") {
+			setError("Root access required")
+			return
+		}
+		setError(null)
+		setNotice(null)
+		const ok = window.confirm("Permanently delete schedules older than 1 month? This cannot be undone.")
+		if (!ok) return
+		setIsBusy(true)
+		try {
+			const res = await adminPurgeOldSchedules({ token })
+			setNotice(`Deleted ${res.deleted_count} schedules older than 1 month.`)
+		} catch (e: any) {
+			setError(e?.message || "Failed to purge schedules")
+		} finally {
+			setIsBusy(false)
+		}
+	}
 
   return (
     <div className="space-y-6">
@@ -167,6 +225,48 @@ export default function RootSettingsPage() {
         </div>
       </div>
 
+		<div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
+			<div className="text-sm font-semibold text-foreground">Schedule timezone</div>
+			<div className="mt-1 text-xs text-foreground-muted">
+				All schedule dates and times are managed and displayed in this timezone.
+			</div>
+
+			<div className="mt-4 space-y-2">
+				<label className="text-xs font-semibold text-foreground-muted">Timezone</label>
+				<select
+					value={timezoneDraft}
+					onChange={(e) => setTimezoneDraft(e.target.value)}
+					disabled={isBusy}
+					className={cn(
+						"w-full h-11 rounded-xl bg-background border px-4 text-sm text-foreground outline-none focus:border-primary/50",
+						error ? "border-red-500/50" : "border-border/60"
+					)}
+				>
+					{SCHEDULE_TIMEZONE_OPTIONS.map((opt) => (
+						<option key={opt.value} value={opt.value}>
+							{opt.label}
+						</option>
+					))}
+				</select>
+				<div className="text-xs text-foreground-muted">Current: {labelForScheduleTimezone(scheduleTimezone)}</div>
+			</div>
+
+			<div className="mt-4 flex justify-end">
+				<button
+					type="button"
+					onClick={onSaveTimezone}
+					disabled={isBusy}
+					className={cn(
+						"inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90",
+						isBusy && "opacity-60 cursor-not-allowed"
+					)}
+				>
+					<Save className="w-4 h-4" />
+					Save and recalculate
+				</button>
+			</div>
+		</div>
+
       <div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
         <div className="text-sm font-semibold text-foreground">Private Mode</div>
         <div className="mt-1 text-xs text-foreground-muted">When enabled, unauthenticated visitors are redirected to /login.</div>
@@ -197,7 +297,25 @@ export default function RootSettingsPage() {
           </button>
         </div>
       </div>
+
+		<div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
+			<div className="text-sm font-semibold text-foreground">Schedule cleanup</div>
+			<div className="mt-1 text-xs text-foreground-muted">Permanently delete schedule entries older than 1 month.</div>
+			<div className="mt-4 flex justify-end">
+				<button
+					type="button"
+					onClick={onPurgeSchedules}
+					disabled={isBusy}
+					className={cn(
+						"inline-flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 hover:bg-red-500/15",
+						isBusy && "opacity-60 cursor-not-allowed"
+					)}
+				>
+					<Trash2 className="w-4 h-4" />
+					Delete Past Schedules
+				</button>
+			</div>
+		</div>
     </div>
   )
 }
-

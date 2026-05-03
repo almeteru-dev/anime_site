@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/seva/animevista/ent/anime"
 	"github.com/seva/animevista/ent/predicate"
+	"github.com/seva/animevista/ent/schedule"
 )
 
 // AnimeUpdate is the builder for updating Anime entities.
@@ -25,6 +26,54 @@ type AnimeUpdate struct {
 // Where appends a list predicates to the AnimeUpdate builder.
 func (_u *AnimeUpdate) Where(ps ...predicate.Anime) *AnimeUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *AnimeUpdate) SetName(v string) *AnimeUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *AnimeUpdate) SetNillableName(v *string) *AnimeUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetURL sets the "url" field.
+func (_u *AnimeUpdate) SetURL(v string) *AnimeUpdate {
+	_u.mutation.SetURL(v)
+	return _u
+}
+
+// SetNillableURL sets the "url" field if the given value is not nil.
+func (_u *AnimeUpdate) SetNillableURL(v *string) *AnimeUpdate {
+	if v != nil {
+		_u.SetURL(*v)
+	}
+	return _u
+}
+
+// SetImage sets the "image" field.
+func (_u *AnimeUpdate) SetImage(v string) *AnimeUpdate {
+	_u.mutation.SetImage(v)
+	return _u
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_u *AnimeUpdate) SetNillableImage(v *string) *AnimeUpdate {
+	if v != nil {
+		_u.SetImage(*v)
+	}
+	return _u
+}
+
+// ClearImage clears the value of the "image" field.
+func (_u *AnimeUpdate) ClearImage() *AnimeUpdate {
+	_u.mutation.ClearImage()
 	return _u
 }
 
@@ -55,9 +104,45 @@ func (_u *AnimeUpdate) SetUpdatedAt(v time.Time) *AnimeUpdate {
 	return _u
 }
 
+// AddScheduleIDs adds the "schedules" edge to the Schedule entity by IDs.
+func (_u *AnimeUpdate) AddScheduleIDs(ids ...int64) *AnimeUpdate {
+	_u.mutation.AddScheduleIDs(ids...)
+	return _u
+}
+
+// AddSchedules adds the "schedules" edges to the Schedule entity.
+func (_u *AnimeUpdate) AddSchedules(v ...*Schedule) *AnimeUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddScheduleIDs(ids...)
+}
+
 // Mutation returns the AnimeMutation object of the builder.
 func (_u *AnimeUpdate) Mutation() *AnimeMutation {
 	return _u.mutation
+}
+
+// ClearSchedules clears all "schedules" edges to the Schedule entity.
+func (_u *AnimeUpdate) ClearSchedules() *AnimeUpdate {
+	_u.mutation.ClearSchedules()
+	return _u
+}
+
+// RemoveScheduleIDs removes the "schedules" edge to Schedule entities by IDs.
+func (_u *AnimeUpdate) RemoveScheduleIDs(ids ...int64) *AnimeUpdate {
+	_u.mutation.RemoveScheduleIDs(ids...)
+	return _u
+}
+
+// RemoveSchedules removes "schedules" edges to Schedule entities.
+func (_u *AnimeUpdate) RemoveSchedules(v ...*Schedule) *AnimeUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveScheduleIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -105,6 +190,18 @@ func (_u *AnimeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(anime.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.URL(); ok {
+		_spec.SetField(anime.FieldURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Image(); ok {
+		_spec.SetField(anime.FieldImage, field.TypeString, value)
+	}
+	if _u.mutation.ImageCleared() {
+		_spec.ClearField(anime.FieldImage, field.TypeString)
+	}
 	if value, ok := _u.mutation.AverageRating(); ok {
 		_spec.SetField(anime.FieldAverageRating, field.TypeFloat64, value)
 	}
@@ -113,6 +210,51 @@ func (_u *AnimeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(anime.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.SchedulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSchedulesIDs(); len(nodes) > 0 && !_u.mutation.SchedulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SchedulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -132,6 +274,54 @@ type AnimeUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *AnimeMutation
+}
+
+// SetName sets the "name" field.
+func (_u *AnimeUpdateOne) SetName(v string) *AnimeUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *AnimeUpdateOne) SetNillableName(v *string) *AnimeUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetURL sets the "url" field.
+func (_u *AnimeUpdateOne) SetURL(v string) *AnimeUpdateOne {
+	_u.mutation.SetURL(v)
+	return _u
+}
+
+// SetNillableURL sets the "url" field if the given value is not nil.
+func (_u *AnimeUpdateOne) SetNillableURL(v *string) *AnimeUpdateOne {
+	if v != nil {
+		_u.SetURL(*v)
+	}
+	return _u
+}
+
+// SetImage sets the "image" field.
+func (_u *AnimeUpdateOne) SetImage(v string) *AnimeUpdateOne {
+	_u.mutation.SetImage(v)
+	return _u
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_u *AnimeUpdateOne) SetNillableImage(v *string) *AnimeUpdateOne {
+	if v != nil {
+		_u.SetImage(*v)
+	}
+	return _u
+}
+
+// ClearImage clears the value of the "image" field.
+func (_u *AnimeUpdateOne) ClearImage() *AnimeUpdateOne {
+	_u.mutation.ClearImage()
+	return _u
 }
 
 // SetAverageRating sets the "average_rating" field.
@@ -161,9 +351,45 @@ func (_u *AnimeUpdateOne) SetUpdatedAt(v time.Time) *AnimeUpdateOne {
 	return _u
 }
 
+// AddScheduleIDs adds the "schedules" edge to the Schedule entity by IDs.
+func (_u *AnimeUpdateOne) AddScheduleIDs(ids ...int64) *AnimeUpdateOne {
+	_u.mutation.AddScheduleIDs(ids...)
+	return _u
+}
+
+// AddSchedules adds the "schedules" edges to the Schedule entity.
+func (_u *AnimeUpdateOne) AddSchedules(v ...*Schedule) *AnimeUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddScheduleIDs(ids...)
+}
+
 // Mutation returns the AnimeMutation object of the builder.
 func (_u *AnimeUpdateOne) Mutation() *AnimeMutation {
 	return _u.mutation
+}
+
+// ClearSchedules clears all "schedules" edges to the Schedule entity.
+func (_u *AnimeUpdateOne) ClearSchedules() *AnimeUpdateOne {
+	_u.mutation.ClearSchedules()
+	return _u
+}
+
+// RemoveScheduleIDs removes the "schedules" edge to Schedule entities by IDs.
+func (_u *AnimeUpdateOne) RemoveScheduleIDs(ids ...int64) *AnimeUpdateOne {
+	_u.mutation.RemoveScheduleIDs(ids...)
+	return _u
+}
+
+// RemoveSchedules removes "schedules" edges to Schedule entities.
+func (_u *AnimeUpdateOne) RemoveSchedules(v ...*Schedule) *AnimeUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveScheduleIDs(ids...)
 }
 
 // Where appends a list predicates to the AnimeUpdate builder.
@@ -241,6 +467,18 @@ func (_u *AnimeUpdateOne) sqlSave(ctx context.Context) (_node *Anime, err error)
 			}
 		}
 	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(anime.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.URL(); ok {
+		_spec.SetField(anime.FieldURL, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Image(); ok {
+		_spec.SetField(anime.FieldImage, field.TypeString, value)
+	}
+	if _u.mutation.ImageCleared() {
+		_spec.ClearField(anime.FieldImage, field.TypeString)
+	}
 	if value, ok := _u.mutation.AverageRating(); ok {
 		_spec.SetField(anime.FieldAverageRating, field.TypeFloat64, value)
 	}
@@ -249,6 +487,51 @@ func (_u *AnimeUpdateOne) sqlSave(ctx context.Context) (_node *Anime, err error)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(anime.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.SchedulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSchedulesIDs(); len(nodes) > 0 && !_u.mutation.SchedulesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SchedulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Anime{config: _u.config}
 	_spec.Assign = _node.assignValues

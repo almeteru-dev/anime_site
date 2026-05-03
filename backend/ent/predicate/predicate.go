@@ -9,5 +9,8 @@ import (
 // Anime is the predicate function for anime builders.
 type Anime func(*sql.Selector)
 
+// Schedule is the predicate function for schedule builders.
+type Schedule func(*sql.Selector)
+
 // UserRating is the predicate function for userrating builders.
 type UserRating func(*sql.Selector)

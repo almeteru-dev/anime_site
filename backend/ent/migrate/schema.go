@@ -12,6 +12,9 @@ var (
 	// AnimeColumns holds the columns for the "anime" table.
 	AnimeColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "image", Type: field.TypeString, Nullable: true},
 		{Name: "average_rating", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "numeric(3,1)"}},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -20,6 +23,41 @@ var (
 		Name:       "anime",
 		Columns:    AnimeColumns,
 		PrimaryKey: []*schema.Column{AnimeColumns[0]},
+	}
+	// SchedulesColumns holds the columns for the "schedules" table.
+	SchedulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "release_datetime", Type: field.TypeTime},
+		{Name: "episode_number", Type: field.TypeInt},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "anime_id", Type: field.TypeInt64},
+	}
+	// SchedulesTable holds the schema information for the "schedules" table.
+	SchedulesTable = &schema.Table{
+		Name:       "schedules",
+		Columns:    SchedulesColumns,
+		PrimaryKey: []*schema.Column{SchedulesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "schedules_anime_schedules",
+				Columns:    []*schema.Column{SchedulesColumns[5]},
+				RefColumns: []*schema.Column{AnimeColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "schedule_release_datetime",
+				Unique:  true,
+				Columns: []*schema.Column{SchedulesColumns[1]},
+			},
+			{
+				Name:    "schedule_anime_id",
+				Unique:  false,
+				Columns: []*schema.Column{SchedulesColumns[5]},
+			},
+		},
 	}
 	// UserRatingsColumns holds the columns for the "user_ratings" table.
 	UserRatingsColumns = []*schema.Column{
@@ -51,6 +89,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AnimeTable,
+		SchedulesTable,
 		UserRatingsTable,
 	}
 )
@@ -58,6 +97,10 @@ var (
 func init() {
 	AnimeTable.Annotation = &entsql.Annotation{
 		Table: "anime",
+	}
+	SchedulesTable.ForeignKeys[0].RefTable = AnimeTable
+	SchedulesTable.Annotation = &entsql.Annotation{
+		Table: "schedules",
 	}
 	UserRatingsTable.Annotation = &entsql.Annotation{
 		Table: "user_ratings",

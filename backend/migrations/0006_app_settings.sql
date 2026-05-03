@@ -6,5 +6,5 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 INSERT INTO app_settings (key, value)
-VALUES ('default_password', 'AnimeVista$1')
+VALUES ('default_password', 'LycorisLib$1')
 ON CONFLICT (key) DO NOTHING;

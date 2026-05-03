@@ -119,14 +119,14 @@ export default function LoginPage() {
           <div className="flex justify-center mb-8">
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-2xl">A</span>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center overflow-hidden">
+                  <img src="/favicon.svg" alt="LycorisLib" className="w-8 h-8" />
                 </div>
                 <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <span className="text-3xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
+                <span className="text-foreground">Lycoris</span>
+                <span className="text-primary">Lib</span>
               </span>
             </Link>
           </div>
@@ -269,7 +269,7 @@ export default function LoginPage() {
 
           {/* Register Link */}
           <p className="text-center mt-8 text-foreground-muted text-sm">
-            {t.login.newToAnimeVista}{" "}
+            {t.login.newToLycorisLib}{" "}
             <Link 
               href="/register" 
               className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"

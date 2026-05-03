@@ -1,40 +1,94 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { PeriodSelector } from "@/components/schedule/period-selector";
+import { useEffect, useMemo, useState } from "react";
 import { DayTabs } from "@/components/schedule/day-tabs";
 import { ReleaseList } from "@/components/schedule/release-list";
-import { NextRelease } from "@/components/schedule/next-release";
-import { weekSchedule, DaySchedule } from "@/lib/schedule-data";
 import { CalendarDays } from "lucide-react";
+import { getPublicSettings, getSchedule, type ScheduleItem } from "@/lib/api";
+import { useLanguage } from "@/contexts/language-context";
+import { addDays, formatTimeInTimeZone, formatYMDInTimeZone } from "@/lib/timezone";
 
 export default function ReleasesPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("2026-04");
-  const [selectedDay, setSelectedDay] = useState(() => {
-    const today = weekSchedule.find(d => d.isToday);
-    return today?.day || weekSchedule[0].day;
-  });
-  const [schedule, setSchedule] = useState<DaySchedule[]>(weekSchedule);
+  const { locale } = useLanguage()
+	const [scheduleTimezone, setScheduleTimezone] = useState<string>("Etc/GMT-5")
 
-  const currentDaySchedule = schedule.find(d => d.day === selectedDay);
+  const windowStart = useMemo(() => addDays(new Date(), -2), [])
+  const windowEnd = useMemo(() => addDays(new Date(), 7), [])
 
-  const handleToggleReminder = useCallback((animeId: string) => {
-    setSchedule(prev => 
-      prev.map(day => ({
-        ...day,
-        releases: day.releases.map(anime => 
-          anime.id === animeId 
-            ? { ...anime, isReminded: !anime.isReminded }
-            : anime
-        )
-      }))
-    );
-  }, []);
+	useEffect(() => {
+		let mounted = true
+		;(async () => {
+			try {
+				const s = await getPublicSettings()
+				if (!mounted) return
+				setScheduleTimezone(s.schedule_timezone)
+			} catch {
+				;
+			}
+		})()
+		return () => {
+			mounted = false
+		}
+	}, [])
 
-  const remindedCount = schedule.reduce(
-    (acc, day) => acc + day.releases.filter(r => r.isReminded).length, 
-    0
-  );
+  const days = useMemo(() => {
+    const out: { key: string; weekday: string; label: string; isToday: boolean }[] = []
+    const todayKey = formatYMDInTimeZone(new Date(), scheduleTimezone)
+    for (let i = 0; i < 10; i++) {
+      const d = addDays(windowStart, i)
+      const key = formatYMDInTimeZone(d, scheduleTimezone)
+      out.push({
+        key,
+        weekday: new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: scheduleTimezone }).format(d),
+        label: new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: scheduleTimezone }).format(d),
+        isToday: key === todayKey,
+      })
+    }
+    return out
+  }, [locale, scheduleTimezone, windowStart])
+
+  const [selectedKey, setSelectedKey] = useState(() => formatYMDInTimeZone(new Date(), "UTC"))
+
+	useEffect(() => {
+		setSelectedKey(formatYMDInTimeZone(new Date(), scheduleTimezone))
+	}, [scheduleTimezone])
+
+  const [items, setItems] = useState<ScheduleItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+			const from = formatYMDInTimeZone(windowStart, scheduleTimezone)
+			const to = formatYMDInTimeZone(windowEnd, scheduleTimezone)
+        const data = await getSchedule({ from, to })
+        if (!mounted) return
+        setItems(data)
+      } catch (e: any) {
+        if (!mounted) return
+        setError(e?.message || "Failed to load schedule")
+        setItems([])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [scheduleTimezone, windowEnd, windowStart])
+
+  const releasesForDay = useMemo(() => {
+    const list = (items || []).filter((x) => formatYMDInTimeZone(new Date(x.release_datetime), scheduleTimezone) === selectedKey)
+    return list.map((x) => {
+      const dt = new Date(x.release_datetime)
+      return {
+        time: formatTimeInTimeZone(dt, locale, scheduleTimezone),
+        title: x.anime?.name || "Anime",
+        episode: x.episode_number,
+        posterUrl: x.anime?.image || `https://placehold.co/112x160/081229/00E5FF?text=${encodeURIComponent(x.anime?.name || "Anime")}`,
+        slug: x.anime?.url || "",
+      }
+    })
+  }, [items, locale, scheduleTimezone, selectedKey])
 
   return (
     <div className="pt-20">
@@ -58,89 +112,16 @@ export default function ReleasesPage() {
             </div>
             <p className="text-[#8BA3C7] text-sm sm:text-base">
               Track upcoming episodes and never miss your favorite anime.
-              <span className="ml-2 text-[#00E5FF] font-medium">
-                {remindedCount} reminder{remindedCount !== 1 ? 's' : ''} set
-              </span>
             </p>
           </div>
-          <PeriodSelector 
-            selectedPeriod={selectedPeriod} 
-            onPeriodChange={setSelectedPeriod} 
-          />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Schedule Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Day Tabs */}
-            <DayTabs 
-              schedule={schedule}
-              selectedDay={selectedDay}
-              onDayChange={setSelectedDay}
-            />
+        <div className="space-y-6">
+          <DayTabs days={days} selectedKey={selectedKey} onDayChange={setSelectedKey} />
 
-            {/* Day Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  {currentDaySchedule?.day}
-                  {currentDaySchedule?.isToday && (
-                    <span className="ml-2 px-2 py-0.5 bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-semibold rounded-lg">
-                      Today
-                    </span>
-                  )}
-                </h2>
-                <p className="text-[#8BA3C7] text-sm mt-0.5">
-                  {currentDaySchedule?.releases.length || 0} release{(currentDaySchedule?.releases.length || 0) !== 1 ? 's' : ''} scheduled
-                </p>
-              </div>
-              <span className="text-[#A3CFFF] text-sm font-medium">
-                {currentDaySchedule?.date}, 2026
-              </span>
-            </div>
+          {error ? <div className="text-sm text-red-300">{error}</div> : null}
 
-            {/* Release List */}
-            {currentDaySchedule && (
-              <ReleaseList
-                releases={currentDaySchedule.releases}
-                onToggleReminder={handleToggleReminder}
-                dayName={currentDaySchedule.day}
-              />
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <NextRelease />
-
-            {/* Stats Card */}
-            <div className="rounded-2xl bg-[#0A1628] border border-[#1A2744] p-6">
-              <h3 className="text-base font-semibold text-white mb-4">This Week</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-[#081229] rounded-xl border border-[#1A2744]">
-                  <span className="text-2xl font-bold text-[#00E5FF]">
-                    {schedule.reduce((acc, day) => acc + day.releases.length, 0)}
-                  </span>
-                  <p className="text-[#8BA3C7] text-xs mt-1">Total Episodes</p>
-                </div>
-                <div className="p-3 bg-[#081229] rounded-xl border border-[#1A2744]">
-                  <span className="text-2xl font-bold text-[#A3CFFF]">
-                    {remindedCount}
-                  </span>
-                  <p className="text-[#8BA3C7] text-xs mt-1">Reminders Set</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timezone Notice */}
-            <div className="rounded-xl bg-[#081229]/50 border border-[#1A2744]/50 p-4">
-              <p className="text-[#8BA3C7] text-xs leading-relaxed">
-                All times shown in <span className="text-[#A3CFFF] font-medium">PST (UTC-8)</span>. 
-                Adjust for your local timezone.
-              </p>
-            </div>
-          </div>
+          <ReleaseList releases={releasesForDay} />
         </div>
       </main>
     </div>

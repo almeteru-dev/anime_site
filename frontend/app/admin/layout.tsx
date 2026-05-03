@@ -19,15 +19,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!isLoading) {
     const lvl = roleLevel(user?.role || "user")
-    if (lvl < roleLevel("admin")) {
+    if (lvl < roleLevel("moderator")) {
       router.push("/")
       return null
+    }
+    if (user?.role === "moderator") {
+      const allowed =
+        pathname === "/admin/animes" ||
+        pathname === "/admin/animes/new" ||
+        pathname.startsWith("/admin/animes/") ||
+        pathname === "/admin/schedule"
+      if (!allowed) {
+        router.push("/admin/animes")
+        return null
+      }
     }
   }
 
   const nav = [
     { href: "/admin/animes", label: "Anime", icon: List },
     { href: "/admin/animes/new", label: "Add Anime", icon: PlusCircle },
+    { href: "/admin/schedule", label: "Schedule", icon: Sliders },
     { href: "/admin/kinds-ratings", label: "Kinds & Ratings", icon: Sliders },
     { href: "/admin/video-labels", label: "Video Labels", icon: Tags },
     { href: "/admin/users", label: "Users", icon: Users },
@@ -35,7 +47,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },
   ]
 
-  const visibleNav = nav
+  const visibleNav = nav.filter((item) => {
+    if (user?.role === "moderator") {
+      return item.href === "/admin/animes" || item.href === "/admin/animes/new" || item.href === "/admin/schedule"
+    }
+    return true
+  })
 
   return (
     <div className="min-h-screen bg-background">

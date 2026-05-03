@@ -14,7 +14,7 @@ export function Footer() {
           <div className="text-center lg:text-left">
             <a href="/" className="inline-flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">A</span>
+                <img src="/favicon.svg" alt="LycorisLib" className="w-5 h-5" />
               </div>
               <span className="text-xl font-bold tracking-tight">
                 <span className="text-foreground">Lycoris</span>

@@ -53,14 +53,14 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">A</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center overflow-hidden">
+                <img src="/favicon.svg" alt="LycorisLib" className="w-6 h-6" />
               </div>
               <div className="absolute inset-0 rounded-lg bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="text-xl lg:text-2xl font-bold tracking-tight">
-              <span className="text-foreground">Anime</span>
-              <span className="text-primary">Vista</span>
+              <span className="text-foreground">Lycoris</span>
+              <span className="text-primary">Lib</span>
             </span>
           </Link>
 

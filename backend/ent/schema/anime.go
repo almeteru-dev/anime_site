@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -23,6 +24,9 @@ func (Anime) Annotations() []schema.Annotation {
 func (Anime) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
+		field.String("name"),
+		field.String("url"),
+		field.String("image").Optional(),
 		field.Float("average_rating").
 			Default(0).
 			SchemaType(map[string]string{dialect.Postgres: "numeric(3,1)"}),
@@ -32,3 +36,8 @@ func (Anime) Fields() []ent.Field {
 	}
 }
 
+func (Anime) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("schedules", Schedule.Type),
+	}
+}

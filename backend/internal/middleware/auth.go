@@ -159,6 +159,10 @@ func DenyModeratorDelete() gin.HandlerFunc {
 		roleAny, _ := c.Get("role")
 		role, _ := roleAny.(string)
 		if role == "moderator" && strings.EqualFold(c.Request.Method, "DELETE") {
+			if c.FullPath() == "/api/admin/schedule/:id" {
+				c.Next()
+				return
+			}
 			c.JSON(http.StatusForbidden, gin.H{"error": "Moderators cannot delete content"})
 			c.Abort()
 			return

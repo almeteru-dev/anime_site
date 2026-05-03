@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/seva/animevista/ent/anime"
+	"github.com/seva/animevista/ent/schedule"
 )
 
 // AnimeCreate is the builder for creating a Anime entity.
@@ -20,6 +21,32 @@ type AnimeCreate struct {
 	mutation *AnimeMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// SetName sets the "name" field.
+func (_c *AnimeCreate) SetName(v string) *AnimeCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetURL sets the "url" field.
+func (_c *AnimeCreate) SetURL(v string) *AnimeCreate {
+	_c.mutation.SetURL(v)
+	return _c
+}
+
+// SetImage sets the "image" field.
+func (_c *AnimeCreate) SetImage(v string) *AnimeCreate {
+	_c.mutation.SetImage(v)
+	return _c
+}
+
+// SetNillableImage sets the "image" field if the given value is not nil.
+func (_c *AnimeCreate) SetNillableImage(v *string) *AnimeCreate {
+	if v != nil {
+		_c.SetImage(*v)
+	}
+	return _c
 }
 
 // SetAverageRating sets the "average_rating" field.
@@ -54,6 +81,21 @@ func (_c *AnimeCreate) SetNillableUpdatedAt(v *time.Time) *AnimeCreate {
 func (_c *AnimeCreate) SetID(v int64) *AnimeCreate {
 	_c.mutation.SetID(v)
 	return _c
+}
+
+// AddScheduleIDs adds the "schedules" edge to the Schedule entity by IDs.
+func (_c *AnimeCreate) AddScheduleIDs(ids ...int64) *AnimeCreate {
+	_c.mutation.AddScheduleIDs(ids...)
+	return _c
+}
+
+// AddSchedules adds the "schedules" edges to the Schedule entity.
+func (_c *AnimeCreate) AddSchedules(v ...*Schedule) *AnimeCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddScheduleIDs(ids...)
 }
 
 // Mutation returns the AnimeMutation object of the builder.
@@ -103,6 +145,12 @@ func (_c *AnimeCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *AnimeCreate) check() error {
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Anime.name"`)}
+	}
+	if _, ok := _c.mutation.URL(); !ok {
+		return &ValidationError{Name: "url", err: errors.New(`ent: missing required field "Anime.url"`)}
+	}
 	if _, ok := _c.mutation.AverageRating(); !ok {
 		return &ValidationError{Name: "average_rating", err: errors.New(`ent: missing required field "Anime.average_rating"`)}
 	}
@@ -142,6 +190,18 @@ func (_c *AnimeCreate) createSpec() (*Anime, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(anime.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.URL(); ok {
+		_spec.SetField(anime.FieldURL, field.TypeString, value)
+		_node.URL = value
+	}
+	if value, ok := _c.mutation.Image(); ok {
+		_spec.SetField(anime.FieldImage, field.TypeString, value)
+		_node.Image = value
+	}
 	if value, ok := _c.mutation.AverageRating(); ok {
 		_spec.SetField(anime.FieldAverageRating, field.TypeFloat64, value)
 		_node.AverageRating = value
@@ -150,6 +210,22 @@ func (_c *AnimeCreate) createSpec() (*Anime, *sqlgraph.CreateSpec) {
 		_spec.SetField(anime.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
+	if nodes := _c.mutation.SchedulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   anime.SchedulesTable,
+			Columns: []string{anime.SchedulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(schedule.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -157,7 +233,7 @@ func (_c *AnimeCreate) createSpec() (*Anime, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Anime.Create().
-//		SetAverageRating(v).
+//		SetName(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -166,7 +242,7 @@ func (_c *AnimeCreate) createSpec() (*Anime, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.AnimeUpsert) {
-//			SetAverageRating(v+v).
+//			SetName(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *AnimeCreate) OnConflict(opts ...sql.ConflictOption) *AnimeUpsertOne {
@@ -201,6 +277,48 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetName sets the "name" field.
+func (u *AnimeUpsert) SetName(v string) *AnimeUpsert {
+	u.Set(anime.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *AnimeUpsert) UpdateName() *AnimeUpsert {
+	u.SetExcluded(anime.FieldName)
+	return u
+}
+
+// SetURL sets the "url" field.
+func (u *AnimeUpsert) SetURL(v string) *AnimeUpsert {
+	u.Set(anime.FieldURL, v)
+	return u
+}
+
+// UpdateURL sets the "url" field to the value that was provided on create.
+func (u *AnimeUpsert) UpdateURL() *AnimeUpsert {
+	u.SetExcluded(anime.FieldURL)
+	return u
+}
+
+// SetImage sets the "image" field.
+func (u *AnimeUpsert) SetImage(v string) *AnimeUpsert {
+	u.Set(anime.FieldImage, v)
+	return u
+}
+
+// UpdateImage sets the "image" field to the value that was provided on create.
+func (u *AnimeUpsert) UpdateImage() *AnimeUpsert {
+	u.SetExcluded(anime.FieldImage)
+	return u
+}
+
+// ClearImage clears the value of the "image" field.
+func (u *AnimeUpsert) ClearImage() *AnimeUpsert {
+	u.SetNull(anime.FieldImage)
+	return u
+}
 
 // SetAverageRating sets the "average_rating" field.
 func (u *AnimeUpsert) SetAverageRating(v float64) *AnimeUpsert {
@@ -278,6 +396,55 @@ func (u *AnimeUpsertOne) Update(set func(*AnimeUpsert)) *AnimeUpsertOne {
 		set(&AnimeUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetName sets the "name" field.
+func (u *AnimeUpsertOne) SetName(v string) *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *AnimeUpsertOne) UpdateName() *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetURL sets the "url" field.
+func (u *AnimeUpsertOne) SetURL(v string) *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetURL(v)
+	})
+}
+
+// UpdateURL sets the "url" field to the value that was provided on create.
+func (u *AnimeUpsertOne) UpdateURL() *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateURL()
+	})
+}
+
+// SetImage sets the "image" field.
+func (u *AnimeUpsertOne) SetImage(v string) *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetImage(v)
+	})
+}
+
+// UpdateImage sets the "image" field to the value that was provided on create.
+func (u *AnimeUpsertOne) UpdateImage() *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateImage()
+	})
+}
+
+// ClearImage clears the value of the "image" field.
+func (u *AnimeUpsertOne) ClearImage() *AnimeUpsertOne {
+	return u.Update(func(s *AnimeUpsert) {
+		s.ClearImage()
+	})
 }
 
 // SetAverageRating sets the "average_rating" field.
@@ -450,7 +617,7 @@ func (_c *AnimeCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.AnimeUpsert) {
-//			SetAverageRating(v+v).
+//			SetName(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *AnimeCreateBulk) OnConflict(opts ...sql.ConflictOption) *AnimeUpsertBulk {
@@ -527,6 +694,55 @@ func (u *AnimeUpsertBulk) Update(set func(*AnimeUpsert)) *AnimeUpsertBulk {
 		set(&AnimeUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetName sets the "name" field.
+func (u *AnimeUpsertBulk) SetName(v string) *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *AnimeUpsertBulk) UpdateName() *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetURL sets the "url" field.
+func (u *AnimeUpsertBulk) SetURL(v string) *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetURL(v)
+	})
+}
+
+// UpdateURL sets the "url" field to the value that was provided on create.
+func (u *AnimeUpsertBulk) UpdateURL() *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateURL()
+	})
+}
+
+// SetImage sets the "image" field.
+func (u *AnimeUpsertBulk) SetImage(v string) *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.SetImage(v)
+	})
+}
+
+// UpdateImage sets the "image" field to the value that was provided on create.
+func (u *AnimeUpsertBulk) UpdateImage() *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.UpdateImage()
+	})
+}
+
+// ClearImage clears the value of the "image" field.
+func (u *AnimeUpsertBulk) ClearImage() *AnimeUpsertBulk {
+	return u.Update(func(s *AnimeUpsert) {
+		s.ClearImage()
+	})
 }
 
 // SetAverageRating sets the "average_rating" field.

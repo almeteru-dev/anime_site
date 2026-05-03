@@ -10,7 +10,7 @@ let cached: { value: PublicSettings; fetchedAt: number } | null = null
 
 async function getPublicSettings(): Promise<PublicSettings> {
   const now = Date.now()
-  if (cached && now-cached.fetchedAt < 30_000) {
+  if (cached && now - cached.fetchedAt < 30_000) {
     return cached.value
   }
 
@@ -45,7 +45,7 @@ function isAllowedUnauthedPath(pathname: string): boolean {
   )
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname === "/favicon.ico") {
@@ -63,19 +63,19 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url)
     }
     const role = getJwtRoleFromCookie(token)
-    if (role !== "admin" && role !== "root") {
+    if (role !== "admin" && role !== "root" && role !== "moderator") {
       const url = req.nextUrl.clone()
       url.pathname = "/"
       url.search = ""
       return NextResponse.redirect(url)
     }
 
-	if (pathname.startsWith("/admin/settings/root") && role !== "root") {
-	  const url = req.nextUrl.clone()
-	  url.pathname = "/"
-	  url.search = ""
-	  return NextResponse.redirect(url)
-	}
+    if (pathname.startsWith("/admin/settings/root") && role !== "root") {
+      const url = req.nextUrl.clone()
+      url.pathname = "/"
+      url.search = ""
+      return NextResponse.redirect(url)
+    }
   }
 
   try {
@@ -96,3 +96,4 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/:path*"]
 }
+

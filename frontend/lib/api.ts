@@ -302,13 +302,179 @@ export async function adminSetPrivateMode(params: { token: string; enabled: bool
 	}
 }
 
-export async function getPublicSettings(): Promise<{ private_mode: boolean }> {
+export async function getPublicSettings(): Promise<{ private_mode: boolean; schedule_timezone: string }> {
 	const res = await fetch(`${API_URL}/settings/public`, { cache: "no-store" })
 	if (!res.ok) {
 		throw new Error("Failed to fetch settings")
 	}
 	const data = await res.json().catch(() => ({}))
-	return { private_mode: data.private_mode === true }
+	return {
+		private_mode: data.private_mode === true,
+		schedule_timezone:
+			typeof data.schedule_timezone === "string" && data.schedule_timezone.trim()
+				? data.schedule_timezone.trim()
+				: "Etc/GMT-5",
+	}
+}
+
+export async function adminSetScheduleTimezone(params: { token: string; timezone: string }): Promise<{ timezone: string; old_timezone?: string; recalculated?: number }> {
+	const res = await fetch(`${API_URL}/admin/settings/schedule-timezone`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({ timezone: params.timezone }),
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to update timezone")
+	}
+	return data
+}
+
+export async function adminPurgeOldSchedules(params: { token: string }): Promise<{ deleted_count: number }> {
+	const res = await fetch(`${API_URL}/admin/schedule/purge-old`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${params.token}`,
+		},
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to purge schedules")
+	}
+	return {
+		deleted_count: typeof data.deleted_count === "number" ? data.deleted_count : 0,
+	}
+}
+
+export type ScheduleItem = {
+	id: number
+	release_datetime: string
+	episode_number: number
+	anime: {
+		id: number
+		name: string
+		url: string
+		image: string
+	}
+}
+
+export type OngoingAnimeItem = {
+	id: number
+	name: string
+	url: string
+	image_url: string
+}
+
+export async function adminListOngoingAnimes(params: { token: string; q?: string }): Promise<OngoingAnimeItem[]> {
+	const sp = new URLSearchParams()
+	if (params.q?.trim()) sp.set("q", params.q.trim())
+	const res = await fetch(`${API_URL}/admin/schedule/animes?${sp.toString()}`, {
+		headers: { Authorization: `Bearer ${params.token}` },
+		cache: "no-store",
+	})
+	const data = await res.json().catch(() => ([] as any))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to fetch ongoing anime")
+	}
+	return data
+}
+
+export async function getSchedule(params: { from: string; to: string }): Promise<ScheduleItem[]> {
+	const sp = new URLSearchParams({ from: params.from, to: params.to })
+	const res = await fetch(`${API_URL}/schedule?${sp.toString()}`, { cache: "no-store" })
+	if (!res.ok) {
+		throw new Error("Failed to fetch schedule")
+	}
+	return res.json()
+}
+
+export async function adminListSchedule(params: { token: string; from: string; to: string }): Promise<ScheduleItem[]> {
+	const sp = new URLSearchParams({ from: params.from, to: params.to })
+	const res = await fetch(`${API_URL}/admin/schedule?${sp.toString()}`, {
+		headers: { Authorization: `Bearer ${params.token}` },
+		cache: "no-store",
+	})
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}))
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to fetch schedule")
+	}
+	return res.json()
+}
+
+export async function adminCreateSchedule(params: {
+	token: string
+	anime_id: number
+	episode_number: number
+	release_date: string
+	release_time: string
+}): Promise<ScheduleItem> {
+	const res = await fetch(`${API_URL}/admin/schedule`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({
+			anime_id: params.anime_id,
+			episode_number: params.episode_number,
+			release_date: params.release_date,
+			release_time: params.release_time,
+		}),
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to create schedule entry")
+	}
+	return data
+}
+
+export async function adminDeleteSchedule(params: { token: string; id: number }): Promise<void> {
+	const res = await fetch(`${API_URL}/admin/schedule/${params.id}`, {
+		method: "DELETE",
+		headers: { Authorization: `Bearer ${params.token}` },
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to delete schedule entry")
+	}
+}
+
+export async function adminUpdateSchedule(params: {
+	token: string
+	id: number
+	anime_id: number
+	episode_number: number
+	release_date: string
+	release_time: string
+}): Promise<ScheduleItem> {
+	const res = await fetch(`${API_URL}/admin/schedule/${params.id}`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({
+			anime_id: params.anime_id,
+			episode_number: params.episode_number,
+			release_date: params.release_date,
+			release_time: params.release_time,
+		}),
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to update schedule entry")
+	}
+	return data
 }
 
 export async function adminCreateUser(params: {
@@ -765,6 +931,21 @@ export async function getAnimeAverageRating(animeId: number): Promise<number> {
 	}
 	const data = await res.json().catch(() => ({}))
 	return typeof data.average_rating === "number" ? data.average_rating : 0
+}
+
+export async function getMyAnimeRating(params: { token: string; animeId: number }): Promise<number | null> {
+	const res = await fetch(`${API_URL}/anime/${params.animeId}/my-rating`, {
+		headers: {
+			Authorization: `Bearer ${params.token}`,
+		},
+		cache: "no-store",
+	})
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to fetch your rating")
+	}
+	return typeof data.rating === "number" ? data.rating : null
 }
 
 export interface AdminMeta {

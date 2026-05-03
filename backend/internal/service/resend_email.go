@@ -11,7 +11,7 @@ import (
 	"github.com/resend/resend-go/v3"
 )
 
-const resendFrom = "Lycoris TV <noreply@lycoris.tv>"
+const resendFrom = "LycorisLib <noreply@lycorislib.moe>"
 
 var ErrResendNotConfigured = errors.New("RESEND_API_KEY is not set")
 
