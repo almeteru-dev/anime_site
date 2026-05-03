@@ -2,6 +2,10 @@
 
 LycorisLib is a full-stack web app with a Go (Gin) backend and a Next.js frontend.
 
+## Important Note
+
+You must create the PostgreSQL database specified by `DB_NAME` (for example, `animevista`) in your DBMS before starting the backend. The application runs migrations automatically, but it will not create the database itself.
+
 ## Prerequisites
 
 - Go (1.21+ recommended)
@@ -29,7 +33,17 @@ cp backend/.env.example backend/.env
 
 2. Edit `backend/.env` as needed (Postgres credentials, `JWT_SECRET`, etc.).
 
-### 2) Install dependencies
+If you prefer, `make install` will create `backend/.env` automatically (it copies from `backend/.env.example` if the file does not exist).
+
+### 2) Create the PostgreSQL database
+
+Create the database that matches `DB_NAME` in `backend/.env` (default example is `animevista`).
+
+```bash
+createdb animevista
+```
+
+### 3) Install dependencies
 
 This downloads Go modules, creates `backend/vendor/`, and installs frontend packages.
 
@@ -37,7 +51,7 @@ This downloads Go modules, creates `backend/vendor/`, and installs frontend pack
 make install
 ```
 
-### 3) Run in development (backend + frontend)
+### 4) Run in development (backend + frontend)
 
 ```bash
 make dev
@@ -77,4 +91,3 @@ Removes build artifacts and the backend binary.
 ```bash
 make clean
 ```
-
