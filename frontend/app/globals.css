@@ -120,6 +120,61 @@
   }
 }
 
+@layer components {
+  .legal-content {
+    @apply text-foreground;
+  }
+
+  .legal-content h1 {
+    @apply text-3xl font-bold tracking-tight mt-10 first:mt-0;
+  }
+
+  .legal-content h2 {
+    @apply text-2xl font-semibold mt-8;
+  }
+
+  .legal-content h3 {
+    @apply text-xl font-semibold mt-6;
+  }
+
+  .legal-content p {
+    @apply mt-4 text-foreground-muted leading-relaxed;
+  }
+
+  .legal-content ul {
+    @apply mt-4 list-disc pl-6 space-y-2 text-foreground-muted;
+  }
+
+  .legal-content ol {
+    @apply mt-4 list-decimal pl-6 space-y-2 text-foreground-muted;
+  }
+
+  .legal-content li {
+    @apply leading-relaxed;
+  }
+
+  .legal-content a {
+    @apply text-primary underline underline-offset-4 hover:text-primary/80 transition-colors;
+  }
+
+  .legal-content strong {
+    @apply text-foreground;
+  }
+
+  .legal-content blockquote {
+    @apply mt-6 border-l-2 border-border pl-4 text-foreground-muted;
+  }
+
+  .legal-content table {
+    @apply mt-6 w-full border-collapse;
+  }
+
+  .legal-content th,
+  .legal-content td {
+    @apply border border-border p-2 align-top;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

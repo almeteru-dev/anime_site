@@ -54,6 +54,8 @@ export const translations = {
       confirmYourPassword: "Confirm your password",
       agreeToTerms: "I agree to the",
       termsOfService: "Terms of Service",
+      and: "and",
+      privacyPolicy: "Privacy Policy",
       createAccount: "Create Account",
       alreadyMember: "Already a member?",
       login: "Login",
@@ -62,7 +64,9 @@ export const translations = {
     // Footer
     footer: {
       tagline: "Your gateway to endless anime adventures",
+      privacyPolicy: "Privacy Policy",
       termsOfService: "Terms of Service",
+      cookiePolicy: "Cookie Policy",
       dmca: "DMCA",
       contact: "Contact",
       faq: "FAQ",
@@ -253,6 +257,8 @@ export const translations = {
       confirmYourPassword: "Подтвердите ваш пароль",
       agreeToTerms: "Я согласен с",
       termsOfService: "Условиями использования",
+      and: "и",
+      privacyPolicy: "Политикой конфиденциальности",
       createAccount: "Создать аккаунт",
       alreadyMember: "Уже есть аккаунт?",
       login: "Войти",
@@ -261,7 +267,9 @@ export const translations = {
     // Footer
     footer: {
       tagline: "Ваш путь к бесконечным аниме приключениям",
+      privacyPolicy: "Политика конфиденциальности",
       termsOfService: "Условия ��спользования",
+      cookiePolicy: "Политика cookie",
       dmca: "DMCA",
       contact: "Контакты",
       faq: "FAQ",

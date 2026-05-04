@@ -1,6 +1,7 @@
 "use client"
 
 import { MessageCircle, Send } from "lucide-react"
+import Link from "next/link"
 import { useLanguage } from "@/contexts/language-context"
 
 export function Footer() {
@@ -28,18 +29,18 @@ export function Footer() {
 
           {/* Links */}
           <nav className="flex flex-wrap items-center justify-center gap-6 lg:gap-8">
-            <a
-              href="#terms"
-              className="text-foreground-muted hover:text-primary transition-colors text-sm"
-            >
+            <Link href="/privacy" className="text-foreground-muted hover:text-primary transition-colors text-sm">
+              {t.footer.privacyPolicy}
+            </Link>
+            <Link href="/terms" className="text-foreground-muted hover:text-primary transition-colors text-sm">
               {t.footer.termsOfService}
-            </a>
-            <a
-              href="#dmca"
-              className="text-foreground-muted hover:text-primary transition-colors text-sm"
-            >
+            </Link>
+            <Link href="/cookies" className="text-foreground-muted hover:text-primary transition-colors text-sm">
+              {t.footer.cookiePolicy}
+            </Link>
+            <Link href="/dmca" className="text-foreground-muted hover:text-primary transition-colors text-sm">
               {t.footer.dmca}
-            </a>
+            </Link>
             <a
               href="#contact"
               className="text-foreground-muted hover:text-primary transition-colors text-sm"

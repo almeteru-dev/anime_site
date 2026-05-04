@@ -317,6 +317,10 @@ export default function RegisterPage() {
                 <Link href="/terms" className="text-primary hover:underline hover:text-primary/80 transition-colors">
                   {t.register.termsOfService}
                 </Link>
+                {" "}{t.register.and}{" "}
+                <Link href="/privacy" className="text-primary hover:underline hover:text-primary/80 transition-colors">
+                  {t.register.privacyPolicy}
+                </Link>
               </label>
             </div>
 

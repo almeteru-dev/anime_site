@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { LanguageProvider } from '@/contexts/language-context'
 import { AuthProvider } from '@/contexts/auth-context'
+import CookieConsent from '@/components/CookieConsent'
 import './globals.css'
 
 const inter = Inter({ 
@@ -41,6 +42,7 @@ export default function RootLayout({
         <AuthProvider>
           <LanguageProvider>
             {children}
+            <CookieConsent />
           </LanguageProvider>
         </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}

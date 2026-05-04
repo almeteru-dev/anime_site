@@ -39,6 +39,10 @@ function isAllowedUnauthedPath(pathname: string): boolean {
   return (
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/cookies" ||
+    pathname === "/dmca" ||
     pathname.startsWith("/verify-") ||
     pathname === "/forgot-password" ||
     pathname === "/reset-password"
@@ -96,4 +100,3 @@ export async function proxy(req: NextRequest) {
 export const config = {
   matcher: ["/:path*"]
 }
-
