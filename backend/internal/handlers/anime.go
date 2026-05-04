@@ -166,6 +166,7 @@ func GetAnimes(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch animes"})
 		return
 	}
+	_ = hydrateAnimeRefsRU(animes)
 
 	c.JSON(http.StatusOK, animes)
 }
@@ -191,6 +192,11 @@ func GetAnimeByID(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Anime not found"})
 		return
+	}
+	{
+		tmp := []models.Anime{anime}
+		_ = hydrateAnimeRefsRU(tmp)
+		anime = tmp[0]
 	}
 
 	if _, parseErr := strconv.ParseInt(identifier, 10, 64); parseErr == nil {

@@ -57,8 +57,14 @@ export default function AdminKindsRatingsPage() {
   const [saving, setSaving] = useState(false)
 
   const [newName, setNewName] = useState("")
+  const [newRuName, setNewRuName] = useState("")
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingName, setEditingName] = useState("")
+  const [editingRuName, setEditingRuName] = useState("")
+
+  const supportsRussianName = useMemo(() => {
+    return tab === "genres" || tab === "statuses" || tab === "sources" || tab === "kinds"
+  }, [tab])
 
   const activeList = useMemo(() => {
     if (tab === "kinds") return kinds
@@ -110,41 +116,44 @@ export default function AdminKindsRatingsPage() {
     }
   }, [token])
 
-  const startEdit = (id: number, name: string) => {
+  const startEdit = (id: number, name: string, ruName: string) => {
     setEditingId(id)
     setEditingName(name)
+    setEditingRuName(ruName)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setEditingName("")
+    setEditingRuName("")
   }
 
   const saveEdit = async () => {
     if (!token) return
     const name = editingName.trim()
+    const ru_name = supportsRussianName ? (editingRuName.trim() || null) : null
     if (!editingId || !name) return
     setSaving(true)
     setError(null)
     try {
       if (tab === "kinds") {
-        const updated = await adminUpdateKind({ token, id: editingId, name })
+        const updated = await adminUpdateKind({ token, id: editingId, name, ru_name })
         setKinds((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
       } else {
         if (tab === "ratings") {
           const updated = await adminUpdateRating({ token, id: editingId, name })
           setRatings((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "genres") {
-          const updated = await adminUpdateGenre({ token, id: editingId, name })
+          const updated = await adminUpdateGenre({ token, id: editingId, name, ru_name })
           setGenres((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "statuses") {
-          const updated = await adminUpdateStatus({ token, id: editingId, name })
+          const updated = await adminUpdateStatus({ token, id: editingId, name, ru_name })
           setStatuses((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "studios") {
           const updated = await adminUpdateStudio({ token, id: editingId, name })
           setStudios((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else {
-          const updated = await adminUpdateSource({ token, id: editingId, name })
+          const updated = await adminUpdateSource({ token, id: editingId, name, ru_name })
           setSources((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         }
       }
@@ -159,30 +168,32 @@ export default function AdminKindsRatingsPage() {
   const create = async () => {
     if (!token) return
     const name = newName.trim()
+    const ru_name = supportsRussianName ? (newRuName.trim() || null) : null
     if (!name) return
     setSaving(true)
     setError(null)
     try {
       if (tab === "kinds") {
-        const created = await adminCreateKind({ token, name })
+        const created = await adminCreateKind({ token, name, ru_name })
         setKinds((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "ratings") {
         const created = await adminCreateRating({ token, name })
         setRatings((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "genres") {
-        const created = await adminCreateGenre({ token, name })
+        const created = await adminCreateGenre({ token, name, ru_name })
         setGenres((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "statuses") {
-        const created = await adminCreateStatus({ token, name })
+        const created = await adminCreateStatus({ token, name, ru_name })
         setStatuses((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "studios") {
         const created = await adminCreateStudio({ token, name })
         setStudios((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else {
-        const created = await adminCreateSource({ token, name })
+        const created = await adminCreateSource({ token, name, ru_name })
         setSources((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       }
       setNewName("")
+	  setNewRuName("")
     } catch (e: any) {
       setError(e.message || "Failed to create")
     } finally {
@@ -253,6 +264,7 @@ export default function AdminKindsRatingsPage() {
               setTab(t.key)
               cancelEdit()
               setNewName("")
+			  setNewRuName("")
             }}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
@@ -388,24 +400,37 @@ export default function AdminKindsRatingsPage() {
 
         <div className="rounded-2xl border border-border/60 bg-background p-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">Add {tabLabel}</h3>
-          <div className="flex items-center gap-2">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder={tab === "kinds" ? "e.g., tv" : tab === "ratings" ? "e.g., r-17+" : `e.g., ${tabLabel.toLowerCase()}`}
-              className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
-            />
-            <button
-              type="button"
-              onClick={create}
-              disabled={!newName.trim() || saving}
-              className={cn(
-                "shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold",
-                !newName.trim() || saving ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed" : "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
-              Add
-            </button>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={tab === "kinds" ? "e.g., tv" : tab === "ratings" ? "e.g., r-17+" : `e.g., ${tabLabel.toLowerCase()}`}
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+              <button
+                type="button"
+                onClick={create}
+                disabled={!newName.trim() || saving}
+                className={cn(
+                  "shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold",
+                  !newName.trim() || saving
+                    ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                Add
+              </button>
+            </div>
+
+            {supportsRussianName ? (
+              <input
+                value={newRuName}
+                onChange={(e) => setNewRuName(e.target.value)}
+                placeholder="Russian name (optional)"
+                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+              />
+            ) : null}
           </div>
         </div>
 
@@ -423,13 +448,28 @@ export default function AdminKindsRatingsPage() {
                 <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background-secondary/30 px-4 py-3">
                   <div className="min-w-0">
                     {editingId === item.id ? (
-                      <input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
-                      />
+                      <div className="space-y-2">
+                        <input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                        />
+                        {supportsRussianName ? (
+                          <input
+                            value={editingRuName}
+                            onChange={(e) => setEditingRuName(e.target.value)}
+                            placeholder="Russian name (optional)"
+                            className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                          />
+                        ) : null}
+                      </div>
                     ) : (
-                      <div className="text-sm font-semibold text-foreground truncate">{item.name}</div>
+                      <div>
+                        <div className="text-sm font-semibold text-foreground truncate">{item.name}</div>
+                        {supportsRussianName && "ru_name" in item && item.ru_name ? (
+                          <div className="text-xs text-foreground-subtle truncate">{item.ru_name}</div>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -460,7 +500,7 @@ export default function AdminKindsRatingsPage() {
                       <>
                         <button
                           type="button"
-                          onClick={() => startEdit(item.id, item.name)}
+                          onClick={() => startEdit(item.id, item.name, ("ru_name" in item && item.ru_name ? String(item.ru_name) : ""))}
                           className="rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
                         >
                           Edit

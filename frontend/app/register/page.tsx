@@ -113,7 +113,8 @@ export default function RegisterPage() {
       <div 
         className="absolute inset-0 pointer-events-none opacity-[0.02]"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline-line) 2px, var(--scanline-line) 4px)",
         }}
       />
 
@@ -136,13 +137,7 @@ export default function RegisterPage() {
         {/* Gradient border effect */}
         <div className="absolute -inset-[1px] bg-gradient-to-br from-primary/50 via-transparent to-transparent rounded-2xl pointer-events-none" />
         
-        <div 
-          className="relative backdrop-blur-md bg-card/80 rounded-2xl p-8 sm:p-10"
-          style={{
-            border: "1px solid rgba(163, 207, 255, 0.2)",
-            boxShadow: "var(--card-shadow)",
-          }}
-        >
+        <div className="relative backdrop-blur-md bg-background-secondary/80 rounded-2xl p-8 sm:p-10 border border-border/60 shadow-[var(--card-shadow)]">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <Link href="/" className="flex items-center gap-2 group">
@@ -180,7 +175,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "username" ? "text-primary" : "text-secondary/60"}`} />
+                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "username" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="username"
@@ -190,10 +185,7 @@ export default function RegisterPage() {
                   onFocus={() => setFocusedField("username")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.enterUsername}
-                  className="w-full h-12 pl-12 pr-4 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "username" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-4 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
               </div>
@@ -206,7 +198,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Mail className={`w-5 h-5 transition-colors duration-300 ${focusedField === "email" ? "text-primary" : "text-secondary/60"}`} />
+                  <Mail className={`w-5 h-5 transition-colors duration-300 ${focusedField === "email" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="email"
@@ -216,10 +208,7 @@ export default function RegisterPage() {
                   onFocus={() => setFocusedField("email")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.enterEmail}
-                  className="w-full h-12 pl-12 pr-4 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "email" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-4 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
               </div>
@@ -232,7 +221,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-secondary/60"}`} />
+                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="password"
@@ -242,16 +231,13 @@ export default function RegisterPage() {
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.createPassword}
-                  className="w-full h-12 pl-12 pr-12 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "password" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors duration-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary transition-colors duration-300"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -268,7 +254,7 @@ export default function RegisterPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <ShieldCheck className={`w-5 h-5 transition-colors duration-300 ${focusedField === "confirmPassword" ? "text-primary" : "text-secondary/60"}`} />
+                  <ShieldCheck className={`w-5 h-5 transition-colors duration-300 ${focusedField === "confirmPassword" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="confirmPassword"
@@ -278,16 +264,13 @@ export default function RegisterPage() {
                   onFocus={() => setFocusedField("confirmPassword")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.confirmYourPassword}
-                  className="w-full h-12 pl-12 pr-12 bg-background-secondary border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "confirmPassword" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors duration-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary transition-colors duration-300"
                   aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -306,7 +289,7 @@ export default function RegisterPage() {
                 className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                   agreedToTerms 
                     ? "bg-primary border-primary" 
-                    : "border-secondary/50 hover:border-primary/50"
+                    : "border-border/70 hover:border-primary/50"
                 }`}
                 aria-label={t.register.agreeToTerms}
               >
@@ -328,7 +311,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={!agreedToTerms || isLoading}
-              className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center justify-center gap-2"
+              className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[var(--glow-primary)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

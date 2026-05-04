@@ -1,6 +1,6 @@
 module github.com/seva/animevista
 
-go 1.24
+go 1.24.0
 
 require (
 	entgo.io/ent v0.14.6

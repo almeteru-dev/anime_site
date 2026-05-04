@@ -94,7 +94,9 @@ export function UserCollectionCard({
           <div className="absolute bottom-2 left-2 right-2">
             <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1.5">
               <div className="flex justify-between text-xs text-foreground-muted mb-1">
-                <span>Ep. {currentEpisode}</span>
+                <span>
+                  {t.common.epShort}. {currentEpisode}
+                </span>
                 <span>/ {episodes}</span>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">

@@ -45,20 +45,20 @@ export function SourceSelector({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:bg-[#0D1A3A] hover:border-[#A3CFFF]/30 hover:text-white"
+            className="bg-background-secondary border-border text-foreground hover:bg-background-tertiary hover:border-primary/25"
           >
-            <Server className="w-4 h-4 mr-2 text-[#00E5FF]" />
+            <Server className="w-4 h-4 mr-2 text-primary" />
             {selectedServer}
-            <ChevronDown className="w-4 h-4 ml-2 text-[#A3CFFF]" />
+            <ChevronDown className="w-4 h-4 ml-2 text-foreground-subtle" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-[#081229] border-[#1A2847]">
+        <DropdownMenuContent className="bg-popover border-border text-popover-foreground">
           {servers.map((server) => (
             <DropdownMenuItem
               key={server}
               onClick={() => onChangeServer(server)}
-              className={`text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A] focus:bg-[#0D1A3A] focus:text-white cursor-pointer ${
-                selectedServer === server ? "bg-[#00E5FF]/10 text-[#00E5FF]" : ""
+              className={`text-foreground-muted hover:text-foreground hover:bg-background-tertiary focus:bg-background-tertiary focus:text-foreground cursor-pointer ${
+                selectedServer === server ? "bg-primary/10 text-primary" : ""
               }`}
             >
               {server}
@@ -71,20 +71,20 @@ export function SourceSelector({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:bg-[#0D1A3A] hover:border-[#A3CFFF]/30 hover:text-white"
+            className="bg-background-secondary border-border text-foreground hover:bg-background-tertiary hover:border-primary/25"
           >
-            <Headphones className="w-4 h-4 mr-2 text-[#00E5FF]" />
+            <Headphones className="w-4 h-4 mr-2 text-primary" />
             {selectedAudio}
-            <ChevronDown className="w-4 h-4 ml-2 text-[#A3CFFF]" />
+            <ChevronDown className="w-4 h-4 ml-2 text-foreground-subtle" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-[#081229] border-[#1A2847]">
+        <DropdownMenuContent className="bg-popover border-border text-popover-foreground">
           {audios.map((audio) => (
             <DropdownMenuItem
               key={audio}
               onClick={() => onChangeAudio(audio)}
-              className={`text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A] focus:bg-[#0D1A3A] focus:text-white cursor-pointer ${
-                selectedAudio === audio ? "bg-[#00E5FF]/10 text-[#00E5FF]" : ""
+              className={`text-foreground-muted hover:text-foreground hover:bg-background-tertiary focus:bg-background-tertiary focus:text-foreground cursor-pointer ${
+                selectedAudio === audio ? "bg-primary/10 text-primary" : ""
               }`}
             >
               {audio}
@@ -95,4 +95,3 @@ export function SourceSelector({
     </div>
   )
 }
-

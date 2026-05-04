@@ -61,7 +61,7 @@ export function AnimeCard({
   showRemoveOption = false,
   onRemove,
 }: AnimeCardProps) {
-  const { locale } = useLanguage()
+  const { locale, t } = useLanguage()
   const { token } = useAuth()
   const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
@@ -75,6 +75,17 @@ export function AnimeCard({
   const title = getLocalizedTitle(anime, locale)
   const posterUrl = getAnimePosterUrl(anime)
   const displayGenres = anime.genres?.slice(0, 2) || []
+
+  const statusLabel = anime.status
+    ? locale === "ru"
+      ? anime.status.ru_name || (t.catalog.filters.statusValues as Record<string, string>)[anime.status.name] || anime.status.name
+      : anime.status.name
+    : null
+
+  const kindLabel =
+    locale === "ru"
+      ? anime.kind_ru_name || (t.catalog.filters.typeValues as Record<string, string>)[anime.kind] || anime.kind
+      : anime.kind
   
   // Get current status styling
   const currentStatusStyle = localStatus ? statusColors[localStatus as keyof typeof statusColors] : null
@@ -145,7 +156,7 @@ export function AnimeCard({
               <div className="w-12 h-12 rounded-2xl bg-background/40 border border-border/50 flex items-center justify-center">
                 <Film className="w-6 h-6 text-foreground-muted" />
               </div>
-              <div className="mt-3 text-xs font-semibold text-foreground-muted">No Image</div>
+              <div className="mt-3 text-xs font-semibold text-foreground-muted">{t.common.noImage}</div>
             </div>
           )}
 
@@ -185,7 +196,7 @@ export function AnimeCard({
                     : "bg-accent-muted/20 text-accent-muted"
                 )}
               >
-                {anime.status.name}
+                {statusLabel}
               </Badge>
             </div>
           )}
@@ -204,18 +215,20 @@ export function AnimeCard({
                   key={genre.id}
                   className="rounded-md bg-background-secondary/80 px-2 py-0.5 text-[10px] font-medium text-foreground-muted backdrop-blur-sm"
                 >
-                  {genre.name}
+                  {locale === "ru" ? genre.ru_name || genre.name : genre.name}
                 </span>
               ))}
             </div>
 
             {/* Episodes */}
             <div className="flex items-center gap-2 text-[11px] text-foreground-subtle">
-              <span>{anime.episodes} EP</span>
+              <span>
+                {anime.episodes} {t.common.epShort}
+              </span>
               <span className="w-1 h-1 rounded-full bg-foreground-subtle" />
-              <span>{anime.kind}</span>
+              <span>{kindLabel}</span>
               <span className="w-1 h-1 rounded-full bg-foreground-subtle" />
-              <span>{anime.aired_on ? new Date(anime.aired_on).getFullYear() : "N/A"}</span>
+              <span>{anime.aired_on ? new Date(anime.aired_on).getFullYear() : t.common.na}</span>
             </div>
           </div>
 
@@ -238,11 +251,11 @@ export function AnimeCard({
             <div className="flex flex-col gap-2">
               <button className="flex items-center justify-center gap-2 w-full rounded-lg bg-accent-primary py-2.5 text-xs font-semibold text-primary-foreground transition-all hover:bg-accent-secondary">
                 <Play className="h-4 w-4 fill-current" />
-                Watch Now
+                {t.hero.watchNow}
               </button>
               <button className="flex items-center justify-center gap-2 w-full rounded-lg border border-accent-muted/50 bg-transparent py-2.5 text-xs font-semibold text-foreground transition-all hover:bg-background-secondary hover:border-accent-primary">
                 <Info className="h-4 w-4" />
-                View Details
+                {t.hero.moreInfo}
               </button>
             </div>
           </div>

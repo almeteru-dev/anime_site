@@ -26,6 +26,7 @@ func AdminListStatuses(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch statuses"})
 		return
 	}
+	_ = applyStatusRU(items)
 	c.JSON(http.StatusOK, items)
 }
 
@@ -51,6 +52,11 @@ func AdminCreateStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create status"})
 		return
 	}
+	if err := setStatusRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusCreated, item)
 }
 
@@ -75,6 +81,11 @@ func AdminUpdateStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update status"})
 		return
 	}
+	if err := setStatusRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusOK, item)
 }
 
@@ -92,6 +103,7 @@ func AdminListStudios(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch studios"})
 		return
 	}
+	_ = applyStudioRU(items)
 	c.JSON(http.StatusOK, items)
 }
 
@@ -117,6 +129,11 @@ func AdminCreateStudio(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create studio"})
 		return
 	}
+	if err := setStudioRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusCreated, item)
 }
 
@@ -141,6 +158,11 @@ func AdminUpdateStudio(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update studio"})
 		return
 	}
+	if err := setStudioRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusOK, item)
 }
 
@@ -230,6 +252,7 @@ func AdminListSources(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sources"})
 		return
 	}
+	_ = applySourceRU(items)
 	c.JSON(http.StatusOK, items)
 }
 
@@ -255,6 +278,11 @@ func AdminCreateSource(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create source"})
 		return
 	}
+	if err := setSourceRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusCreated, item)
 }
 
@@ -279,6 +307,11 @@ func AdminUpdateSource(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update source"})
 		return
 	}
+	if err := setSourceRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusOK, item)
 }
 
@@ -296,6 +329,7 @@ func AdminListGenres(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch genres"})
 		return
 	}
+	_ = applyGenreRU(items)
 	c.JSON(http.StatusOK, items)
 }
 
@@ -321,6 +355,11 @@ func AdminCreateGenre(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create genre"})
 		return
 	}
+	if err := setGenreRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusCreated, item)
 }
 
@@ -345,6 +384,11 @@ func AdminUpdateGenre(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update genre"})
 		return
 	}
+	if err := setGenreRUName(item.ID, input.RUName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save russian name"})
+		return
+	}
+	item.RUName = normalizeOptionalName(input.RUName)
 	c.JSON(http.StatusOK, item)
 }
 

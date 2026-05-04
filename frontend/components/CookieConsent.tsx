@@ -2,10 +2,12 @@
 
 import Link from "next/link"
 import React from "react"
+import { useLanguage } from "@/contexts/language-context"
 
 const STORAGE_KEY = "ll_cc_accepted"
 
 export default function CookieConsent() {
+  const { t } = useLanguage()
   const [accepted, setAccepted] = React.useState<boolean | null>(null)
 
   React.useEffect(() => {
@@ -31,14 +33,14 @@ export default function CookieConsent() {
     <div className="ll-cc-wrapper" role="dialog" aria-live="polite">
       <div className="ll-cc" role="region" aria-label="Cookie Consent">
         <div className="ll-cc__text">
-          LycorisLib uses cookies and similar technologies to provide, secure, analyse, improve and market our services. Learn more in our{" "}
+          {t.cookieConsent.text}{" "}
           <Link className="ll-cc__link" href="/cookies">
-            Cookies Policy
+            {t.cookieConsent.link}
           </Link>
           .
         </div>
         <button className="ll-cc__btn" onClick={onAccept} aria-label="Accept cookies">
-          Got it
+          {t.cookieConsent.button}
         </button>
       </div>
 
@@ -51,11 +53,11 @@ export default function CookieConsent() {
           z-index: 60;
           max-width: 560px;
           margin: 0 auto;
-          color: #fff;
-          background: #0d0f10;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: var(--foreground);
+          background: var(--card);
+          border: 1px solid var(--border);
           border-radius: 12px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+          box-shadow: var(--card-shadow);
           overflow: hidden;
         }
 
@@ -73,19 +75,19 @@ export default function CookieConsent() {
           font-size: 14px;
           line-height: 1.55;
           font-weight: 400;
-          color: rgba(255, 255, 255, 0.92);
+          color: var(--foreground-muted);
           letter-spacing: 0.0125em;
         }
 
         .ll-cc__link {
           font-weight: 700;
-          color: #fff;
+          color: var(--foreground);
           text-decoration: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+          border-bottom: 1px solid color-mix(in srgb, var(--foreground) 45%, transparent);
         }
 
         .ll-cc__link:hover {
-          border-bottom-color: #fff;
+          border-bottom-color: var(--foreground);
         }
 
         .ll-cc__btn {
@@ -95,13 +97,13 @@ export default function CookieConsent() {
           border: 0;
           border-radius: 8px;
           height: 40px;
-          background: #fff;
-          color: #0b0b0b;
+          background: var(--foreground);
+          color: var(--background-secondary);
           font-weight: 700;
           font-size: 14px;
           cursor: pointer;
           transition: transform 0.06s ease, box-shadow 0.2s ease, background 0.2s ease;
-          box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 6px 18px rgba(0, 0, 0, 0.18);
+          box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 8px 20px rgba(15, 23, 42, 0.12);
         }
 
         .ll-cc__btn:hover {
@@ -113,7 +115,7 @@ export default function CookieConsent() {
         }
 
         .ll-cc__btn:focus-visible {
-          outline: 2px solid #00e5ff;
+          outline: 2px solid var(--ring);
           outline-offset: 2px;
         }
 
@@ -145,4 +147,3 @@ export default function CookieConsent() {
     </div>
   )
 }
-

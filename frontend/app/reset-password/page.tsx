@@ -75,14 +75,7 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div 
-      className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-      style={{
-        backgroundColor: "rgba(8, 18, 41, 0.8)",
-        border: "1px solid rgba(163, 207, 255, 0.2)",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-      }}
-    >
+    <div className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 bg-background-secondary/80 border border-border/60 shadow-[var(--card-shadow)]">
       {/* Logo */}
       <div className="flex justify-center mb-8">
         <Link href="/" className="flex items-center gap-2 group">
@@ -122,7 +115,7 @@ function ResetPasswordContent() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-secondary/60"}`} />
+                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="password"
@@ -132,16 +125,13 @@ function ResetPasswordContent() {
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.resetPassword.enterNewPassword}
-                  className="w-full h-12 pl-12 pr-12 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "password" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors duration-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary transition-colors duration-300"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -166,16 +156,13 @@ function ResetPasswordContent() {
                   onFocus={() => setFocusedField("confirmPassword")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.resetPassword.confirmNewPassword}
-                  className="w-full h-12 pl-12 pr-12 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "confirmPassword" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors duration-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary transition-colors duration-300"
                   aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -264,7 +251,8 @@ export default function ResetPasswordPage() {
       <div 
         className="absolute inset-0 pointer-events-none opacity-[0.015]"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline-line) 2px, var(--scanline-line) 4px)",
           animation: "scanline 8s linear infinite",
         }}
       />

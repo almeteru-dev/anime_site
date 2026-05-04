@@ -83,7 +83,7 @@ type AnimeCardProps =
 
 export function AnimeCard(props: AnimeCardProps) {
   const { title: propTitle, image, rating, variant, userStatus, onStatusChange, data } = props
-  const { locale } = useLanguage()
+  const { locale, t } = useLanguage()
   const [localStatus, setLocalStatus] = useState<AnimeStatus>(userStatus ?? null)
   
   const title = data ? getLocalizedTitle(data, locale) : propTitle
@@ -126,7 +126,7 @@ export function AnimeCard(props: AnimeCardProps) {
             
             {/* Episode Badge */}
             <div className="absolute top-3 left-3 px-2.5 py-1 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-semibold rounded-md">
-              Ep. {episode} / {totalEpisodes}
+              {t.common.epShort}. {episode} / {totalEpisodes}
             </div>
 
             {/* User Status Badge */}

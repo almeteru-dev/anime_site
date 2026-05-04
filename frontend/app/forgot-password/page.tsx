@@ -49,7 +49,8 @@ export default function ForgotPasswordPage() {
       <div 
         className="absolute inset-0 pointer-events-none opacity-[0.015]"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline-line) 2px, var(--scanline-line) 4px)",
           animation: "scanline 8s linear infinite",
         }}
       />
@@ -79,14 +80,7 @@ export default function ForgotPasswordPage() {
         {/* Gradient border effect */}
         <div className="absolute -inset-[1px] bg-gradient-to-b from-primary/40 via-transparent to-transparent rounded-2xl pointer-events-none" />
         
-        <div 
-          className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.8)",
-            border: "1px solid rgba(163, 207, 255, 0.2)",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-          }}
-        >
+        <div className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 bg-background-secondary/80 border border-border/60 shadow-[var(--card-shadow)]">
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link href="/" className="flex items-center gap-2 group">
@@ -126,7 +120,7 @@ export default function ForgotPasswordPage() {
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <Mail className={`w-5 h-5 transition-colors duration-300 ${focusedField === "email" ? "text-primary" : "text-secondary/60"}`} />
+                      <Mail className={`w-5 h-5 transition-colors duration-300 ${focusedField === "email" ? "text-primary" : "text-foreground-subtle"}`} />
                     </div>
                     <input
                       id="email"
@@ -136,10 +130,7 @@ export default function ForgotPasswordPage() {
                       onFocus={() => setFocusedField("email")}
                       onBlur={() => setFocusedField(null)}
                       placeholder={t.forgotPassword.enterEmail}
-                      className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                      style={{
-                        boxShadow: focusedField === "email" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                      }}
+                      className="w-full h-12 pl-12 pr-4 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                       required
                     />
                   </div>
@@ -149,7 +140,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[var(--glow-primary)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <>

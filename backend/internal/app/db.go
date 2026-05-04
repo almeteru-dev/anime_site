@@ -19,7 +19,7 @@ func InitDB() {
 	dsn := PostgresDSN()
 
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	DB, err = gorm.Open(postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true}), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 

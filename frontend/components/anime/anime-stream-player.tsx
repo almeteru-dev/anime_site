@@ -220,7 +220,7 @@ export function AnimeStreamPlayer({
   return (
     <section className="py-6 px-4" ref={wrapperRef}>
       <div className="container mx-auto max-w-5xl">
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-[#1A2847] bg-[#081229]">
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-border bg-background-secondary">
           {kind === "iframe" ? (
             <iframe
               key={`${selectedType}:${selectedGroupId}:${selectedEpisodeNumber}:${selectedSourceId}:${iframeSrc}`}
@@ -243,7 +243,7 @@ export function AnimeStreamPlayer({
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             {sources.length > 0 && (
-              <div className="flex items-center gap-2 rounded-xl border border-[#1A2847] bg-[#081229] p-1">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background-secondary p-1">
                 {sources.map((s) => (
                   <button
                     key={s.id}
@@ -251,8 +251,8 @@ export function AnimeStreamPlayer({
                     className={cn(
                       "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
                       selectedSource?.id === s.id
-                        ? "bg-[#00E5FF] text-[#040D1F]"
-                        : "text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A]"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
                     )}
                   >
                     {s.label}
@@ -274,7 +274,7 @@ export function AnimeStreamPlayer({
             <>
               {dubbedGroups.length > 0 ? (
                 <div>
-                  <div className="text-sm font-semibold text-white mb-2">{locale === "ru" ? "Озвучка" : "Dubbed"}</div>
+                  <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Озвучка" : "Dubbed"}</div>
                   <div className="flex flex-wrap gap-2">
                     {dubbedGroups.map((g) => (
                       <button
@@ -288,8 +288,8 @@ export function AnimeStreamPlayer({
                         className={cn(
                           "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
                           selectedType === "dubbed" && selectedGroupId === g.id
-                            ? "bg-[#00E5FF]/10 border-[#00E5FF]/50 text-[#00E5FF]"
-                            : "bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A]"
+                            ? "bg-primary/10 border-primary/40 text-primary"
+                            : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
                         )}
                       >
                         {g.name}
@@ -301,7 +301,7 @@ export function AnimeStreamPlayer({
 
               {subbedGroups.length > 0 ? (
                 <div>
-                  <div className="text-sm font-semibold text-white mb-2">{locale === "ru" ? "Субтитры" : "Subbed"}</div>
+                  <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Субтитры" : "Subbed"}</div>
                   <div className="flex flex-wrap gap-2">
                     {subbedGroups.map((g) => (
                       <button
@@ -315,8 +315,8 @@ export function AnimeStreamPlayer({
                         className={cn(
                           "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
                           selectedType === "subbed" && selectedGroupId === g.id
-                            ? "bg-[#00E5FF]/10 border-[#00E5FF]/50 text-[#00E5FF]"
-                            : "bg-[#081229] border-[#1A2847] text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A]"
+                            ? "bg-primary/10 border-primary/40 text-primary"
+                            : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
                         )}
                       >
                         {g.name}
@@ -327,12 +327,12 @@ export function AnimeStreamPlayer({
               ) : null}
             </>
           ) : !hideLanguageSelector ? (
-            <div className="text-sm text-[#A3CFFF]">No episodes yet. Trailer is available.</div>
+            <div className="text-sm text-foreground-subtle">No episodes yet. Trailer is available.</div>
           ) : null}
 
           {selectedGroupId && episodeList.length > 0 ? (
             <div>
-              <div className="text-sm font-semibold text-white mb-2">Episodes</div>
+              <div className="text-sm font-semibold text-foreground mb-2">Episodes</div>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                 {episodeList.map((ep) => (
                   <button
@@ -344,8 +344,8 @@ export function AnimeStreamPlayer({
                     className={cn(
                       "p-3 rounded-lg font-semibold text-sm transition-all duration-300",
                       selectedEpisodeNumber === ep.number
-                        ? "bg-[#00E5FF] text-[#040D1F] shadow-[0_0_20px_rgba(0,229,255,0.4)]"
-                        : "bg-[#081229] text-[#D1D9E6] border border-[#1A2847] hover:border-[#00E5FF]/50 hover:bg-[#0D1A3A] hover:text-white"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-background-secondary text-foreground-muted border border-border hover:border-primary/25 hover:bg-background-tertiary hover:text-foreground"
                     )}
                   >
                     {ep.number}

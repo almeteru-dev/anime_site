@@ -29,19 +29,19 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange }: PeriodSelecto
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-[#0A1628] border border-[#1A2744] rounded-xl text-white font-medium text-sm hover:border-[#A3CFFF] hover:shadow-lg hover:shadow-[#00E5FF]/10 transition-all duration-200 group"
+        className="flex items-center gap-2 px-4 py-2.5 bg-background-secondary border border-border rounded-xl text-foreground font-medium text-sm hover:border-primary/30 hover:bg-background-tertiary transition-all duration-200 group"
       >
-        <span className="text-[#00E5FF]">{current.label}</span>
+        <span className="text-primary">{current.label}</span>
         {current.current && (
-          <span className="px-1.5 py-0.5 bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-semibold rounded">
+          <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
             Current
           </span>
         )}
-        <ChevronDown className={`w-4 h-4 text-[#A3CFFF] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-foreground-subtle transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 bg-[#0A1628] border border-[#1A2744] rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+        <div className="absolute top-full left-0 mt-2 w-56 bg-background-secondary border border-border rounded-xl shadow-lg overflow-hidden z-50">
           <div className="p-1.5">
             {periods.map((p) => (
               <button
@@ -52,13 +52,13 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange }: PeriodSelecto
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   selectedPeriod === p.id
-                    ? "bg-[#00E5FF]/10 text-[#00E5FF]"
-                    : "text-[#D1D9E6] hover:bg-[#1A2744] hover:text-white"
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground-muted hover:bg-background-tertiary hover:text-foreground"
                 }`}
               >
                 <span>{p.label}</span>
                 {p.current && (
-                  <span className="px-1.5 py-0.5 bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-semibold rounded">
+                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
                     Current
                   </span>
                 )}
@@ -70,4 +70,3 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange }: PeriodSelecto
     </div>
   );
 }
-

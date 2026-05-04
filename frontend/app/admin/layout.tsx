@@ -6,6 +6,7 @@ import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders, Set
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { roleLevel } from "@/lib/roles"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, token, logout, isLoading } = useAuth()
@@ -118,7 +119,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <LayoutGrid className="w-5 h-5 text-primary" />
                 <div className="text-sm font-semibold text-foreground">Dashboard</div>
               </div>
-              <div className="lg:hidden text-xs text-foreground-muted">Admin access</div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle showLabel />
+                <div className="lg:hidden text-xs text-foreground-muted">Admin access</div>
+              </div>
             </div>
           </header>
           <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">{children}</main>

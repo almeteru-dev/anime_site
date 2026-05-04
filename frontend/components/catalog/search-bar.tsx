@@ -2,6 +2,7 @@
 
 import { Search, X, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/language-context'
 
 interface SearchBarProps {
   value: string
@@ -11,6 +12,10 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange, resultCount, onMobileFilterToggle }: SearchBarProps) {
+  const { locale, t } = useLanguage()
+
+  const resultText = locale === "ru" ? `${resultCount} ${t.catalog.resultsFound}` : t.catalog.resultsFound
+
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
       {/* Search Input */}
@@ -18,7 +23,7 @@ export function SearchBar({ value, onChange, resultCount, onMobileFilterToggle }
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-subtle" />
         <input
           type="text"
-          placeholder="Search anime titles..."
+          placeholder={t.catalog.searchPlaceholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
@@ -45,13 +50,13 @@ export function SearchBar({ value, onChange, resultCount, onMobileFilterToggle }
         className="lg:hidden flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-background-secondary/50 px-4 py-3 text-sm font-medium text-foreground-muted hover:border-accent-primary/50 hover:text-foreground transition-all"
       >
         <SlidersHorizontal className="h-4 w-4" />
-        Filters
+        {t.catalog.filters.title}
       </button>
 
       {/* Result Count */}
       <div className="hidden sm:flex items-center gap-2 text-sm text-foreground-subtle shrink-0">
         <span className="text-accent-primary font-semibold">{resultCount}</span>
-        <span>results found</span>
+        <span>{locale === "ru" ? t.catalog.resultsFound : resultText}</span>
       </div>
     </div>
   )

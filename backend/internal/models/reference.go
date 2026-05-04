@@ -12,11 +12,13 @@ type Language struct {
 type Status struct {
 	ID   int    `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name string `gorm:"not null;type:varchar(255)" json:"name"`
+	RUName *string `gorm:"-" json:"ru_name,omitempty"`
 }
 
 type Source struct {
 	ID   int    `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name string `gorm:"not null;type:varchar(255)" json:"name"`
+	RUName *string `gorm:"-" json:"ru_name,omitempty"`
 }
 
 type CollectionType struct {
@@ -27,9 +29,11 @@ type CollectionType struct {
 type Genre struct {
 	ID   int    `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name string `gorm:"not null;type:varchar(255)" json:"name"`
+	RUName *string `gorm:"-" json:"ru_name,omitempty"`
 }
 
 type Studio struct {
 	ID   int    `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name string `gorm:"not null;type:varchar(255)" json:"name"`
+	RUName *string `gorm:"-" json:"ru_name,omitempty"`
 }

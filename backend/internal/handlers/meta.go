@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,25 +33,36 @@ func GetPublicCatalogMeta(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch genres"})
 		return
 	}
+	_ = applyGenreRU(genres)
 	if err := app.DB.Order("name asc").Find(&statuses).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch statuses"})
 		return
 	}
+	_ = applyStatusRU(statuses)
 	if err := app.DB.Order("name asc").Find(&studios).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch studios"})
 		return
 	}
+	_ = applyStudioRU(studios)
 	if err := app.DB.Order("name asc").Find(&sources).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch sources"})
 		return
 	}
+	_ = applySourceRU(sources)
 	if err := app.DB.Order("name asc").Find(&ratings).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ratings"})
 		return
 	}
-	if err := app.DB.Order("name asc").Find(&kinds).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch kinds"})
-		return
+	if err := app.DB.Select("id, name, ru_name").Order("name asc").Find(&kinds).Error; err != nil {
+		if strings.Contains(err.Error(), "ru_name") {
+			if err2 := app.DB.Select("id, name").Order("name asc").Find(&kinds).Error; err2 != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch kinds"})
+				return
+			}
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch kinds"})
+			return
+		}
 	}
 
 	yearMin := 1990

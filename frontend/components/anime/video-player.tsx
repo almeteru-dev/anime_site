@@ -34,7 +34,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
       <div className="container mx-auto max-w-5xl">
         {/* Player Container */}
         <div 
-          className="relative w-full aspect-video bg-[#081229] rounded-2xl overflow-hidden border border-[#1A2847] shadow-[0_0_50px_rgba(0,229,255,0.1)] group"
+          className="relative w-full aspect-video bg-background-secondary rounded-2xl overflow-hidden border border-border shadow-sm group"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => !isPlaying && setShowControls(true)}
         >
@@ -60,15 +60,15 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${posterImage})` }}
             >
-              <div className="absolute inset-0 bg-[#040D1F]/40" />
+              <div className="absolute inset-0 bg-background/40" />
             </div>
           )}
 
           {/* Episode Info Overlay */}
           <div className="absolute top-4 left-4 z-20">
-            <div className="bg-[#040D1F]/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-[#1A2847]">
-              <p className="text-white font-semibold">{title}</p>
-              <p className="text-[#A3CFFF] text-sm">Episode {episode}</p>
+            <div className="bg-background-secondary/85 backdrop-blur-sm rounded-lg px-4 py-2 border border-border shadow-sm">
+              <p className="text-foreground font-semibold">{title}</p>
+              <p className="text-foreground-subtle text-sm">Episode {episode}</p>
             </div>
           </div>
 
@@ -77,16 +77,16 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <button
                 onClick={() => setIsPlaying(true)}
-                className="w-20 h-20 rounded-full bg-[#00E5FF]/90 hover:bg-[#00E5FF] flex items-center justify-center shadow-[0_0_40px_rgba(0,229,255,0.5)] hover:shadow-[0_0_60px_rgba(0,229,255,0.7)] transition-all duration-300 hover:scale-110"
+                className="w-20 h-20 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110"
               >
-                <Play className="w-8 h-8 text-[#040D1F] fill-current ml-1" />
+                <Play className="w-8 h-8 text-primary-foreground fill-current ml-1" />
               </button>
             </div>
           )}
 
           {/* Bottom Controls (visual only when embedded) */}
           <div 
-            className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#040D1F] via-[#040D1F]/80 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/70 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
           >
             {/* Progress Bar */}
             <div className="mb-4 px-2">
@@ -95,9 +95,9 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                 onValueChange={setProgress}
                 max={100}
                 step={1}
-                className="[&_[data-slot=slider-thumb]]:bg-[#00E5FF] [&_[data-slot=slider-thumb]]:border-[#00E5FF] [&_[data-slot=slider-thumb]]:shadow-[0_0_10px_rgba(0,229,255,0.5)] [&_[data-slot=slider-track]]:bg-[#1A2847] [&_[data-slot=slider-range]]:bg-[#00E5FF]"
+                className="[&_[data-slot=slider-thumb]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-track]]:bg-border [&_[data-slot=slider-range]]:bg-primary"
               />
-              <div className="flex justify-between text-xs text-[#A3CFFF] mt-1">
+              <div className="flex justify-between text-xs text-foreground-subtle mt-1">
                 <span>0:00</span>
                 <span>24:30</span>
               </div>
@@ -110,7 +110,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                  className="text-foreground hover:text-primary hover:bg-primary/10"
                   onClick={() => {}}
                 >
                   <SkipBack className="w-5 h-5" />
@@ -119,7 +119,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10 w-12 h-12"
+                  className="text-foreground hover:text-primary hover:bg-primary/10 w-12 h-12"
                   onClick={() => setIsPlaying(!isPlaying)}
                 >
                   {isPlaying ? (
@@ -132,7 +132,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                  className="text-foreground hover:text-primary hover:bg-primary/10"
                   onClick={() => {}}
                 >
                   <SkipForward className="w-5 h-5" />
@@ -143,7 +143,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                    className="text-foreground hover:text-primary hover:bg-primary/10"
                     onClick={() => setIsMuted(!isMuted)}
                   >
                     {isMuted ? (
@@ -158,7 +158,7 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                       onValueChange={setVolume}
                       max={100}
                       step={1}
-                      className="[&_[data-slot=slider-thumb]]:bg-[#00E5FF] [&_[data-slot=slider-thumb]]:border-[#00E5FF] [&_[data-slot=slider-track]]:bg-[#1A2847] [&_[data-slot=slider-range]]:bg-[#00E5FF]"
+                      className="[&_[data-slot=slider-thumb]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-track]]:bg-border [&_[data-slot=slider-range]]:bg-primary"
                     />
                   </div>
                 </div>
@@ -169,21 +169,21 @@ export function VideoPlayer({ posterImage, title, episode, source }: VideoPlayer
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                  className="text-foreground hover:text-primary hover:bg-primary/10"
                 >
                   <Subtitles className="w-5 h-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                  className="text-foreground hover:text-primary hover:bg-primary/10"
                 >
                   <Settings className="w-5 h-5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-[#00E5FF] hover:bg-[#00E5FF]/10"
+                  className="text-foreground hover:text-primary hover:bg-primary/10"
                 >
                   <Maximize className="w-5 h-5" />
                 </Button>

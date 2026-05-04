@@ -274,12 +274,12 @@ export function CatalogClient({ initialAnimes, meta, initialSearchParams }: Cata
         <div className="hidden lg:block">
           <FilterSidebar
             filters={filters}
-            genreOptions={meta.genres.map((g) => g.name)}
-            statusOptions={meta.statuses.map((s) => s.name)}
-            studioOptions={meta.studios.map((s) => s.name)}
-            sourceOptions={meta.sources.map((s) => s.name)}
+            genreOptions={meta.genres}
+            statusOptions={meta.statuses}
+            studioOptions={meta.studios}
+            sourceOptions={meta.sources}
             ratingOptions={meta.ratings.map((r) => r.name)}
-            typeOptions={meta.kinds.map((k) => k.name)}
+            typeOptions={meta.kinds}
             onReset={handleResetFilters}
             onFiltersChange={handleFiltersChange}
             onYearsChange={handleYearsChange}
@@ -315,12 +315,12 @@ export function CatalogClient({ initialAnimes, meta, initialSearchParams }: Cata
         onClose={() => setMobileFiltersOpen(false)}
         filters={filters}
         onReset={handleResetFilters}
-        genreOptions={meta.genres.map((g) => g.name)}
-        statusOptions={meta.statuses.map((s) => s.name)}
-        studioOptions={meta.studios.map((s) => s.name)}
-        sourceOptions={meta.sources.map((s) => s.name)}
+        genreOptions={meta.genres}
+        statusOptions={meta.statuses}
+        studioOptions={meta.studios}
+        sourceOptions={meta.sources}
         ratingOptions={meta.ratings.map((r) => r.name)}
-        typeOptions={meta.kinds.map((k) => k.name)}
+        typeOptions={meta.kinds}
         onFiltersChange={handleFiltersChange}
         onYearsChange={handleYearsChange}
         onMinRatingChange={handleMinRatingChange}

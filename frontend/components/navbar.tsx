@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, X, Sun, Moon, Menu, User, LogOut, Settings } from "lucide-react"
+import { Search, X, Menu, User, LogOut, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/contexts/auth-context"
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(true)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
@@ -25,14 +25,6 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove("light")
-    } else {
-      document.documentElement.classList.add("light")
-    }
-  }, [isDarkMode])
 
   const navLinks = [
     { label: t.nav.catalog, href: "/catalog" },
@@ -114,22 +106,13 @@ export function Navbar() {
               </div>
             </div>
 
-            {/* Theme Toggle */}
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? (
-                <Sun className="w-5 h-5 text-foreground-muted hover:text-primary transition-colors" />
-              ) : (
-                <Moon className="w-5 h-5 text-foreground-muted hover:text-primary transition-colors" />
-              )}
-            </button>
-
             {/* Language Switcher - Desktop */}
             <div className="hidden md:block">
               <LanguageSwitcher />
+            </div>
+
+            <div className="hidden md:block">
+              <ThemeToggle />
             </div>
 
             {/* User Profile / Sign In - Desktop */}
@@ -157,12 +140,7 @@ export function Navbar() {
                       onClick={() => setIsProfileMenuOpen(false)} 
                     />
                     <div 
-                      className="absolute right-0 mt-2 w-48 rounded-xl overflow-hidden z-50"
-                      style={{
-                        backgroundColor: "rgba(8, 18, 41, 0.95)",
-                        border: "1px solid rgba(163, 207, 255, 0.2)",
-                        boxShadow: "0 15px 40px -10px rgba(0, 0, 0, 0.5)",
-                      }}
+                      className="absolute right-0 mt-2 w-48 rounded-xl overflow-hidden z-50 bg-background-secondary/95 backdrop-blur-xl border border-border shadow-lg"
                     >
                       <Link
                         href="/profile"
@@ -218,6 +196,10 @@ export function Navbar() {
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-foreground-muted">Theme</div>
+                <ThemeToggle />
+              </div>
               {navLinks.map((link) => (
                 <Link
                   key={link.href}

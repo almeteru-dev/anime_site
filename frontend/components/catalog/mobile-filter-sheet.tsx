@@ -3,18 +3,20 @@
 import { X } from 'lucide-react'
 import { FilterSidebar, type FilterState } from './filter-sidebar'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/contexts/language-context'
+import type { Genre, KindOption, Source, Status, Studio } from '@/lib/api'
 
 interface MobileFilterSheetProps {
   isOpen: boolean
   onClose: () => void
   filters: FilterState
   onReset: () => void
-  genreOptions: string[]
-  statusOptions: string[]
-  studioOptions: string[]
-  sourceOptions: string[]
+  genreOptions: Genre[]
+  statusOptions: Status[]
+  studioOptions: Studio[]
+  sourceOptions: Source[]
   ratingOptions: string[]
-  typeOptions: string[]
+  typeOptions: KindOption[]
   onFiltersChange: (filters: FilterState) => void
   onYearsChange: (years: { min: number; max: number }) => void
   onMinRatingChange: (minRating: number) => void
@@ -35,6 +37,8 @@ export function MobileFilterSheet({
   onYearsChange,
   onMinRatingChange,
 }: MobileFilterSheetProps) {
+  const { t } = useLanguage()
+
   return (
     <>
       {/* Backdrop */}
@@ -57,7 +61,7 @@ export function MobileFilterSheet({
         <div className="flex h-full flex-col bg-background-secondary border-r border-border/50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/50 px-4 py-4">
-            <h2 className="text-lg font-semibold text-foreground">Filters</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t.catalog.filters.title}</h2>
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-foreground-subtle hover:bg-background-tertiary hover:text-foreground transition-colors"

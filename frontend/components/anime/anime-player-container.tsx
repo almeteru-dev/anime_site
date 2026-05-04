@@ -164,9 +164,9 @@ export function AnimePlayerContainer({
   return (
     <section className="py-6 px-4">
       <div className="container mx-auto max-w-5xl">
-        <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-[#1A2847] bg-[#081229]">
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-border bg-background-secondary">
           {active.kind === "placeholder" ? (
-            <div className="w-full h-full flex items-center justify-center text-[#A3CFFF]">No source</div>
+            <div className="w-full h-full flex items-center justify-center text-foreground-subtle">No source</div>
           ) : active.kind === "iframe" ? (
             <iframe
               key={`${active.id}:${active.url || ""}`}

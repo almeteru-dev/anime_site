@@ -82,13 +82,13 @@ export function AnimeRating({ animeId }: { animeId: number }) {
 
   return (
     <div className="mt-2">
-      <div className="text-xs text-[#A3CFFF]">Your rating</div>
+      <div className="text-xs text-foreground-subtle">Your rating</div>
       <div className="mt-1 flex items-center gap-2">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className="h-9 rounded-lg border border-[#1A2847] bg-[#0D1A3A] px-3 text-sm text-white disabled:opacity-60"
+          className="h-9 rounded-lg border border-border bg-background-secondary px-3 text-sm text-foreground disabled:opacity-60"
         >
           <option value="">Select</option>
           {options.map((v) => (
@@ -99,7 +99,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
         </select>
 
         {isWatched === false ? (
-          <div className="text-xs text-[#D1D9E6]">Only “Watched” can rate</div>
+          <div className="text-xs text-foreground-muted">Only “Watched” can rate</div>
         ) : null}
       </div>
 

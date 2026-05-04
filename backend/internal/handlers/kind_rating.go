@@ -11,6 +11,7 @@ import (
 
 type NameInput struct {
 	Name string `json:"name"`
+	RUName *string `json:"ru_name"`
 }
 
 func AdminListKinds(c *gin.Context) {
@@ -33,7 +34,8 @@ func AdminCreateKind(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
 		return
 	}
-	item := models.KindOption{Name: name}
+	ru := normalizeOptionalName(input.RUName)
+	item := models.KindOption{Name: name, RUName: ru}
 	if err := app.DB.Create(&item).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create kind"})
 		return
@@ -58,6 +60,7 @@ func AdminUpdateKind(c *gin.Context) {
 		return
 	}
 	item.Name = name
+	item.RUName = normalizeOptionalName(input.RUName)
 	if err := app.DB.Save(&item).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update kind"})
 		return
@@ -132,4 +135,3 @@ func AdminDeleteRating(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 }
-

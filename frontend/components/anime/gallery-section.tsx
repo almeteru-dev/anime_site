@@ -31,8 +31,8 @@ export function GallerySection({ images }: GallerySectionProps) {
       <div className="container mx-auto max-w-5xl">
         {/* Section Header */}
         <div className="flex items-center gap-2 mb-6">
-          <ImageIcon className="w-5 h-5 text-[#00E5FF]" />
-          <h2 className="text-xl font-bold text-white">Gallery</h2>
+          <ImageIcon className="w-5 h-5 text-primary" />
+          <h2 className="text-xl font-bold text-foreground">Gallery</h2>
         </div>
 
         {/* Image Grid */}
@@ -41,7 +41,7 @@ export function GallerySection({ images }: GallerySectionProps) {
             <button
               key={index}
               onClick={() => setSelectedIndex(index)}
-              className="relative aspect-video rounded-xl overflow-hidden border border-[#1A2847] group cursor-pointer shadow-[inset_0_2px_10px_rgba(0,229,255,0.05)] hover:shadow-[0_0_25px_rgba(0,229,255,0.2)] transition-all duration-300"
+              className="relative aspect-video rounded-xl overflow-hidden border border-border group cursor-pointer shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Image
                 src={image.src}
@@ -49,8 +49,8 @@ export function GallerySection({ images }: GallerySectionProps) {
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-[#040D1F]/0 group-hover:bg-[#040D1F]/30 transition-colors duration-300" />
-              <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#00E5FF]/50 rounded-xl transition-colors duration-300" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+              <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary/40 rounded-xl transition-colors duration-300" />
             </button>
           ))}
         </div>
@@ -58,13 +58,13 @@ export function GallerySection({ images }: GallerySectionProps) {
         {/* Lightbox Modal */}
         {selectedIndex !== null && (
           <div 
-            className="fixed inset-0 z-50 bg-[#040D1F]/95 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setSelectedIndex(null)}
           >
             {/* Close Button */}
             <button
               onClick={() => setSelectedIndex(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-[#081229] border border-[#1A2847] text-white hover:bg-[#0D1A3A] hover:border-[#00E5FF]/50 transition-all duration-300"
+              className="absolute top-4 right-4 p-2 rounded-full bg-background-secondary/90 border border-border text-foreground hover:bg-background-tertiary hover:border-primary/25 transition-all duration-300"
             >
               <X className="w-6 h-6" />
             </button>
@@ -72,14 +72,14 @@ export function GallerySection({ images }: GallerySectionProps) {
             {/* Navigation Arrows */}
             <button
               onClick={(e) => { e.stopPropagation(); handlePrevious() }}
-              className="absolute left-4 p-3 rounded-full bg-[#081229] border border-[#1A2847] text-white hover:bg-[#0D1A3A] hover:border-[#00E5FF]/50 transition-all duration-300"
+              className="absolute left-4 p-3 rounded-full bg-background-secondary/90 border border-border text-foreground hover:bg-background-tertiary hover:border-primary/25 transition-all duration-300"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
 
             <button
               onClick={(e) => { e.stopPropagation(); handleNext() }}
-              className="absolute right-4 p-3 rounded-full bg-[#081229] border border-[#1A2847] text-white hover:bg-[#0D1A3A] hover:border-[#00E5FF]/50 transition-all duration-300"
+              className="absolute right-4 p-3 rounded-full bg-background-secondary/90 border border-border text-foreground hover:bg-background-tertiary hover:border-primary/25 transition-all duration-300"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
@@ -98,9 +98,9 @@ export function GallerySection({ images }: GallerySectionProps) {
             </div>
 
             {/* Image Counter */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#081229] px-4 py-2 rounded-full border border-[#1A2847]">
-              <span className="text-[#00E5FF] font-semibold">{selectedIndex + 1}</span>
-              <span className="text-[#A3CFFF]"> / {images.length}</span>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-background-secondary/90 px-4 py-2 rounded-full border border-border">
+              <span className="text-primary font-semibold">{selectedIndex + 1}</span>
+              <span className="text-foreground-subtle"> / {images.length}</span>
             </div>
           </div>
         )}

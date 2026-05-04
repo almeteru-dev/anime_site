@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useSearchParams } from "next/navigation"
 import { verifyEmailToken } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading" | "success" | "error") => void }) {
   const { t } = useLanguage()
@@ -39,14 +40,10 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
 
   return (
     <div 
-      className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 text-center"
-      style={{
-        backgroundColor: "rgba(8, 18, 41, 0.85)",
-        border: "1px solid rgba(163, 207, 255, 0.3)",
-        boxShadow: status === "error"
-          ? "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 60px -15px rgba(239, 68, 68, 0.1)"
-          : "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 60px -15px rgba(0, 229, 255, 0.2)",
-      }}
+      className={cn(
+        "relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 text-center bg-background-secondary/85 border shadow-lg",
+        status === "error" ? "border-destructive/25" : "border-border"
+      )}
     >
       {/* Logo */}
       <div className="flex justify-center mb-8">
@@ -74,7 +71,7 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
           <div className="flex justify-center mb-6">
             <div className="relative w-28 h-28" style={{ animation: "bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
               <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl" />
-              <div className="relative w-full h-full bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(0,229,255,0.4)]">
+              <div className="relative w-full h-full bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-md">
                 <CheckCircle2 className="w-14 h-14 text-primary-foreground" />
               </div>
               <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary" style={{ animation: "sparkle 2s ease-in-out infinite" }} />
@@ -94,7 +91,7 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
           <div className="space-y-4">
             <Link
               href="/login"
-              className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] flex items-center justify-center gap-2"
+              className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02] flex items-center justify-center gap-2"
             >
               {t.verifyConfirm.login}
             </Link>
@@ -107,7 +104,7 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
           <div className="flex justify-center mb-6">
             <div className="relative w-28 h-28" style={{ animation: "bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
               <div className="absolute inset-0 bg-red-500/30 rounded-full blur-2xl" />
-              <div className="relative w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.4)]">
+              <div className="relative w-full h-full bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-md">
                 <XCircle className="w-14 h-14 text-white" />
               </div>
             </div>
@@ -115,7 +112,7 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
 
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Verification Failed</h1>
-            <p className="text-red-400 text-sm leading-relaxed mb-4">
+            <p className="text-destructive text-sm leading-relaxed mb-4">
               {errorMessage}
             </p>
             <p className="text-foreground-muted text-sm leading-relaxed">

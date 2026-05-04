@@ -53,12 +53,7 @@ function VerifyEmailContent() {
       <div className="absolute -inset-[1px] bg-gradient-to-br from-primary/50 via-secondary/20 to-transparent rounded-2xl pointer-events-none" />
       
       <div 
-        className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-        style={{
-          backgroundColor: "rgba(8, 18, 41, 0.8)",
-          border: "1px solid rgba(163, 207, 255, 0.2)",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-        }}
+        className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 bg-background-secondary/85 border border-border shadow-lg"
       >
         {/* Logo */}
         <div className="flex justify-center mb-8">
@@ -83,7 +78,7 @@ function VerifyEmailContent() {
             style={{ animation: "float 3s ease-in-out infinite" }}
           >
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl" />
-            <div className="relative w-full h-full bg-gradient-to-br from-[#081229] to-[#0D1A3A] rounded-full flex items-center justify-center border border-primary/30">
+            <div className="relative w-full h-full bg-gradient-to-br from-background-secondary to-background-tertiary rounded-full flex items-center justify-center border border-primary/30">
               <Mail className="w-12 h-12 text-primary" />
             </div>
             {/* Notification dot */}
@@ -127,7 +122,7 @@ function VerifyEmailContent() {
         <button
           onClick={handleResend}
           disabled={!canResend || isResending}
-          className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+          className="w-full h-12 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-md hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isResending ? (
             <>
@@ -166,7 +161,7 @@ function VerifyEmailContent() {
         <p className="text-center mt-6 text-foreground-muted text-sm">
           <Link 
             href="/login" 
-            className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
+            className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80"
           >
             {t.verifyEmail.backToLogin}
           </Link>

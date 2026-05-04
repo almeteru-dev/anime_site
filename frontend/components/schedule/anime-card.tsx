@@ -3,6 +3,7 @@
 import { Clock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useLanguage } from "@/contexts/language-context";
 
 type ScheduleCardItem = {
   time: string
@@ -17,19 +18,21 @@ interface AnimeCardProps {
 }
 
 export function AnimeCard({ anime }: AnimeCardProps) {
+  const { t } = useLanguage()
+
   return (
-    <div className="group relative flex items-center gap-4 p-4 bg-[#0A1628] border border-[#1A2744] rounded-xl transition-all duration-300 hover:border-[#00E5FF]/50 hover:shadow-xl hover:shadow-[#00E5FF]/10 hover:bg-[#0D1A30]">
+    <div className="group relative flex items-center gap-4 p-4 bg-background-secondary border border-border rounded-xl transition-all duration-300 hover:border-primary/25 hover:shadow-sm hover:bg-background-tertiary">
       {/* Time */}
-      <div className="flex flex-col items-center justify-center min-w-[72px] py-2 px-3 bg-[#081229] rounded-lg border border-[#1A2744]">
-        <Clock className="w-3.5 h-3.5 text-[#00E5FF] mb-1" />
-        <span className="text-[#00E5FF] font-bold text-sm tracking-wide">
+      <div className="flex flex-col items-center justify-center min-w-[72px] py-2 px-3 bg-background border border-border rounded-lg">
+        <Clock className="w-3.5 h-3.5 text-primary mb-1" />
+        <span className="text-primary font-bold text-sm tracking-wide">
           {anime.time}
         </span>
       </div>
 
       {/* Poster */}
-      <Link href={`/anime/${encodeURIComponent(anime.slug)}`} className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-black/30 ring-1 ring-[#1A2744] group-hover:ring-[#00E5FF]/30 transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1A2744] to-[#0A1628]" />
+      <Link href={`/anime/${encodeURIComponent(anime.slug)}`} className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-sm ring-1 ring-border group-hover:ring-primary/25 transition-all duration-300">
+        <div className="absolute inset-0 bg-gradient-to-br from-background-tertiary to-background" />
         <Image
           src={anime.posterUrl}
           alt={anime.title}
@@ -41,20 +44,19 @@ export function AnimeCard({ anime }: AnimeCardProps) {
             e.currentTarget.style.display = 'none';
           }}
         />
-        {/* Premium 3D inner shadow effect */}
-        <div className="absolute inset-0 shadow-[inset_0_2px_8px_rgba(0,0,0,0.4),inset_0_-1px_2px_rgba(163,207,255,0.1)]" />
+        <div className="absolute inset-0 shadow-[inset_0_1px_6px_rgba(0,0,0,0.18)]" />
       </Link>
 
       {/* Info */}
       <Link href={`/anime/${encodeURIComponent(anime.slug)}`} className="flex-1 min-w-0">
-        <h3 className="font-bold text-white text-base leading-snug truncate group-hover:text-[#00E5FF] transition-colors duration-200">
+        <h3 className="font-bold text-foreground text-base leading-snug truncate group-hover:text-primary transition-colors duration-200">
           {anime.title}
         </h3>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="inline-flex items-center px-2 py-0.5 bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-semibold rounded-md">
-            Ep. {anime.episode}
+          <span className="inline-flex items-center px-2 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded-md">
+            {t.common.epShort}. {anime.episode}
           </span>
-          <span className="text-[#8BA3C7] text-xs">New Episode</span>
+          <span className="text-foreground-subtle text-xs">{t.common.newEpisode}</span>
         </div>
       </Link>
     </div>

@@ -21,34 +21,30 @@ const statusConfig = {
   completed: {
     icon: Check,
     color: "bg-emerald-500",
-    textColor: "text-emerald-400",
+    textColor: "text-emerald-700 dark:text-emerald-400",
     borderColor: "border-emerald-500/50",
     hoverBg: "hover:bg-emerald-500/20",
-    glowColor: "shadow-[0_0_20px_rgba(16,185,129,0.3)]",
   },
   planned: {
     icon: Clock,
     color: "bg-amber-500",
-    textColor: "text-amber-400",
+    textColor: "text-amber-700 dark:text-amber-400",
     borderColor: "border-amber-500/50",
     hoverBg: "hover:bg-amber-500/20",
-    glowColor: "shadow-[0_0_20px_rgba(245,158,11,0.3)]",
   },
   on_hold: {
     icon: PauseCircle,
     color: "bg-slate-500",
-    textColor: "text-slate-300",
+    textColor: "text-slate-700 dark:text-slate-300",
     borderColor: "border-slate-400/40",
     hoverBg: "hover:bg-slate-500/20",
-    glowColor: "shadow-[0_0_20px_rgba(148,163,184,0.25)]",
   },
   dropped: {
     icon: XCircle,
     color: "bg-red-500",
-    textColor: "text-red-400",
+    textColor: "text-red-700 dark:text-red-400",
     borderColor: "border-red-500/50",
     hoverBg: "hover:bg-red-500/20",
-    glowColor: "shadow-[0_0_20px_rgba(239,68,68,0.3)]",
   },
   watching: {
     icon: Play,
@@ -56,7 +52,6 @@ const statusConfig = {
     textColor: "text-primary",
     borderColor: "border-primary/50",
     hoverBg: "hover:bg-primary/20",
-    glowColor: "shadow-[0_0_20px_rgba(0,229,255,0.3)]",
   },
 }
 
@@ -226,16 +221,10 @@ export function AnimeStatusManager({
       {isOpen && (
         <div 
           className={cn(
-            "absolute mt-2 w-48 rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200",
+            "absolute mt-2 w-48 rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 bg-background-secondary/95 backdrop-blur-xl border border-border shadow-lg",
             // Position dropdown based on variant - icon variant opens to the left
             variant === "icon" ? "right-0 top-full" : "left-0 top-full"
           )}
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.98)",
-            border: "1px solid rgba(163, 207, 255, 0.25)",
-            boxShadow: "0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 229, 255, 0.1)",
-            zIndex: 9999, // Very high z-index to ensure visibility above other cards
-          }}
         >
           <div className="py-1">
             {statusOptions.map((option) => {
@@ -250,8 +239,8 @@ export function AnimeStatusManager({
                   className={cn(
                     "flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-all duration-200",
                     isActive
-                      ? cn(config?.textColor, "bg-white/5")
-                      : "text-foreground-muted hover:text-foreground hover:bg-white/5"
+                      ? cn(config?.textColor, "bg-background-tertiary")
+                      : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
                   )}
                 >
                   <div className={cn(
@@ -289,14 +278,7 @@ export function AnimeStatusManager({
 
       {/* Toast Notification */}
       {showToast && (
-        <div 
-          className="fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-300"
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.95)",
-            border: "1px solid rgba(0, 229, 255, 0.3)",
-            boxShadow: "0 0 30px rgba(0, 229, 255, 0.2)",
-          }}
-        >
+        <div className="fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-300 bg-background-secondary/95 backdrop-blur-xl border border-border shadow-lg">
           <div className="flex items-center gap-2">
             <Check className="w-5 h-5 text-primary" />
             <span className="text-sm font-medium text-foreground">{toastMessage}</span>

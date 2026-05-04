@@ -79,14 +79,11 @@ export function LanguageSwitcher({ variant = "default" }: LanguageSwitcherProps)
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-300",
-          "border hover:bg-primary/5",
+          "border hover:bg-primary/5 bg-background/70 backdrop-blur-xl",
           isOpen
             ? "border-primary bg-primary/10"
-            : "border-[rgba(163,207,255,0.2)] hover:border-primary/50"
+            : "border-border/60 hover:border-primary/50"
         )}
-        style={{
-          backgroundColor: isOpen ? "rgba(0, 229, 255, 0.1)" : "rgba(8, 18, 41, 0.6)",
-        }}
         aria-label={t.language.selectLanguage}
         aria-expanded={isOpen}
       >
@@ -115,17 +112,11 @@ export function LanguageSwitcher({ variant = "default" }: LanguageSwitcherProps)
       {/* Dropdown Menu */}
       <div
         className={cn(
-          "absolute right-0 top-full mt-2 min-w-[160px] rounded-xl overflow-hidden transition-all duration-300 origin-top-right z-50",
+          "absolute right-0 top-full mt-2 min-w-[160px] rounded-xl overflow-hidden transition-all duration-300 origin-top-right z-50 bg-background-secondary/95 backdrop-blur-xl border border-border shadow-lg",
           isOpen
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         )}
-        style={{
-          backgroundColor: "rgba(8, 18, 41, 0.95)",
-          border: "1px solid rgba(163, 207, 255, 0.2)",
-          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-          backdropFilter: "blur(12px)",
-        }}
       >
         <div className="py-1">
           {languages.map((lang) => (
@@ -141,9 +132,6 @@ export function LanguageSwitcher({ variant = "default" }: LanguageSwitcherProps)
                   ? "text-primary bg-primary/10"
                   : "text-foreground-muted hover:text-foreground hover:bg-primary/5"
               )}
-              style={{
-                boxShadow: locale === lang.code ? "inset 0 0 20px rgba(0, 229, 255, 0.1)" : "none",
-              }}
             >
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium">{lang.nativeLabel}</span>

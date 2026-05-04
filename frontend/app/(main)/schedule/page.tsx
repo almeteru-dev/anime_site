@@ -9,7 +9,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { addDays, formatTimeInTimeZone, formatYMDInTimeZone } from "@/lib/timezone";
 
 export default function ReleasesPage() {
-  const { locale } = useLanguage()
+	const { locale, t } = useLanguage()
 	const [scheduleTimezone, setScheduleTimezone] = useState<string>("Etc/GMT-5")
 
   const windowStart = useMemo(() => addDays(new Date(), -2), [])
@@ -67,7 +67,7 @@ export default function ReleasesPage() {
         setItems(data)
       } catch (e: any) {
         if (!mounted) return
-        setError(e?.message || "Failed to load schedule")
+        setError(e?.message || t.schedule.failedToLoad)
         setItems([])
       }
     })()
@@ -82,9 +82,9 @@ export default function ReleasesPage() {
       const dt = new Date(x.release_datetime)
       return {
         time: formatTimeInTimeZone(dt, locale, scheduleTimezone),
-        title: x.anime?.name || "Anime",
+        title: x.anime?.name || (locale === "ru" ? "Аниме" : "Anime"),
         episode: x.episode_number,
-        posterUrl: x.anime?.image || `https://placehold.co/112x160/081229/00E5FF?text=${encodeURIComponent(x.anime?.name || "Anime")}`,
+        posterUrl: x.anime?.image || `https://placehold.co/112x160/F1F5F9/00D2FF?text=${encodeURIComponent(x.anime?.name || "Anime")}`,
         slug: x.anime?.url || "",
       }
     })
@@ -94,8 +94,8 @@ export default function ReleasesPage() {
     <div className="pt-20">
       {/* Background gradient effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#00E5FF]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#33CCFF]/3 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
       <main className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -103,15 +103,15 @@ export default function ReleasesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/20">
-                <CalendarDays className="w-5 h-5 text-[#00E5FF]" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
+                <CalendarDays className="w-5 h-5 text-primary" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white text-balance">
-                Release Schedule
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground text-balance">
+                {t.schedule.title}
               </h1>
             </div>
-            <p className="text-[#8BA3C7] text-sm sm:text-base">
-              Track upcoming episodes and never miss your favorite anime.
+            <p className="text-foreground-subtle text-sm sm:text-base">
+              {t.schedule.subtitle}
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function ReleasesPage() {
         <div className="space-y-6">
           <DayTabs days={days} selectedKey={selectedKey} onDayChange={setSelectedKey} />
 
-          {error ? <div className="text-sm text-red-300">{error}</div> : null}
+          {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
           <ReleaseList releases={releasesForDay} />
         </div>

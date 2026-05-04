@@ -11,6 +11,7 @@ type Anime struct {
 	SourceID      *int      `json:"source_id"`
 	Name          string    `gorm:"not null;type:varchar(255)" json:"name"`
 	Kind          string    `gorm:"type:varchar(50)" json:"kind"`
+	KindRUName         *string           `gorm:"-" json:"kind_ru_name,omitempty"`
 	URL           string    `gorm:"unique;not null;type:varchar(255)" json:"url"`
 	Duration      int       `json:"duration"`
 	Rating        string    `gorm:"type:varchar(50)" json:"rating"`

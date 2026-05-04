@@ -103,8 +103,27 @@ func Seed(db *gorm.DB) {
 		db.FirstOrCreate(&vg, models.VoiceGroup{Name: vg.Name})
 	}
 
-	kinds := []models.KindOption{{Name: "tv"}, {Name: "movie"}, {Name: "ova"}, {Name: "ona"}, {Name: "special"}}
+	kTV := "Сериал"
+	kMovie := "Фильм"
+	kOVA := "OVA"
+	kONA := "ONA"
+	kSpecial := "Спешл"
+	kinds := []models.KindOption{
+		{Name: "tv", RUName: &kTV},
+		{Name: "movie", RUName: &kMovie},
+		{Name: "ova", RUName: &kOVA},
+		{Name: "ona", RUName: &kONA},
+		{Name: "special", RUName: &kSpecial},
+	}
 	for _, k := range kinds {
+		var existing models.KindOption
+		if err := db.Where("name = ?", k.Name).First(&existing).Error; err == nil {
+			if existing.RUName == nil || *existing.RUName == "" {
+				existing.RUName = k.RUName
+				db.Save(&existing)
+			}
+			continue
+		}
 		db.FirstOrCreate(&k, models.KindOption{Name: k.Name})
 	}
 

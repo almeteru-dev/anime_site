@@ -7,16 +7,19 @@ export interface Language {
 export interface Genre {
   id: number
   name: string
+  ru_name?: string | null
 }
 
 export interface Studio {
   id: number
   name: string
+  ru_name?: string | null
 }
 
 export interface KindOption {
   id: number
   name: string
+  ru_name?: string | null
 }
 
 export interface RatingOption {
@@ -27,11 +30,13 @@ export interface RatingOption {
 export interface Status {
   id: number
   name: string
+  ru_name?: string | null
 }
 
 export interface Source {
   id: number
   name: string
+  ru_name?: string | null
 }
 
 export interface AnimeTranslation {
@@ -111,6 +116,7 @@ export interface Anime {
   source_id: number | null
   name: string
   kind: string
+  kind_ru_name?: string | null
   url: string
   duration: number
   rating: string
@@ -573,7 +579,13 @@ export async function getCatalogMeta(): Promise<CatalogMeta> {
     cache: "no-store",
   })
   if (!res.ok) {
-    throw new Error("Failed to fetch catalog meta")
+    const text = await res.text().catch(() => "")
+    let message = "Failed to fetch catalog meta"
+    try {
+      const data = text ? JSON.parse(text) : null
+      if (data?.error) message = String(data.error)
+    } catch {}
+    throw new Error(`${message} (status ${res.status})`)
   }
   return res.json()
 }
@@ -1422,14 +1434,19 @@ async function adminListMetaItem<T>(token: string, path: string): Promise<T[]> {
   return res.json()
 }
 
-async function adminCreateMetaItem<T>(token: string, path: string, name: string): Promise<T> {
+type AdminMetaPayload = {
+  name: string
+  ru_name?: string | null
+}
+
+async function adminCreateMetaItem<T>(token: string, path: string, payload: AdminMetaPayload): Promise<T> {
   const res = await fetch(`${API_URL}/admin/${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -1439,14 +1456,14 @@ async function adminCreateMetaItem<T>(token: string, path: string, name: string)
   return data
 }
 
-async function adminUpdateMetaItem<T>(token: string, path: string, id: number, name: string): Promise<T> {
+async function adminUpdateMetaItem<T>(token: string, path: string, id: number, payload: AdminMetaPayload): Promise<T> {
   const res = await fetch(`${API_URL}/admin/${path}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -1470,38 +1487,49 @@ async function adminDeleteMetaItem(token: string, path: string, id: number): Pro
 
 // Kinds
 export const adminListKinds = (p: { token: string }) => adminListMetaItem<KindOption>(p.token, "kinds")
-export const adminCreateKind = (p: { token: string; name: string }) => adminCreateMetaItem<KindOption>(p.token, "kinds", p.name)
-export const adminUpdateKind = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<KindOption>(p.token, "kinds", p.id, p.name)
+export const adminCreateKind = (p: { token: string; name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<KindOption>(p.token, "kinds", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateKind = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<KindOption>(p.token, "kinds", p.id, { name: p.name, ru_name: p.ru_name ?? null })
 export const adminDeleteKind = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "kinds", p.id)
 
 // Ratings
 export const adminListRatings = (p: { token: string }) => adminListMetaItem<RatingOption>(p.token, "ratings")
-export const adminCreateRating = (p: { token: string; name: string }) => adminCreateMetaItem<RatingOption>(p.token, "ratings", p.name)
-export const adminUpdateRating = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<RatingOption>(p.token, "ratings", p.id, p.name)
+export const adminCreateRating = (p: { token: string; name: string }) => adminCreateMetaItem<RatingOption>(p.token, "ratings", { name: p.name })
+export const adminUpdateRating = (p: { token: string; id: number; name: string }) =>
+  adminUpdateMetaItem<RatingOption>(p.token, "ratings", p.id, { name: p.name })
 export const adminDeleteRating = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "ratings", p.id)
 
 // Statuses
 export const adminListStatuses = (p: { token: string }) => adminListMetaItem<Status>(p.token, "statuses")
-export const adminCreateStatus = (p: { token: string; name: string }) => adminCreateMetaItem<Status>(p.token, "statuses", p.name)
-export const adminUpdateStatus = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<Status>(p.token, "statuses", p.id, p.name)
+export const adminCreateStatus = (p: { token: string; name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Status>(p.token, "statuses", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateStatus = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Status>(p.token, "statuses", p.id, { name: p.name, ru_name: p.ru_name ?? null })
 export const adminDeleteStatus = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "statuses", p.id)
 
 // Studios
 export const adminListStudios = (p: { token: string }) => adminListMetaItem<Studio>(p.token, "studios")
-export const adminCreateStudio = (p: { token: string; name: string }) => adminCreateMetaItem<Studio>(p.token, "studios", p.name)
-export const adminUpdateStudio = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<Studio>(p.token, "studios", p.id, p.name)
+export const adminCreateStudio = (p: { token: string; name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Studio>(p.token, "studios", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateStudio = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Studio>(p.token, "studios", p.id, { name: p.name, ru_name: p.ru_name ?? null })
 export const adminDeleteStudio = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "studios", p.id)
 
 // Sources
 export const adminListSources = (p: { token: string }) => adminListMetaItem<Source>(p.token, "sources")
-export const adminCreateSource = (p: { token: string; name: string }) => adminCreateMetaItem<Source>(p.token, "sources", p.name)
-export const adminUpdateSource = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<Source>(p.token, "sources", p.id, p.name)
+export const adminCreateSource = (p: { token: string; name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Source>(p.token, "sources", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateSource = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Source>(p.token, "sources", p.id, { name: p.name, ru_name: p.ru_name ?? null })
 export const adminDeleteSource = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "sources", p.id)
 
 // Genres
 export const adminListGenres = (p: { token: string }) => adminListMetaItem<Genre>(p.token, "genres")
-export const adminCreateGenre = (p: { token: string; name: string }) => adminCreateMetaItem<Genre>(p.token, "genres", p.name)
-export const adminUpdateGenre = (p: { token: string; id: number; name: string }) => adminUpdateMetaItem<Genre>(p.token, "genres", p.id, p.name)
+export const adminCreateGenre = (p: { token: string; name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Genre>(p.token, "genres", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateGenre = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Genre>(p.token, "genres", p.id, { name: p.name, ru_name: p.ru_name ?? null })
 export const adminDeleteGenre = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "genres", p.id)
 
 export async function adminSetAnimeGenres(params: {

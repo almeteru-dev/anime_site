@@ -77,7 +77,8 @@ export default function LoginPage() {
       <div 
         className="absolute inset-0 pointer-events-none opacity-[0.015]"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline-line) 2px, var(--scanline-line) 4px)",
           animation: "scanline 8s linear infinite",
         }}
       />
@@ -107,14 +108,7 @@ export default function LoginPage() {
         {/* Gradient border effect */}
         <div className="absolute -inset-[1px] bg-gradient-to-b from-primary/40 via-transparent to-transparent rounded-2xl pointer-events-none" />
         
-        <div 
-          className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10"
-          style={{
-            backgroundColor: "rgba(8, 18, 41, 0.8)",
-            border: "1px solid rgba(163, 207, 255, 0.2)",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
-          }}
-        >
+        <div className="relative backdrop-blur-xl rounded-2xl p-8 sm:p-10 bg-background-secondary/80 border border-border/60 shadow-[var(--card-shadow)]">
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link href="/" className="flex items-center gap-2 group">
@@ -152,7 +146,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "identifier" ? "text-primary" : "text-secondary/60"}`} />
+                  <User className={`w-5 h-5 transition-colors duration-300 ${focusedField === "identifier" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="identifier"
@@ -162,10 +156,7 @@ export default function LoginPage() {
                   onFocus={() => setFocusedField("identifier")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.login.enterUsernameOrEmail}
-                  className="w-full h-12 pl-12 pr-4 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "identifier" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-4 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
               </div>
@@ -178,7 +169,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-secondary/60"}`} />
+                  <Lock className={`w-5 h-5 transition-colors duration-300 ${focusedField === "password" ? "text-primary" : "text-foreground-subtle"}`} />
                 </div>
                 <input
                   id="password"
@@ -188,16 +179,13 @@ export default function LoginPage() {
                   onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.login.enterPassword}
-                  className="w-full h-12 pl-12 pr-12 bg-background border border-secondary/30 rounded-xl text-foreground placeholder:text-foreground-muted/50 transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    boxShadow: focusedField === "password" ? "0 0 20px rgba(0, 229, 255, 0.2)" : "none",
-                  }}
+                  className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors duration-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground-subtle hover:text-primary transition-colors duration-300"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -214,7 +202,7 @@ export default function LoginPage() {
                   className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                     rememberMe 
                       ? "bg-primary border-primary" 
-                      : "border-secondary/50 hover:border-primary/50"
+                      : "border-border/70 hover:border-primary/50"
                   }`}
                   aria-label={t.login.rememberMe}
                 >
@@ -239,7 +227,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+              className="w-full h-12 mt-6 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 hover:shadow-[var(--glow-primary)] hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

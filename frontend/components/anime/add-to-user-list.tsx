@@ -41,12 +41,15 @@ export function AddToUserList({ animeId, onUpdate, initialStatus = null }: AddTo
   }, [phase, selected, t.status])
 
   const buttonClass = useMemo(() => {
-    if (!selected) return "bg-[#00E5FF] text-[#040D1F] hover:bg-[#00E5FF]/90"
-    if (selected === "planned") return "bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/20"
-    if (selected === "completed") return "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/20"
+    if (!selected) return "bg-primary text-primary-foreground hover:bg-primary/90"
+    if (selected === "planned")
+      return "bg-amber-500/15 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40"
+    if (selected === "completed")
+      return "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 hover:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40"
     if (selected === "watching") return "bg-primary/15 text-primary border border-primary/40 hover:bg-primary/20"
-    if (selected === "on_hold") return "bg-slate-500/15 text-slate-200 border border-slate-400/40 hover:bg-slate-500/20"
-    return "bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/20"
+    if (selected === "on_hold")
+      return "bg-slate-500/15 text-slate-700 border border-slate-400/30 hover:bg-slate-500/20 dark:text-slate-200 dark:border-slate-400/40"
+    return "bg-red-500/15 text-red-700 border border-red-500/30 hover:bg-red-500/20 dark:text-red-300 dark:border-red-500/40"
   }, [selected])
 
   const items: { value: UserListStatus; label: string }[] = [
@@ -84,14 +87,14 @@ export function AddToUserList({ animeId, onUpdate, initialStatus = null }: AddTo
           <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-[#081229] border-[#1A2847]">
+      <DropdownMenuContent className="bg-popover border-border text-popover-foreground">
         {items.map((it) => (
           <DropdownMenuItem
             key={it.value}
             onClick={() => handlePick(it.value)}
             className={cn(
-              "flex items-center justify-between text-[#D1D9E6] hover:text-white hover:bg-[#0D1A3A] focus:bg-[#0D1A3A] focus:text-white cursor-pointer",
-              selected === it.value && "bg-[#0D1A3A] text-white"
+              "flex items-center justify-between text-foreground-muted hover:text-foreground hover:bg-background-tertiary focus:bg-background-tertiary focus:text-foreground cursor-pointer",
+              selected === it.value && "bg-background-tertiary text-foreground"
             )}
           >
             {it.label}
