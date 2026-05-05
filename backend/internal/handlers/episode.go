@@ -13,6 +13,56 @@ import (
 	"gorm.io/gorm"
 )
 
+func isMissingRelationErr(err error, relation string) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "relation \""+relation+"\" does not exist")
+}
+
+func isMissingColumnErr(err error, column string) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "column \""+column+"\" does not exist") ||
+		strings.Contains(s, "column \""+column+"\" of relation")
+}
+
+func hasEpisodesColumn(tx *gorm.DB, column string) bool {
+	var count int64
+	err := tx.Raw(
+		`SELECT COUNT(1)
+		 FROM information_schema.columns
+		 WHERE table_schema = 'public' AND table_name = 'episodes' AND column_name = ?`,
+		column,
+	).Scan(&count).Error
+	return err == nil && count > 0
+}
+
+func episodesHasLegacyColumns(tx *gorm.DB) bool {
+	return hasEpisodesColumn(tx, "server_number") && hasEpisodesColumn(tx, "video_url")
+}
+
+func createEpisodeCompat(tx *gorm.DB, ep *models.Episode) error {
+	if episodesHasLegacyColumns(tx) {
+		var id int64
+		err := tx.Raw(
+			"INSERT INTO episodes (anime_id, group_id, number, duration, server_number, video_url) VALUES (?, ?, ?, ?, 1, '') RETURNING id",
+			ep.AnimeID,
+			ep.GroupID,
+			ep.Number,
+			ep.Duration,
+		).Scan(&id).Error
+		if err != nil {
+			return err
+		}
+		ep.ID = id
+		return nil
+	}
+	return tx.Create(ep).Error
+}
+
 func getOrCreateVideoLabelByName(tx *gorm.DB, name string) (*models.VideoLabel, error) {
 	trimmed := strings.TrimSpace(name)
 	if trimmed == "" {
@@ -116,12 +166,15 @@ func AdminCreateEpisode(c *gin.Context) {
 	}
 
 	err = app.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&ep).Error; err != nil {
+		if err := createEpisodeCompat(tx, &ep); err != nil {
 			return err
 		}
 
 		label, err := getOrCreateVideoLabelByName(tx, "Server 1")
 		if err != nil {
+			if isMissingRelationErr(err, "video_labels") {
+				return nil
+			}
 			return err
 		}
 
@@ -136,6 +189,9 @@ func AdminCreateEpisode(c *gin.Context) {
 			IsActive:  true,
 		}
 		if err := tx.Create(&source).Error; err != nil {
+			if isMissingRelationErr(err, "video_sources") {
+				return nil
+			}
 			return err
 		}
 		return nil
@@ -411,13 +467,22 @@ func mapEpisodeDBError(err error) string {
 	}
 
 	s := err.Error()
+	if strings.Contains(s, "null value in column \"server_number\"") || strings.Contains(s, "null value in column \"video_url\"") {
+		return "Legacy episodes schema requires server_number/video_url (apply migrations)"
+	}
+	if strings.Contains(s, "relation \"video_labels\" does not exist") {
+		return "Missing table video_labels (apply migrations)"
+	}
+	if strings.Contains(s, "relation \"video_sources\" does not exist") {
+		return "Missing table video_sources (apply migrations)"
+	}
 	if strings.Contains(s, "episode_number exceeds anime.episodes") {
 		return "episode_number exceeds anime.episodes"
 	}
 	if strings.Contains(s, "episodes_number_min") {
 		return "episode_number must be >= 1"
 	}
-	if strings.Contains(s, "idx_episode_unique") || strings.Contains(s, "duplicate key") {
+	if strings.Contains(s, "idx_episode_unique") || strings.Contains(s, "episodes_anime_id_server_number_group_id_number_key") || strings.Contains(s, "duplicate key") {
 		return "Episode already exists for this voice group and number"
 	}
 

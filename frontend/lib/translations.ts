@@ -9,6 +9,8 @@ export const translations = {
       schedule: "Schedule",
       signIn: "Sign In",
       myProfile: "My Profile",
+      myList: "My List",
+      signOut: "Sign Out",
       searchPlaceholder: "Search anime...",
     },
     // Hero Section
@@ -249,6 +251,11 @@ export const translations = {
       goToDashboard: "Go to Dashboard",
       orLogin: "or",
       login: "Log In",
+      errorTitle: "Verification Failed",
+      tokenMissing: "Verification token is missing",
+      errorHint: "The link may be invalid or expired. Please try to register again or request a new verification link.",
+      backToRegistration: "Back to Registration",
+      backToLogin: "Back to Login",
     },
     // Common
     common: {
@@ -260,6 +267,7 @@ export const translations = {
       delete: "Delete",
       edit: "Edit",
       close: "Close",
+      back: "Back",
       ago: "ago",
       noImage: "No Image",
       na: "N/A",
@@ -283,6 +291,8 @@ export const translations = {
       schedule: "Расписание",
       signIn: "Войти",
       myProfile: "Мой профиль",
+      myList: "Мой список",
+      signOut: "Выйти",
       searchPlaceholder: "Поиск аниме...",
     },
     // Hero Section
@@ -523,6 +533,11 @@ export const translations = {
       goToDashboard: "Перейти в профиль",
       orLogin: "или",
       login: "Войти",
+      errorTitle: "Ошибка подтверждения",
+      tokenMissing: "Отсутствует токен подтверждения",
+      errorHint: "Ссылка недействительна или истекла. Пожалуйста, зарегистрируйтесь заново или запросите новую ссылку для подтверждения.",
+      backToRegistration: "Назад к регистрации",
+      backToLogin: "Назад ко входу",
     },
     // Common
     common: {
@@ -534,6 +549,7 @@ export const translations = {
       delete: "Удалить",
       edit: "Редактировать",
       close: "Закрыть",
+      back: "Назад",
       ago: "назад",
       noImage: "Нет изображения",
       na: "—",

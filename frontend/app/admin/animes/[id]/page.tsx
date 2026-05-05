@@ -60,8 +60,18 @@ export default function AdminEditAnimePage() {
 
   const [selectedEpisodeForSources, setSelectedEpisodeForSources] = useState<Episode | null>(null)
   const [videoLabels, setVideoLabels] = useState<VideoLabel[] | null>(null)
+  const [episodeSourceForm, setEpisodeSourceForm] = useState<AdminUpsertVideoSourceInput>({
+    label_id: null,
+    label: "",
+    type: "iframe",
+    url: "",
+    is_default: true,
+    is_active: true,
+    sort_order: 0,
+  })
   const [sourceForm, setSourceForm] = useState<AdminUpsertVideoSourceInput>({
     label_id: null,
+    label: "",
     type: "iframe",
     url: "",
     is_default: false,
@@ -226,6 +236,15 @@ export default function AdminEditAnimePage() {
       number: 1,
       duration: 24,
     })
+    setEpisodeSourceForm({
+      label_id: null,
+      label: "",
+      type: "iframe",
+      url: "",
+      is_default: true,
+      is_active: true,
+      sort_order: 0,
+    })
   }
 
   const startEditEpisode = (ep: Episode) => {
@@ -368,6 +387,20 @@ export default function AdminEditAnimePage() {
           animeId: params.id,
           input,
         })
+        const shouldCreateSource = !!episodeSourceForm.url?.trim() && (!!episodeSourceForm.label_id || !!episodeSourceForm.label?.trim())
+        if (shouldCreateSource) {
+          try {
+            const initialSource = await adminCreateVideoSource({
+              token,
+              episodeId: String(created.id),
+              input: episodeSourceForm,
+            })
+            created.video_sources = [initialSource]
+          } catch (e: any) {
+            const msg = typeof e === "string" ? e : e?.message
+            setEpisodeError(`Episode created, but failed to add source: ${msg || "Unknown error"}`)
+          }
+        }
         setEpisodes((prev) => ([...(prev || []), created].sort((a, b) => a.number - b.number)))
       }
       resetEpisodeForm()
@@ -440,6 +473,7 @@ export default function AdminEditAnimePage() {
       }
       setSourceForm({
         label_id: null,
+        label: "",
         type: "iframe",
         url: "",
         is_default: false,
@@ -1273,6 +1307,87 @@ export default function AdminEditAnimePage() {
               </div>
             </div>
 
+            {!editingEpisodeId && (
+              <div className="mt-5 rounded-xl border border-border/60 bg-background-secondary/20 p-4">
+                <div className="text-xs font-semibold text-foreground-muted mb-3">Initial Source (optional)</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted">Label</label>
+                    <select
+                      value={episodeSourceForm.label_id ? String(episodeSourceForm.label_id) : ""}
+                      onChange={(e) =>
+                        setEpisodeSourceForm((p) => ({
+                          ...p,
+                          label_id: e.target.value ? Number(e.target.value) : null,
+                          label: "",
+                        }))
+                      }
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    >
+                      <option value="">Select label…</option>
+                      {(videoLabels || []).map((l) => (
+                        <option key={l.id} value={String(l.id)}>
+                          {l.name}{l.is_external_player ? " (External)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={episodeSourceForm.label || ""}
+                      onChange={(e) =>
+                        setEpisodeSourceForm((p) => ({
+                          ...p,
+                          label: e.target.value,
+                          label_id: e.target.value.trim() ? null : p.label_id,
+                        }))
+                      }
+                      placeholder="Or type a new label (e.g., Kodik)"
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground-muted">Type</label>
+                    <select
+                      value={episodeSourceForm.type}
+                      onChange={(e) => setEpisodeSourceForm((p) => ({ ...p, type: e.target.value as "iframe" | "direct" }))}
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    >
+                      <option value="iframe">Iframe Embed</option>
+                      <option value="direct">Direct (Artplayer)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-xs font-semibold text-foreground-muted">URL</label>
+                    <input
+                      value={episodeSourceForm.url}
+                      onChange={(e) => setEpisodeSourceForm((p) => ({ ...p, url: e.target.value }))}
+                      placeholder="https://…"
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4 pt-2">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={episodeSourceForm.is_active}
+                        onChange={(e) => setEpisodeSourceForm((p) => ({ ...p, is_active: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+                      />
+                      <span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">Active</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={episodeSourceForm.is_default}
+                        onChange={(e) => setEpisodeSourceForm((p) => ({ ...p, is_default: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+                      />
+                      <span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">Default</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
@@ -1365,7 +1480,13 @@ export default function AdminEditAnimePage() {
                     <label className="text-xs font-semibold text-foreground-muted">Label</label>
                     <select
                       value={sourceForm.label_id ? String(sourceForm.label_id) : ""}
-                      onChange={(e) => setSourceForm((p) => ({ ...p, label_id: e.target.value ? Number(e.target.value) : null }))}
+                      onChange={(e) =>
+                        setSourceForm((p) => ({
+                          ...p,
+                          label_id: e.target.value ? Number(e.target.value) : null,
+                          label: "",
+                        }))
+                      }
                       className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
                     >
                       <option value="">Select label…</option>
@@ -1375,12 +1496,28 @@ export default function AdminEditAnimePage() {
                         </option>
                       ))}
                     </select>
+                    <input
+                      value={sourceForm.label || ""}
+                      onChange={(e) =>
+                        setSourceForm((p) => ({
+                          ...p,
+                          label: e.target.value,
+                          label_id: e.target.value.trim() ? null : p.label_id,
+                        }))
+                      }
+                      placeholder="Or type a new label (e.g., Kodik)"
+                      className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+                    />
                     {sourceForm.label_id ? (
                       <div className="text-[11px] text-foreground-subtle">
                         {(videoLabels || []).find((x) => x.id === sourceForm.label_id)?.is_external_player
                           ? "External player: Dub/Sub selection will be hidden on Watch page."
                           : "Standard player: Dub/Sub selection remains available."
                         }
+                      </div>
+                    ) : sourceForm.label?.trim() ? (
+                      <div className="text-[11px] text-foreground-subtle">
+                        New label will be created automatically. External flag defaults to Standard.
                       </div>
                     ) : null}
                   </div>
@@ -1440,7 +1577,7 @@ export default function AdminEditAnimePage() {
                       type="button"
                       onClick={() => {
                         setEditingSourceId(null)
-                        setSourceForm({ label_id: null, type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
+                        setSourceForm({ label_id: null, label: "", type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
                       }}
                       className="px-4 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
                     >
@@ -1450,10 +1587,10 @@ export default function AdminEditAnimePage() {
                   <button
                     type="button"
                     onClick={saveSource}
-                    disabled={!sourceForm.label_id || !sourceForm.url.trim() || episodeSaving}
+                    disabled={(!sourceForm.label_id && !sourceForm.label?.trim()) || !sourceForm.url.trim() || episodeSaving}
                     className={cn(
                       "rounded-xl px-5 py-2.5 text-sm font-semibold",
-                      !sourceForm.label_id || !sourceForm.url.trim() || episodeSaving
+                      (!sourceForm.label_id && !sourceForm.label?.trim()) || !sourceForm.url.trim() || episodeSaving
                         ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                         : "bg-primary text-primary-foreground hover:bg-primary/90"
                     )}
@@ -1497,6 +1634,7 @@ export default function AdminEditAnimePage() {
                             const guessed = (videoLabels || []).find((x) => x.name === s.label)?.id || null
                             setSourceForm({
                               label_id: s.label_id || guessed,
+                              label: s.label_id || guessed ? "" : s.label,
                               type: s.type,
                               url: s.url,
                               is_default: s.is_default,

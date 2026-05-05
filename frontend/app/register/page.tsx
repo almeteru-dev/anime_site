@@ -106,7 +106,7 @@ export default function RegisterPage() {
       
       {/* Decorative watermark */}
       <div className="absolute bottom-0 right-0 text-[20rem] font-bold text-secondary/[0.03] select-none pointer-events-none leading-none tracking-tighter">
-        AV
+        LL
       </div>
 
       {/* Scan-line overlay */}

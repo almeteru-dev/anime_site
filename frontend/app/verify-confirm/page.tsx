@@ -20,7 +20,7 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
     const verify = async () => {
       if (!token) {
         setStatus("error")
-        setErrorMessage("Verification token is missing")
+        setErrorMessage(t.verifyConfirm?.tokenMissing || "Verification token is missing")
         return
       }
 
@@ -50,11 +50,12 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
         <Link href="/" className="flex items-center gap-2 group">
           <div className="relative">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-2xl">A</span>
+              <img src="/favicon.svg" alt="LycorisLib" className="w-7 h-7" />
             </div>
           </div>
-          <span className="text-3xl font-bold tracking-tight text-foreground">
-            Anime<span className="text-primary">Vista</span>
+          <span className="text-3xl font-bold tracking-tight">
+            <span className="text-foreground">Lycoris</span>
+            <span className="text-primary">Lib</span>
           </span>
         </Link>
       </div>
@@ -111,12 +112,12 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Verification Failed</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">{t.verifyConfirm?.errorTitle || "Verification Failed"}</h1>
             <p className="text-destructive text-sm leading-relaxed mb-4">
               {errorMessage}
             </p>
             <p className="text-foreground-muted text-sm leading-relaxed">
-              The link may be invalid or expired. Please try to register again or request a new verification link.
+              {t.verifyConfirm?.errorHint || "The link may be invalid or expired. Please try to register again or request a new verification link."}
             </p>
           </div>
 
@@ -125,13 +126,13 @@ function VerifyConfirmContent({ onStatusChange }: { onStatusChange: (s: "loading
               href="/register"
               className="w-full h-12 bg-secondary text-secondary-foreground font-semibold rounded-xl transition-all duration-300 hover:bg-secondary/80 flex items-center justify-center gap-2"
             >
-              Back to Registration
+              {t.verifyConfirm?.backToRegistration || "Back to Registration"}
             </Link>
             <Link
               href="/login"
               className="text-primary font-medium hover:underline text-sm"
             >
-              Back to Login
+              {t.verifyConfirm?.backToLogin || "Back to Login"}
             </Link>
           </div>
         </>
@@ -158,7 +159,7 @@ export default function VerifyConfirmPage() {
       
       {/* Decorative watermark */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[25rem] font-bold text-secondary/[0.02] select-none pointer-events-none leading-none tracking-tighter">
-        AV
+        LL
       </div>
 
       {/* Language Switcher */}
@@ -222,7 +223,7 @@ export default function VerifyConfirmPage() {
             : "bg-gradient-to-br from-primary/60 via-secondary/30 to-primary/20"
         }`} />
         
-        <Suspense fallback={<div className="text-foreground-muted text-center py-12">Loading verification...</div>}>
+        <Suspense fallback={<div className="text-foreground-muted text-center py-12">{t.common.loading}</div>}>
           <VerifyConfirmContent onStatusChange={setStatus} />
         </Suspense>
       </div>

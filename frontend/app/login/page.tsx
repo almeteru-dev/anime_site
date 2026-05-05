@@ -70,7 +70,7 @@ export default function LoginPage() {
       
       {/* Decorative watermark */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[25rem] font-bold text-secondary/[0.02] select-none pointer-events-none leading-none tracking-tighter">
-        AV
+        LL
       </div>
 
       {/* Scan-line animation overlay */}

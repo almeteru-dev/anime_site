@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
       
       {/* Decorative watermark */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[25rem] font-bold text-secondary/[0.02] select-none pointer-events-none leading-none tracking-tighter">
-        AV
+        LL
       </div>
 
       {/* Scan-line animation overlay */}
@@ -86,13 +86,13 @@ export default function ForgotPasswordPage() {
             <Link href="/" className="flex items-center gap-2 group">
               <div className="relative">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-2xl">A</span>
+                  <img src="/favicon.svg" alt="LycorisLib" className="w-7 h-7" />
                 </div>
                 <div className="absolute inset-0 rounded-xl bg-primary/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <span className="text-3xl font-bold tracking-tight">
-                <span className="text-foreground">Anime</span>
-                <span className="text-primary">Vista</span>
+                <span className="text-foreground">Lycoris</span>
+                <span className="text-primary">Lib</span>
               </span>
             </Link>
           </div>

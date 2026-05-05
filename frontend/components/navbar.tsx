@@ -156,7 +156,7 @@ export function Navbar() {
                         onClick={() => setIsProfileMenuOpen(false)}
                       >
                         <User className="w-4 h-4" />
-                        <span className="text-sm font-medium">My List</span>
+                        <span className="text-sm font-medium">{t.nav.myList}</span>
                       </Link>
                       <button
                         onClick={() => {
@@ -166,7 +166,7 @@ export function Navbar() {
                         className="flex items-center gap-3 w-full px-4 py-3 text-foreground-muted hover:text-destructive hover:bg-destructive/10 transition-colors border-t border-border"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span className="text-sm font-medium">Sign Out</span>
+                        <span className="text-sm font-medium">{t.nav.signOut}</span>
                       </button>
                     </div>
                   </>
@@ -232,7 +232,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <User className="w-5 h-5" />
-                    <span className="font-medium">My List</span>
+                    <span className="font-medium">{t.nav.myList}</span>
                   </Link>
                   <button
                     onClick={() => {
@@ -242,7 +242,7 @@ export function Navbar() {
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-foreground-muted hover:text-destructive transition-colors"
                   >
                     <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Sign Out</span>
+                    <span className="font-medium">{t.nav.signOut}</span>
                   </button>
                 </>
               ) : (

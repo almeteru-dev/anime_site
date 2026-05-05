@@ -129,7 +129,7 @@ export default function MyListPage() {
               <Heart className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">My Collections</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">{t.profile.collections}</h1>
               <p className="text-sm text-foreground-muted">{user?.email || ""}</p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function MyListPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background-secondary/50 px-4 py-2 text-sm font-medium text-foreground-muted hover:text-foreground hover:border-primary/40 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t.common.back}
           </Link>
         </div>
 
