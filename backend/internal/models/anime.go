@@ -5,30 +5,32 @@ import (
 )
 
 type Anime struct {
-	ID            int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	StudioID      *int      `json:"studio_id"`
-	StatusID      *int      `json:"status_id"`
-	SourceID      *int      `json:"source_id"`
-	Name          string    `gorm:"not null;type:varchar(255)" json:"name"`
-	Kind          string    `gorm:"type:varchar(50)" json:"kind"`
-	KindRUName         *string           `gorm:"-" json:"kind_ru_name,omitempty"`
-	URL           string    `gorm:"unique;not null;type:varchar(255)" json:"url"`
-	Duration      int       `json:"duration"`
-	Rating        string    `gorm:"type:varchar(50)" json:"rating"`
-	ImageURL      string    `gorm:"column:image;type:varchar(500)" json:"image_url"`
-	TrailerURL    string    `gorm:"type:varchar(1000)" json:"trailer_url"`
-	Score         float64   `gorm:"type:decimal(3,2);default:0" json:"score"`
-	Episodes      int       `gorm:"default:0" json:"episodes"`
-	EpisodesAired int       `gorm:"default:0" json:"episodes_aired"`
+	ID            int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	StudioID      *int       `json:"studio_id"`
+	StatusID      *int       `json:"status_id"`
+	SourceID      *int       `json:"source_id"`
+	Name          string     `gorm:"not null;type:varchar(255)" json:"name"`
+	IsFeatured    bool       `gorm:"not null;default:false;index" json:"is_featured"`
+	FeaturedAt    *time.Time `gorm:"index" json:"featured_at"`
+	Kind          string     `gorm:"type:varchar(50)" json:"kind"`
+	KindRUName    *string    `gorm:"-" json:"kind_ru_name,omitempty"`
+	URL           string     `gorm:"unique;not null;type:varchar(255)" json:"url"`
+	Duration      int        `json:"duration"`
+	Rating        string     `gorm:"type:varchar(50)" json:"rating"`
+	ImageURL      string     `gorm:"column:image;type:varchar(500)" json:"image_url"`
+	TrailerURL    string     `gorm:"type:varchar(1000)" json:"trailer_url"`
+	Score         float64    `gorm:"type:decimal(3,2);default:0" json:"score"`
+	Episodes      int        `gorm:"default:0" json:"episodes"`
+	EpisodesAired int        `gorm:"default:0" json:"episodes_aired"`
 	AiredOn       *time.Time `json:"aired_on"`
 	ReleasedOn    *time.Time `json:"released_on"`
 
-	Studio   *Studio   `gorm:"foreignKey:StudioID" json:"studio,omitempty"`
-	Status   *Status   `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	Source   *Source   `gorm:"foreignKey:SourceID" json:"source,omitempty"`
-	Genres   []Genre   `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
+	Studio       *Studio            `gorm:"foreignKey:StudioID" json:"studio,omitempty"`
+	Status       *Status            `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	Source       *Source            `gorm:"foreignKey:SourceID" json:"source,omitempty"`
+	Genres       []Genre            `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
 	Translations []AnimeTranslation `gorm:"foreignKey:AnimeID" json:"translations,omitempty"`
-	EpisodeItems []Episode `gorm:"foreignKey:AnimeID" json:"episode_items,omitempty"`
+	EpisodeItems []Episode          `gorm:"foreignKey:AnimeID" json:"episode_items,omitempty"`
 }
 
 func (Anime) TableName() string {

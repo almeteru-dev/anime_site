@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders, Settings } from "lucide-react"
+import { LayoutGrid, PlusCircle, LogOut, Shield, List, Users, Tags, Sliders, Settings, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { roleLevel } from "@/lib/roles"
@@ -37,15 +37,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }
 
-  const nav = [
+  type NavItem = { href: string; label: string; icon: any; disabled?: boolean }
+
+  const nav: NavItem[] = [
     { href: "/admin/animes", label: "Anime", icon: List },
     { href: "/admin/animes/new", label: "Add Anime", icon: PlusCircle },
     { href: "/admin/schedule", label: "Schedule", icon: Sliders },
     { href: "/admin/kinds-ratings", label: "Kinds & Ratings", icon: Sliders },
     { href: "/admin/video-labels", label: "Video Labels", icon: Tags },
+    { href: "/admin/faq", label: "FAQ", icon: HelpCircle },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/settings", label: "Settings", icon: Settings },
-    { href: "/admin/genres", label: "Genres", icon: Tags, disabled: true },
   ]
 
   const visibleNav = nav.filter((item) => {

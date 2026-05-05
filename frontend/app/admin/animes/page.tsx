@@ -2,16 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { PlusCircle, Trash2, Pencil, Search } from "lucide-react"
+import { PlusCircle, Trash2, Pencil, Search, Star } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/contexts/auth-context"
-import { adminDeleteAnime, adminGetMeta, getAnimes, getLocalizedTitle, type AdminMeta, type Anime } from "@/lib/api"
+import {
+  adminDeleteAnime,
+  adminGetMeta,
+  adminListFeaturedAnimes,
+  adminSetAnimeFeatured,
+  getAnimes,
+  getLocalizedTitle,
+  type AdminMeta,
+  type Anime,
+} from "@/lib/api"
 
 export default function AdminAnimesPage() {
   const { token, user } = useAuth()
   const { locale } = useLanguage()
   const [animes, setAnimes] = useState<Anime[] | null>(null)
   const [meta, setMeta] = useState<AdminMeta | null>(null)
+  const [featuredIds, setFeaturedIds] = useState<Set<number>>(new Set())
   const [query, setQuery] = useState("")
   const [error, setError] = useState<string | null>(null)
 
@@ -32,6 +42,23 @@ export default function AdminAnimesPage() {
         if (mounted) setMeta(m)
       } catch (e: any) {
         if (mounted) setError(e.message || "Failed to load metadata")
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [token])
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      if (!token) return
+      try {
+        const featured = await adminListFeaturedAnimes({ token })
+        if (!mounted) return
+        setFeaturedIds(new Set((featured || []).map((a) => a.id)))
+      } catch {
+        ;
       }
     })()
     return () => {
@@ -83,6 +110,30 @@ export default function AdminAnimesPage() {
       setAnimes((prev) => (prev ? prev.filter((a) => String(a.id) !== id) : prev))
     } catch (e: any) {
       setError(e.message || "Failed to delete")
+    }
+  }
+
+  const featuredCount = featuredIds.size
+
+  const toggleFeatured = async (a: Anime) => {
+    if (!token) return
+    const currently = featuredIds.has(a.id) || !!a.is_featured
+    const next = !currently
+    if (next && featuredCount >= 5 && !currently) {
+      setError("Maximum of 5 featured anime reached")
+      return
+    }
+    try {
+      const updated = await adminSetAnimeFeatured({ token, id: String(a.id), featured: next })
+      setAnimes((prev) => (prev ? prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)) : prev))
+      setFeaturedIds((prev) => {
+        const n = new Set(prev)
+        if (updated.is_featured) n.add(updated.id)
+        else n.delete(updated.id)
+        return n
+      })
+    } catch (e: any) {
+      setError(e.message || "Failed to update featured")
     }
   }
 
@@ -188,6 +239,7 @@ export default function AdminAnimesPage() {
               <thead className="text-xs text-foreground-subtle">
                 <tr className="border-b border-border/50">
                   <th className="text-left font-semibold px-4 py-3">Title</th>
+                  <th className="text-left font-semibold px-4 py-3">Featured</th>
                   <th className="text-left font-semibold px-4 py-3">Slug</th>
                   <th className="text-left font-semibold px-4 py-3">Status</th>
                   <th className="text-left font-semibold px-4 py-3">Year</th>
@@ -198,6 +250,22 @@ export default function AdminAnimesPage() {
                 {filtered.map((a) => (
                   <tr key={a.id} className="border-b border-border/40 hover:bg-background-tertiary/30">
                     <td className="px-4 py-3 font-medium text-foreground">{getLocalizedTitle(a, locale)}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleFeatured(a)}
+                        disabled={!featuredIds.has(a.id) && featuredCount >= 5}
+                        className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                          featuredIds.has(a.id) || a.is_featured
+                            ? "border-primary/40 bg-primary/10 text-foreground"
+                            : "border-border/60 bg-background text-foreground-muted hover:text-foreground"
+                        } ${!featuredIds.has(a.id) && featuredCount >= 5 ? "opacity-60 cursor-not-allowed" : ""}`}
+                        title={!featuredIds.has(a.id) && featuredCount >= 5 ? "Max 5" : ""}
+                      >
+                        <Star className="w-3.5 h-3.5" />
+                        {(featuredIds.has(a.id) || a.is_featured) ? "Featured" : "Feature"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-foreground-muted">{a.url}</td>
                     <td className="px-4 py-3 text-foreground-muted">{a.status?.name || ""}</td>
                     <td className="px-4 py-3 text-foreground-muted">{a.aired_on ? new Date(a.aired_on).getFullYear() : ""}</td>

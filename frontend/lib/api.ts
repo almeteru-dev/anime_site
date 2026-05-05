@@ -62,6 +62,16 @@ export interface VideoLabel {
   updated_at?: string
 }
 
+export interface FAQItem {
+  id: number
+  question: string
+  answer: string
+  is_published: boolean
+  priority: number
+  created_at?: string
+  updated_at?: string
+}
+
 export interface VideoSource {
   id: number
   episode_id: number
@@ -115,6 +125,8 @@ export interface Anime {
   status_id: number | null
   source_id: number | null
   name: string
+  is_featured?: boolean
+  featured_at?: string | null
   kind: string
   kind_ru_name?: string | null
   url: string
@@ -613,6 +625,14 @@ export async function getAnimes(params?: GetAnimesParams): Promise<Anime[]> {
   })
   if (!res.ok) {
     throw new Error("Failed to fetch animes")
+  }
+  return res.json()
+}
+
+export async function getFeaturedAnimes(): Promise<Anime[]> {
+  const res = await fetch(`${API_URL}/animes/featured`, { cache: "no-store" })
+  if (!res.ok) {
+    throw new Error("Failed to fetch featured animes")
   }
   return res.json()
 }
@@ -1386,6 +1406,106 @@ export async function adminDeleteAnime(params: {
     maybeForceLogout(data)
     throw new Error(data.error || "Failed to delete anime")
   }
+}
+
+export async function adminListFAQ(params: { token: string }): Promise<FAQItem[]> {
+  const res = await fetch(`${API_URL}/admin/faq`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ([]))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to fetch faq")
+  }
+  return data as FAQItem[]
+}
+
+export async function adminCreateFAQ(params: {
+  token: string
+  input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
+}): Promise<FAQItem> {
+  const res = await fetch(`${API_URL}/admin/faq`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify(params.input),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to create faq")
+  }
+  return data as FAQItem
+}
+
+export async function adminUpdateFAQ(params: {
+  token: string
+  id: number
+  input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
+}): Promise<FAQItem> {
+  const res = await fetch(`${API_URL}/admin/faq/${params.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify(params.input),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to update faq")
+  }
+  return data as FAQItem
+}
+
+export async function adminDeleteFAQ(params: { token: string; id: number }): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/faq/${params.id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${params.token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to delete faq")
+  }
+}
+
+export async function adminListFeaturedAnimes(params: { token: string }): Promise<Anime[]> {
+  const res = await fetch(`${API_URL}/admin/animes/featured`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+    cache: "no-store",
+  })
+  const data = await res.json().catch(() => ([]))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to fetch featured animes")
+  }
+  return data as Anime[]
+}
+
+export async function adminSetAnimeFeatured(params: {
+  token: string
+  id: string
+  featured: boolean
+}): Promise<Anime> {
+  const res = await fetch(`${API_URL}/admin/animes/${params.id}/featured`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${params.token}`,
+    },
+    body: JSON.stringify({ featured: params.featured }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    maybeForceLogout(data as any)
+    throw new Error((data as any)?.error || "Failed to update featured status")
+  }
+  return data as Anime
 }
 
 export function getLocalizedTitle(anime: Anime, locale: string): string {
