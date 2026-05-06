@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -36,14 +37,16 @@ func getResendClient() (*resend.Client, error) {
 	return resendClient, nil
 }
 
-func SendVerificationEmail(toEmail string, verificationLink string) error {
+func sendEmail(toEmail string, subject string, htmlBody string) error {
 	toEmail = strings.TrimSpace(toEmail)
-	verificationLink = strings.TrimSpace(verificationLink)
 	if toEmail == "" {
 		return errors.New("toEmail is required")
 	}
-	if verificationLink == "" {
-		return errors.New("verificationLink is required")
+	if strings.TrimSpace(subject) == "" {
+		return errors.New("subject is required")
+	}
+	if strings.TrimSpace(htmlBody) == "" {
+		return errors.New("htmlBody is required")
 	}
 
 	client, err := getResendClient()
@@ -51,17 +54,63 @@ func SendVerificationEmail(toEmail string, verificationLink string) error {
 		return err
 	}
 
-	safeLink := html.EscapeString(verificationLink)
 	params := &resend.SendEmailRequest{
 		From:    resendFrom,
 		To:      []string{toEmail},
-		Subject: "Verify your email address",
-		Html:    fmt.Sprintf("<p>Please click the link below to verify your email address.</p><p><a href=\"%s\">%s</a></p>", safeLink, safeLink),
+		Subject: subject,
+		Html:    htmlBody,
 	}
 
-	_, err = client.Emails.Send(params)
+	resp, err := client.Emails.Send(params)
 	if err != nil {
-		return fmt.Errorf("send verification email: %w", err)
+		return fmt.Errorf("send email (subject=%s): %w", subject, err)
+	}
+	if resp != nil {
+		log.Printf("resend: sent email to=%s subject=%q id=%s", toEmail, subject, resp.Id)
+	} else {
+		log.Printf("resend: sent email to=%s subject=%q", toEmail, subject)
 	}
 	return nil
+}
+
+func SendVerificationEmail(toEmail string, verificationLink string) error {
+	toEmail = strings.TrimSpace(toEmail)
+	verificationLink = strings.TrimSpace(verificationLink)
+	safeLink := html.EscapeString(verificationLink)
+	return sendEmail(
+		toEmail,
+		"Verify your email address",
+		fmt.Sprintf("<p>Please click the link below to verify your email address.</p><p><a href=\"%s\">%s</a></p>", safeLink, safeLink),
+	)
+}
+
+func SendPasswordResetEmail(toEmail string, resetLink string) error {
+	resetLink = strings.TrimSpace(resetLink)
+	if resetLink == "" {
+		return errors.New("resetLink is required")
+	}
+	safeLink := html.EscapeString(resetLink)
+	return sendEmail(
+		toEmail,
+		"Reset your password",
+		fmt.Sprintf("<p>We received a request to reset your password.</p><p><a href=\"%s\">Reset Password</a></p><p>If you didn't request this, you can ignore this email.</p>", safeLink),
+	)
+}
+
+func SendEmailChangeCode(toEmail string, code string, label string) error {
+	code = strings.TrimSpace(code)
+	label = strings.TrimSpace(label)
+	if code == "" {
+		return errors.New("code is required")
+	}
+	if label == "" {
+		label = "email change verification"
+	}
+	safeCode := html.EscapeString(code)
+	safeLabel := html.EscapeString(label)
+	return sendEmail(
+		toEmail,
+		"Your verification code",
+		fmt.Sprintf("<p>Your %s code is:</p><p style=\"font-size: 24px; font-weight: 700; letter-spacing: 2px;\">%s</p><p>This code expires soon.</p>", safeLabel, safeCode),
+	)
 }

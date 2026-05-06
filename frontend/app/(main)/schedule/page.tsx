@@ -6,7 +6,7 @@ import { ReleaseList } from "@/components/schedule/release-list";
 import { CalendarDays } from "lucide-react";
 import { getPublicSettings, getSchedule, type ScheduleItem } from "@/lib/api";
 import { useLanguage } from "@/contexts/language-context";
-import { addDays, formatTimeInTimeZone, formatYMDInTimeZone } from "@/lib/timezone";
+import { addDays, formatTimeInTimeZone, formatYMDInTimeZone, labelForScheduleTimezone } from "@/lib/timezone";
 
 export default function ReleasesPage() {
 	const { locale, t } = useLanguage()
@@ -113,6 +113,9 @@ export default function ReleasesPage() {
             <p className="text-foreground-subtle text-sm sm:text-base">
               {t.schedule.subtitle}
             </p>
+				<div className="mt-2 text-xs text-foreground-muted">
+					{t.schedule.timezone}: {labelForScheduleTimezone(scheduleTimezone)}
+				</div>
           </div>
         </div>
 

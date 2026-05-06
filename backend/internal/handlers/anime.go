@@ -65,7 +65,8 @@ func GetAnimes(c *gin.Context) {
 	if q != "" {
 		like := "%" + strings.ToLower(q) + "%"
 		db = db.Joins("LEFT JOIN anime_translations at ON at.anime_id = anime.id").
-			Where("LOWER(anime.name) LIKE ? OR LOWER(at.title) LIKE ?", like, like).
+			Joins("LEFT JOIN anime_alt_titles aat ON aat.anime_id = anime.id").
+			Where("LOWER(anime.name) LIKE ? OR LOWER(at.title) LIKE ? OR LOWER(aat.title) LIKE ?", like, like, like).
 			Distinct("anime.*")
 	}
 
@@ -179,7 +180,8 @@ func GetAnimeByID(c *gin.Context) {
 		Preload("Status").
 		Preload("Source").
 		Preload("Genres").
-		Preload("Translations.Language")
+		Preload("Translations.Language").
+		Preload("AltTitles")
 
 	var err error
 
@@ -220,15 +222,15 @@ func GetAnimeByID(c *gin.Context) {
 	}
 
 	type VideoSourceItem struct {
-		ID        int64                  `json:"id"`
-		LabelID   *int64                 `json:"label_id"`
-		Label     string                 `json:"label"`
-		Type      models.VideoSourceType `json:"type"`
-		URL       string                 `json:"url"`
-		IsDefault bool                   `json:"is_default"`
-		IsActive  bool                   `json:"is_active"`
-		SortOrder int64                  `json:"sort_order"`
-		VideoLabel *VideoLabelItem       `json:"video_label,omitempty"`
+		ID         int64                  `json:"id"`
+		LabelID    *int64                 `json:"label_id"`
+		Label      string                 `json:"label"`
+		Type       models.VideoSourceType `json:"type"`
+		URL        string                 `json:"url"`
+		IsDefault  bool                   `json:"is_default"`
+		IsActive   bool                   `json:"is_active"`
+		SortOrder  int64                  `json:"sort_order"`
+		VideoLabel *VideoLabelItem        `json:"video_label,omitempty"`
 	}
 
 	type EpisodeItem struct {
@@ -267,14 +269,14 @@ func GetAnimeByID(c *gin.Context) {
 				vl = &VideoLabelItem{ID: s.VideoLabel.ID, Name: s.VideoLabel.Name, IsExternalPlayer: s.VideoLabel.IsExternalPlayer}
 			}
 			sources = append(sources, VideoSourceItem{
-				ID:        s.ID,
-				LabelID:   s.LabelID,
-				Label:     s.Label,
-				Type:      s.Type,
-				URL:       s.URL,
-				IsDefault: s.IsDefault,
-				IsActive:  s.IsActive,
-				SortOrder: int64(s.SortOrder),
+				ID:         s.ID,
+				LabelID:    s.LabelID,
+				Label:      s.Label,
+				Type:       s.Type,
+				URL:        s.URL,
+				IsDefault:  s.IsDefault,
+				IsActive:   s.IsActive,
+				SortOrder:  int64(s.SortOrder),
 				VideoLabel: vl,
 			})
 		}

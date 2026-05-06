@@ -22,6 +22,10 @@ type AdminSetPrivateModeInput struct {
 	Enabled bool `json:"enabled"`
 }
 
+type AdminSetRegistrationDisabledInput struct {
+	Enabled bool `json:"enabled"`
+}
+
 type AdminSetScheduleTimezoneInput struct {
 	Timezone string `json:"timezone" binding:"required"`
 }
@@ -336,6 +340,46 @@ func AdminSetPrivateMode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Updated", "enabled": input.Enabled})
 }
 
+func AdminSetRegistrationDisabled(c *gin.Context) {
+	roleAny, _ := c.Get("role")
+	role, _ := roleAny.(string)
+	if role != "root" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Root access required"})
+		return
+	}
+
+	var input AdminSetRegistrationDisabledInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	val := "false"
+	if input.Enabled {
+		val = "true"
+	}
+
+	setting := models.AppSetting{Key: "registration_disabled", Value: val, UpdatedAt: time.Now()}
+	if err := app.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+	}).Create(&setting).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update registration setting"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Updated", "enabled": input.Enabled})
+}
+
+func isRegistrationDisabled() bool {
+	var s models.AppSetting
+	if err := app.DB.First(&s, "key = ?", "registration_disabled").Error; err == nil {
+		v := strings.TrimSpace(s.Value)
+		return strings.EqualFold(v, "true") || v == "1"
+	}
+	return false
+}
+
 func GetPublicSettings(c *gin.Context) {
 	enabled := false
 	var s models.AppSetting
@@ -344,6 +388,9 @@ func GetPublicSettings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"private_mode":      enabled,
+		"registration_disabled": isRegistrationDisabled(),
 		"schedule_timezone": getScheduleTimezone(),
+		"footer_contact_url": getFooterContactURL(),
+		"footer_social_links": getFooterSocialLinks(),
 	})
 }

@@ -14,7 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (token: string, user: User) => void
+  login: (token: string, user: User, rememberMe: boolean) => void
   logout: () => void
   isLoading: boolean
 }
@@ -28,14 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token')
-    const savedUser = localStorage.getItem('user')
+    const savedToken = sessionStorage.getItem('token') || localStorage.getItem('token')
+    const savedUser = sessionStorage.getItem('user') || localStorage.getItem('user')
 
     if (savedToken && savedUser) {
       setToken(savedToken)
       setUser(JSON.parse(savedUser))
-
-	  document.cookie = `auth_token=${encodeURIComponent(savedToken)}; Path=/; SameSite=Lax`
     }
     setIsLoading(false)
   }, [])
@@ -56,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('user')
 
 	  document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
       router.push('/login')
@@ -65,13 +65,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('auth:force-logout', handler)
   }, [router])
 
-  const login = (newToken: string, newUser: User) => {
+  const login = (newToken: string, newUser: User, rememberMe: boolean) => {
     setToken(newToken)
     setUser(newUser)
-    localStorage.setItem('token', newToken)
-    localStorage.setItem('user', JSON.stringify(newUser))
 
-	document.cookie = `auth_token=${encodeURIComponent(newToken)}; Path=/; SameSite=Lax`
+	if (rememberMe) {
+		localStorage.setItem('token', newToken)
+		localStorage.setItem('user', JSON.stringify(newUser))
+		sessionStorage.removeItem('token')
+		sessionStorage.removeItem('user')
+	} else {
+		sessionStorage.setItem('token', newToken)
+		sessionStorage.setItem('user', JSON.stringify(newUser))
+		localStorage.removeItem('token')
+		localStorage.removeItem('user')
+	}
 
 	window.location.assign('/')
   }
@@ -81,6 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+	sessionStorage.removeItem('token')
+	sessionStorage.removeItem('user')
 
 	document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
     router.push('/login')

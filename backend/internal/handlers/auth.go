@@ -39,6 +39,7 @@ type LoginInput struct {
 	Email      string `json:"email"`
 	Username   string `json:"username"`
 	Password   string `json:"password" binding:"required"`
+	RememberMe bool   `json:"remember_me"`
 }
 
 func validatePassword(password string) error {
@@ -80,6 +81,11 @@ func generateToken(length int) string {
 }
 
 func Register(c *gin.Context) {
+	if isRegistrationDisabled() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Registration is disabled"})
+		return
+	}
+
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -262,7 +268,11 @@ func ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Password reset link for user %s: http://localhost:3000/reset-password?token=%s", user.Email, token)
+	resetLink := publicWebBaseURL() + "/reset-password?token=" + url.QueryEscape(token)
+	if err := service.SendPasswordResetEmail(user.Email, resetLink); err != nil {
+		log.Printf("failed to send password reset email to %s: %v", user.Email, err)
+		_ = app.DB.Delete(&vc).Error
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "If your email exists in our system, you will receive a reset link."})
 }
@@ -352,11 +362,16 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	exp := time.Now().Add(time.Hour * 72)
+	if input.RememberMe {
+		exp = time.Now().Add(time.Hour * 24 * 30)
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":       user.ID,
 		"role":          user.Role,
 		"token_version": user.TokenVersion,
-		"exp":           time.Now().Add(time.Hour * 72).Unix(),
+		"exp":           exp.Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -364,6 +379,18 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+
+	ck := &http.Cookie{
+		Name:     "auth_token",
+		Value:    url.QueryEscape(tokenString),
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure:   c.Request.TLS != nil,
+	}
+	if input.RememberMe {
+		ck.MaxAge = 60 * 60 * 24 * 30
+	}
+	http.SetCookie(c.Writer, ck)
 
 	c.JSON(http.StatusOK, gin.H{
 		"token": tokenString,

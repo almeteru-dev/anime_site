@@ -64,6 +64,7 @@ DROP TABLE IF EXISTS studio_translations CASCADE;
 DROP TABLE IF EXISTS source_translations CASCADE;
 DROP TABLE IF EXISTS status_translations CASCADE;
 DROP TABLE IF EXISTS anime_translations CASCADE;
+DROP TABLE IF EXISTS anime_alt_titles CASCADE;
 DROP TABLE IF EXISTS episodes CASCADE;
 DROP TABLE IF EXISTS voice_groups CASCADE;
 DROP TABLE IF EXISTS rating_options CASCADE;

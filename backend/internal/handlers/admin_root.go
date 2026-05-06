@@ -69,15 +69,40 @@ func AdminTransferRoot(c *gin.Context) {
 	}
 
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.User{}).Where("id = ?", target.ID).Updates(map[string]any{"role": "root"}).Error; err != nil {
-			return err
+		res := tx.Exec(`
+			WITH req AS (
+				SELECT id FROM users WHERE id = ? AND role = 'root' FOR UPDATE
+			), tgt AS (
+				SELECT id FROM users WHERE id = ? AND role = 'admin' FOR UPDATE
+			)
+			UPDATE users
+			SET
+				role = CASE
+					WHEN id = ? THEN 'admin'
+					WHEN id = ? THEN 'root'
+					ELSE role
+				END,
+				token_version = CASE
+					WHEN id = ? THEN token_version + 1
+					ELSE token_version
+				END
+			WHERE id IN (?, ?)
+			  AND EXISTS (SELECT 1 FROM req)
+			  AND EXISTS (SELECT 1 FROM tgt)
+		`, requesterID, target.ID, requesterID, target.ID, requesterID, requesterID, target.ID)
+		if res.Error != nil {
+			return res.Error
 		}
-		if err := tx.Model(&models.User{}).Where("id = ?", requesterID).Updates(map[string]any{"role": "admin", "token_version": gorm.Expr("token_version + 1")}).Error; err != nil {
-			return err
+		if res.RowsAffected != 2 {
+			return gorm.ErrRecordNotFound
 		}
 		return nil
 	})
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Root transfer failed (roles changed concurrently)"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to transfer root"})
 		return
 	}

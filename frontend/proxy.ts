@@ -4,6 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 type PublicSettings = {
   private_mode: boolean
+  registration_disabled: boolean
 }
 
 let cached: { value: PublicSettings; fetchedAt: number } | null = null
@@ -19,7 +20,10 @@ async function getPublicSettings(): Promise<PublicSettings> {
     throw new Error("failed")
   }
   const data = (await res.json()) as Partial<PublicSettings>
-  const value = { private_mode: data.private_mode === true }
+  const value = {
+    private_mode: data.private_mode === true,
+    registration_disabled: data.registration_disabled === true,
+  }
   cached = { value, fetchedAt: now }
   return value
 }
@@ -39,6 +43,7 @@ function isAllowedUnauthedPath(pathname: string): boolean {
   return (
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/faq" ||
     pathname === "/privacy" ||
     pathname === "/terms" ||
     pathname === "/cookies" ||
@@ -49,14 +54,22 @@ function isAllowedUnauthedPath(pathname: string): boolean {
   )
 }
 
+function redirectTo(req: NextRequest, pathname: string) {
+  const url = req.nextUrl.clone()
+  url.pathname = pathname
+  url.search = ""
+  return NextResponse.redirect(url)
+}
+
 export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl
+  const { pathname, searchParams } = req.nextUrl
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname === "/favicon.ico") {
     return NextResponse.next()
   }
 
-  const token = req.cookies.get("auth_token")?.value || ""
+  const tokenCookie = req.cookies.get("auth_token")?.value || ""
+  const token = tokenCookie ? decodeURIComponent(tokenCookie) : ""
   const hasAuth = !!token
 
   if (pathname.startsWith("/admin")) {
@@ -84,11 +97,29 @@ export async function proxy(req: NextRequest) {
 
   try {
     const settings = await getPublicSettings()
+
+    if (settings.registration_disabled && pathname === "/register") {
+      return redirectTo(req, "/login")
+    }
+
+    if (pathname === "/forgot-password") {
+      if (!searchParams.get("from")) {
+        return redirectTo(req, "/login")
+      }
+    }
+    if (pathname === "/reset-password") {
+      if (!searchParams.get("token")) {
+        return redirectTo(req, "/login")
+      }
+    }
+    if (pathname === "/verify-email") {
+      if (!searchParams.get("email")) {
+        return redirectTo(req, "/login")
+      }
+    }
+
     if (settings.private_mode && !hasAuth && !isAllowedUnauthedPath(pathname)) {
-      const url = req.nextUrl.clone()
-      url.pathname = "/login"
-      url.search = ""
-      return NextResponse.redirect(url)
+      return redirectTo(req, "/login")
     }
   } catch {
     return NextResponse.next()

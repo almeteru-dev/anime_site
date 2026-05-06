@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Save, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, Save, Image as ImageIcon, Plus, X } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import {
   adminGetMeta,
@@ -94,6 +94,7 @@ export default function AdminEditAnimePage() {
   const [form, setForm] = useState({
     title_ru: "",
     title_en_romaji: "",
+    alt_titles: [] as string[],
     description_ru: "",
     description_en: "",
     poster_url: "",
@@ -135,6 +136,7 @@ export default function AdminEditAnimePage() {
         setForm({
           title_ru: ru?.title || "",
           title_en_romaji: en?.title || a.name,
+          alt_titles: (a.alt_titles || []).map((x) => x.title).slice(0, 5),
           description_ru: ru?.description || "",
           description_en: en?.description || "",
           poster_url: a.image_url || a.image || "",
@@ -596,6 +598,7 @@ export default function AdminEditAnimePage() {
           genre_ids: form.genre_ids,
           title_ru: form.title_ru,
           title_en_romaji: form.title_en_romaji,
+          alt_titles: form.alt_titles,
           description_ru: form.description_ru,
           description_en: form.description_en,
         },
@@ -684,6 +687,53 @@ export default function AdminEditAnimePage() {
                 className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
               />
             </div>
+
+			<div className="space-y-2 lg:col-span-2">
+				<div className="flex items-center justify-between gap-3">
+					<label className="text-xs font-semibold text-foreground-muted">Alternative Titles (manual, up to 5)</label>
+					<button
+						type="button"
+						disabled={form.alt_titles.length >= 5}
+						onClick={() =>
+							setForm((p) => ({ ...p, alt_titles: p.alt_titles.length >= 5 ? p.alt_titles : [...p.alt_titles, ""] }))
+						}
+						className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-background px-3 py-1.5 text-xs font-semibold text-foreground-muted hover:text-foreground hover:border-primary/40 disabled:opacity-60 disabled:hover:border-border/60"
+					>
+						<Plus className="w-3.5 h-3.5" />
+						Add
+					</button>
+				</div>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+					{form.alt_titles.map((title, idx) => (
+						<div key={idx} className="relative">
+							<input
+								value={title}
+								onChange={(e) => {
+									const v = e.target.value
+									setForm((p) => {
+										const next = p.alt_titles.slice()
+										next[idx] = v
+										return { ...p, alt_titles: next }
+									})
+								}}
+								placeholder="e.g. Alternative name"
+								className="w-full h-11 rounded-xl bg-background border border-border/60 pl-4 pr-10 text-sm text-foreground outline-none focus:border-primary/50"
+							/>
+							<button
+								type="button"
+								onClick={() =>
+									setForm((p) => ({ ...p, alt_titles: p.alt_titles.filter((_, i) => i !== idx) }))
+								}
+								className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+								aria-label="Remove"
+							>
+								<X className="w-4 h-4" />
+							</button>
+						</div>
+					))}
+				</div>
+				<div className="text-xs text-foreground-subtle">These titles are searched as-is (no translation).</div>
+			</div>
 
             <div className="space-y-2 lg:col-span-2">
               <label className="text-xs font-semibold text-foreground-muted">Description (RU)</label>

@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, User, Mail, Lock, ShieldCheck, Eye, EyeOff, Check } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useRouter } from "next/navigation"
 import { PasswordChecklist } from "@/components/password-checklist"
+import { getPublicSettings } from "@/lib/api"
 
 export default function RegisterPage() {
   const { t } = useLanguage()
@@ -24,6 +25,24 @@ export default function RegisterPage() {
   })
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({})
+
+	useEffect(() => {
+		let mounted = true
+		;(async () => {
+			try {
+				const s = await getPublicSettings()
+				if (!mounted) return
+				if (s.registration_disabled) {
+					router.replace("/login")
+				}
+			} catch {
+				;
+			}
+		})()
+		return () => {
+			mounted = false
+		}
+	}, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

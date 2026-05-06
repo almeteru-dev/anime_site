@@ -145,9 +145,18 @@ export interface Anime {
   source: Source | null
   genres: Genre[] | null
   translations: AnimeTranslation[] | null
+	alt_titles?: { id: number; title: string }[] | null
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+export type AnimeSearchItem = {
+	id: number
+	url: string
+	image_url: string
+	title_ru: string
+	title_en: string
+}
 
 type ApiErrorPayload = {
   error?: string
@@ -320,18 +329,97 @@ export async function adminSetPrivateMode(params: { token: string; enabled: bool
 	}
 }
 
-export async function getPublicSettings(): Promise<{ private_mode: boolean; schedule_timezone: string }> {
+export async function adminSetRegistrationDisabled(params: { token: string; enabled: boolean }): Promise<void> {
+	const res = await fetch(`${API_URL}/admin/settings/registration-disabled`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({ enabled: params.enabled }),
+	})
+
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to update registration setting")
+	}
+}
+
+export type FooterToggleLink = {
+	enabled: boolean
+	url: string
+}
+
+export type FooterSocialLinks = {
+	telegram_url: string
+	vk: FooterToggleLink
+	twitter: FooterToggleLink
+	instagram: FooterToggleLink
+	whatsapp: FooterToggleLink
+}
+
+export async function adminSetFooterLinks(params: {
+	token: string
+	contact_url: string
+	social_links: FooterSocialLinks
+}): Promise<void> {
+	const res = await fetch(`${API_URL}/admin/settings/footer-links`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${params.token}`,
+		},
+		body: JSON.stringify({ contact_url: params.contact_url, social_links: params.social_links }),
+	})
+
+	const data = await res.json().catch(() => ({}))
+	if (!res.ok) {
+		maybeForceLogout(data)
+		throw new Error(data.error || "Failed to update footer settings")
+	}
+}
+
+export async function getPublicSettings(): Promise<{
+	private_mode: boolean
+	registration_disabled: boolean
+	schedule_timezone: string
+	footer_contact_url: string
+	footer_social_links: FooterSocialLinks
+}> {
 	const res = await fetch(`${API_URL}/settings/public`, { cache: "no-store" })
 	if (!res.ok) {
 		throw new Error("Failed to fetch settings")
 	}
 	const data = await res.json().catch(() => ({}))
+	const footerSocial = (data.footer_social_links || {}) as Partial<FooterSocialLinks>
 	return {
 		private_mode: data.private_mode === true,
+		registration_disabled: data.registration_disabled === true,
 		schedule_timezone:
 			typeof data.schedule_timezone === "string" && data.schedule_timezone.trim()
 				? data.schedule_timezone.trim()
 				: "Etc/GMT-5",
+		footer_contact_url: typeof data.footer_contact_url === "string" ? data.footer_contact_url : "",
+		footer_social_links: {
+			telegram_url: typeof footerSocial.telegram_url === "string" ? footerSocial.telegram_url : "https://t.me/",
+			vk: {
+				enabled: !!footerSocial.vk?.enabled,
+				url: typeof footerSocial.vk?.url === "string" ? footerSocial.vk?.url : "",
+			},
+			twitter: {
+				enabled: !!footerSocial.twitter?.enabled,
+				url: typeof footerSocial.twitter?.url === "string" ? footerSocial.twitter?.url : "",
+			},
+			instagram: {
+				enabled: !!footerSocial.instagram?.enabled,
+				url: typeof footerSocial.instagram?.url === "string" ? footerSocial.instagram?.url : "",
+			},
+			whatsapp: {
+				enabled: !!footerSocial.whatsapp?.enabled,
+				url: typeof footerSocial.whatsapp?.url === "string" ? footerSocial.whatsapp?.url : "",
+			},
+		},
 	}
 }
 
@@ -627,6 +715,28 @@ export async function getAnimes(params?: GetAnimesParams): Promise<Anime[]> {
     throw new Error("Failed to fetch animes")
   }
   return res.json()
+}
+
+export async function searchAnimes(params: { q: string }): Promise<AnimeSearchItem[]> {
+	const q = params.q.trim()
+	if (q.length < 2) return []
+	const sp = new URLSearchParams()
+	sp.set("q", q)
+	const res = await fetch(`${API_URL}/search/animes?${sp.toString()}`, { cache: "no-store" })
+	const data = await res.json().catch(() => ([]))
+	if (!res.ok) {
+		throw new Error((data as any)?.error || "Failed to search")
+	}
+	return data as AnimeSearchItem[]
+}
+
+export async function getPublicFAQ(): Promise<FAQItem[]> {
+	const res = await fetch(`${API_URL}/faq`, { cache: "no-store" })
+	const data = await res.json().catch(() => ([]))
+	if (!res.ok) {
+		throw new Error((data as any)?.error || "Failed to fetch faq")
+	}
+	return data as FAQItem[]
 }
 
 export async function getFeaturedAnimes(): Promise<Anime[]> {
@@ -1341,6 +1451,7 @@ export interface AdminCreateAnimeInput {
   title_en_romaji: string
   description_ru?: string
   description_en?: string
+	alt_titles?: string[]
 }
 
 export async function adminCreateAnime(params: {

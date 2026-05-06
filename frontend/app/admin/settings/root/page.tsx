@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react"
 import { Eye, EyeOff, Save, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { adminPurgeOldSchedules, adminSetDefaultPassword, adminSetPrivateMode, adminSetScheduleTimezone, getPublicSettings } from "@/lib/api"
+import {
+  adminPurgeOldSchedules,
+  adminSetDefaultPassword,
+  adminSetFooterLinks,
+  adminSetPrivateMode,
+  adminSetRegistrationDisabled,
+  adminSetScheduleTimezone,
+  getPublicSettings,
+  type FooterSocialLinks,
+} from "@/lib/api"
 import { PasswordChecklist } from "@/components/password-checklist"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
@@ -27,8 +36,17 @@ export default function RootSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [privateMode, setPrivateMode] = useState<boolean | null>(null)
+	const [registrationDisabled, setRegistrationDisabled] = useState<boolean | null>(null)
 	const [scheduleTimezone, setScheduleTimezone] = useState<string>("Etc/GMT-5")
 	const [timezoneDraft, setTimezoneDraft] = useState<string>("Etc/GMT-5")
+	const [footerContactURL, setFooterContactURL] = useState<string>("")
+	const [footerSocial, setFooterSocial] = useState<FooterSocialLinks>({
+		telegram_url: "https://t.me/",
+		vk: { enabled: false, url: "" },
+		twitter: { enabled: false, url: "" },
+		instagram: { enabled: false, url: "" },
+		whatsapp: { enabled: false, url: "" },
+	})
 
   const pwError = useMemo(() => (pw.trim() ? clientPasswordError(pw) : null), [pw])
 
@@ -45,8 +63,11 @@ export default function RootSettingsPage() {
         const s = await getPublicSettings()
 			if (!mounted) return
 			setPrivateMode(s.private_mode)
+			setRegistrationDisabled(s.registration_disabled)
 			setScheduleTimezone(s.schedule_timezone)
 			setTimezoneDraft(s.schedule_timezone)
+				setFooterContactURL(s.footer_contact_url || "")
+				setFooterSocial(s.footer_social_links)
       } catch {
         if (mounted) setPrivateMode(null)
       }
@@ -107,6 +128,78 @@ export default function RootSettingsPage() {
       setIsBusy(false)
     }
   }
+
+	const onSaveRegistrationDisabled = async () => {
+		if (!token) return
+		if (me?.role !== "root") {
+			setError("Root access required")
+			return
+		}
+		if (registrationDisabled === null) return
+		setError(null)
+		setNotice(null)
+		setIsBusy(true)
+		try {
+			await adminSetRegistrationDisabled({ token, enabled: registrationDisabled })
+			setNotice("Registration setting updated")
+		} catch (e: any) {
+			setError(e?.message || "Failed to update registration setting")
+		} finally {
+			setIsBusy(false)
+		}
+	}
+
+	const onSaveFooterLinks = async () => {
+		if (!token) return
+		if (me?.role !== "root") {
+			setError("Root access required")
+			return
+		}
+		const telegram = footerSocial.telegram_url.trim()
+		if (!telegram) {
+			setError("Telegram URL is required")
+			return
+		}
+		if (footerSocial.vk.enabled && !footerSocial.vk.url.trim()) {
+			setError("VK URL is required when enabled")
+			return
+		}
+		if (footerSocial.twitter.enabled && !footerSocial.twitter.url.trim()) {
+			setError("Twitter URL is required when enabled")
+			return
+		}
+		if (footerSocial.instagram.enabled && !footerSocial.instagram.url.trim()) {
+			setError("Instagram URL is required when enabled")
+			return
+		}
+		if (footerSocial.whatsapp.enabled && !footerSocial.whatsapp.url.trim()) {
+			setError("WhatsApp URL is required when enabled")
+			return
+		}
+
+		setError(null)
+		setNotice(null)
+		setIsBusy(true)
+		try {
+			await adminSetFooterLinks({
+				token,
+				contact_url: footerContactURL,
+				social_links: {
+					...footerSocial,
+					telegram_url: telegram,
+					vk: { ...footerSocial.vk, url: footerSocial.vk.url.trim() },
+					twitter: { ...footerSocial.twitter, url: footerSocial.twitter.url.trim() },
+					instagram: { ...footerSocial.instagram, url: footerSocial.instagram.url.trim() },
+					whatsapp: { ...footerSocial.whatsapp, url: footerSocial.whatsapp.url.trim() },
+				},
+			})
+			setNotice("Footer links updated")
+		} catch (e: any) {
+			setError(e?.message || "Failed to update footer links")
+		} finally {
+			setIsBusy(false)
+		}
+	}
 
 	const onSaveTimezone = async () => {
 		if (!token) return
@@ -297,6 +390,161 @@ export default function RootSettingsPage() {
           </button>
         </div>
       </div>
+
+			<div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
+				<div className="text-sm font-semibold text-foreground">Disable Registration</div>
+				<div className="mt-1 text-xs text-foreground-muted">When enabled, new user registration is disabled and /register redirects to /login.</div>
+
+				<div className="mt-4 flex items-center justify-between gap-4">
+					<div className="text-sm text-foreground">Disable /register</div>
+					<input
+						type="checkbox"
+						checked={registrationDisabled === true}
+						onChange={(e) => setRegistrationDisabled(e.target.checked)}
+						disabled={isBusy || registrationDisabled === null}
+						className="h-5 w-5"
+					/>
+				</div>
+
+				<div className="mt-4 flex justify-end">
+					<button
+						type="button"
+						onClick={onSaveRegistrationDisabled}
+						disabled={isBusy || registrationDisabled === null}
+						className={cn(
+							"inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90",
+							(isBusy || registrationDisabled === null) && "opacity-60 cursor-not-allowed"
+						)}
+					>
+						<Save className="w-4 h-4" />
+						Save
+					</button>
+				</div>
+			</div>
+
+			<div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
+				<div className="text-sm font-semibold text-foreground">Footer Links</div>
+				<div className="mt-1 text-xs text-foreground-muted">Manage Contacts link and social icons in the footer.</div>
+
+				<div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+					<div className="space-y-2">
+						<label className="text-xs font-semibold text-foreground-muted">Contacts URL</label>
+						<input
+							value={footerContactURL}
+							onChange={(e) => setFooterContactURL(e.target.value)}
+							disabled={isBusy}
+							placeholder="https://... or /contact or #contact"
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<label className="text-xs font-semibold text-foreground-muted">Telegram URL (always active)</label>
+						<input
+							value={footerSocial.telegram_url}
+							onChange={(e) => setFooterSocial((p) => ({ ...p, telegram_url: e.target.value }))}
+							disabled={isBusy}
+							placeholder="https://t.me/..."
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<label className="text-xs font-semibold text-foreground-muted">VK</label>
+							<input
+								type="checkbox"
+								checked={footerSocial.vk.enabled}
+								onChange={(e) => setFooterSocial((p) => ({ ...p, vk: { ...p.vk, enabled: e.target.checked } }))}
+								disabled={isBusy}
+								className="h-5 w-5"
+							/>
+						</div>
+						<input
+							value={footerSocial.vk.url}
+							onChange={(e) => setFooterSocial((p) => ({ ...p, vk: { ...p.vk, url: e.target.value } }))}
+							disabled={isBusy || !footerSocial.vk.enabled}
+							placeholder="https://vk.com/..."
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 disabled:opacity-60"
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<label className="text-xs font-semibold text-foreground-muted">Twitter</label>
+							<input
+								type="checkbox"
+								checked={footerSocial.twitter.enabled}
+								onChange={(e) => setFooterSocial((p) => ({ ...p, twitter: { ...p.twitter, enabled: e.target.checked } }))}
+								disabled={isBusy}
+								className="h-5 w-5"
+							/>
+						</div>
+						<input
+							value={footerSocial.twitter.url}
+							onChange={(e) => setFooterSocial((p) => ({ ...p, twitter: { ...p.twitter, url: e.target.value } }))}
+							disabled={isBusy || !footerSocial.twitter.enabled}
+							placeholder="https://twitter.com/..."
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 disabled:opacity-60"
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<label className="text-xs font-semibold text-foreground-muted">Instagram</label>
+							<input
+								type="checkbox"
+								checked={footerSocial.instagram.enabled}
+								onChange={(e) => setFooterSocial((p) => ({ ...p, instagram: { ...p.instagram, enabled: e.target.checked } }))}
+								disabled={isBusy}
+								className="h-5 w-5"
+							/>
+						</div>
+						<input
+							value={footerSocial.instagram.url}
+							onChange={(e) => setFooterSocial((p) => ({ ...p, instagram: { ...p.instagram, url: e.target.value } }))}
+							disabled={isBusy || !footerSocial.instagram.enabled}
+							placeholder="https://instagram.com/..."
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 disabled:opacity-60"
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<label className="text-xs font-semibold text-foreground-muted">WhatsApp</label>
+							<input
+								type="checkbox"
+								checked={footerSocial.whatsapp.enabled}
+								onChange={(e) => setFooterSocial((p) => ({ ...p, whatsapp: { ...p.whatsapp, enabled: e.target.checked } }))}
+								disabled={isBusy}
+								className="h-5 w-5"
+							/>
+						</div>
+						<input
+							value={footerSocial.whatsapp.url}
+							onChange={(e) => setFooterSocial((p) => ({ ...p, whatsapp: { ...p.whatsapp, url: e.target.value } }))}
+							disabled={isBusy || !footerSocial.whatsapp.enabled}
+							placeholder="https://wa.me/..."
+							className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 disabled:opacity-60"
+						/>
+					</div>
+				</div>
+
+				<div className="mt-4 flex justify-end">
+					<button
+						type="button"
+						onClick={onSaveFooterLinks}
+						disabled={isBusy}
+						className={cn(
+							"inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90",
+							isBusy && "opacity-60 cursor-not-allowed"
+						)}
+					>
+						<Save className="w-4 h-4" />
+						Save
+					</button>
+				</div>
+			</div>
 
 		<div className="rounded-2xl border border-border/60 bg-background-secondary/40 p-5">
 			<div className="text-sm font-semibold text-foreground">Schedule cleanup</div>

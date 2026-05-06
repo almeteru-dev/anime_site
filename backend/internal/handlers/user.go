@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"github.com/seva/animevista/internal/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -145,7 +146,13 @@ func RequestOldEmailCode(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Verification code for OLD email %s: %s", user.Email, code)
+	if err := service.SendEmailChangeCode(user.Email, code, "current email verification"); err != nil {
+		log.Printf("failed to send old email verification code to %s: %v", user.Email, err)
+		_ = app.DB.Delete(&vc).Error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification code"})
+		return
+	}
+	log.Printf("sent old email verification code to %s", user.Email)
 	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent to your current email"})
 }
 
@@ -207,7 +214,13 @@ func RequestNewEmailCode(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Verification code for NEW email %s: %s", input.Email, code)
+	if err := service.SendEmailChangeCode(input.Email, code, "new email verification"); err != nil {
+		log.Printf("failed to send new email verification code to %s: %v", input.Email, err)
+		_ = app.DB.Delete(&vc).Error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification code"})
+		return
+	}
+	log.Printf("sent new email verification code to %s", input.Email)
 	c.JSON(http.StatusOK, gin.H{"message": "Verification code sent to your new email"})
 }
 

@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, X, Menu, User, LogOut, Settings } from "lucide-react"
+import { Menu, User, LogOut, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuth } from "@/contexts/auth-context"
+import { NavbarAnimeSearch } from "@/components/navbar-anime-search"
 
 export function Navbar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
@@ -29,15 +29,18 @@ export function Navbar() {
   const navLinks = [
     { label: t.nav.catalog, href: "/catalog" },
     { label: t.nav.schedule, href: "/schedule" },
+	{ label: t.nav.faq, href: "/faq" },
   ]
 
   return (
     <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled
-          ? "bg-background/90 backdrop-blur-xl border-b border-border"
-          : "bg-transparent"
+		isMobileMenuOpen
+			? "bg-background border-b border-border"
+			: isScrolled
+				? "bg-background/90 backdrop-blur-xl border-b border-border"
+				: "bg-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -71,40 +74,7 @@ export function Navbar() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Search */}
-            <div className="relative">
-              <div
-                className={cn(
-                  "flex items-center transition-all duration-300 overflow-hidden",
-                  isSearchOpen ? "w-48 lg:w-64" : "w-10"
-                )}
-              >
-                {isSearchOpen && (
-                  <input
-                    type="text"
-                    placeholder={t.nav.searchPlaceholder}
-                    autoFocus
-                    className="w-full h-10 pl-4 pr-10 bg-muted border border-border rounded-full text-foreground placeholder:text-foreground-muted/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                  />
-                )}
-                <button
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={cn(
-                    "w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200",
-                    isSearchOpen
-                      ? "absolute right-0 hover:bg-transparent"
-                      : "hover:bg-muted"
-                  )}
-                  aria-label={isSearchOpen ? "Close search" : "Open search"}
-                >
-                  {isSearchOpen ? (
-                    <X className="w-5 h-5 text-foreground-muted" />
-                  ) : (
-                    <Search className="w-5 h-5 text-foreground-muted hover:text-primary transition-colors" />
-                  )}
-                </button>
-              </div>
-            </div>
+            <NavbarAnimeSearch />
 
             {/* Language Switcher - Desktop */}
             <div className="hidden md:block">

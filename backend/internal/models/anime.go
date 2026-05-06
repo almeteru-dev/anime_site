@@ -30,6 +30,7 @@ type Anime struct {
 	Source       *Source            `gorm:"foreignKey:SourceID" json:"source,omitempty"`
 	Genres       []Genre            `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
 	Translations []AnimeTranslation `gorm:"foreignKey:AnimeID" json:"translations,omitempty"`
+	AltTitles    []AnimeAltTitle    `gorm:"foreignKey:AnimeID" json:"alt_titles,omitempty"`
 	EpisodeItems []Episode          `gorm:"foreignKey:AnimeID" json:"episode_items,omitempty"`
 }
 

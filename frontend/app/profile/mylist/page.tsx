@@ -148,8 +148,8 @@ export default function MyListPage() {
             <div className="mx-auto w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center">
               <Tv className="w-7 h-7 text-foreground-subtle" />
             </div>
-            <h2 className="mt-4 text-lg font-semibold text-foreground">Sign in to view your list</h2>
-            <p className="mt-1 text-sm text-foreground-muted">Your watchlist is tied to your account.</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{t.profile.listSignInTitle}</h2>
+            <p className="mt-1 text-sm text-foreground-muted">{t.profile.listSignInBody}</p>
             <Link
               href="/login"
               className="inline-flex mt-6 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
@@ -162,7 +162,7 @@ export default function MyListPage() {
         ) : items === null ? (
           <div className="rounded-2xl border border-border/50 bg-background-secondary/40 p-8 animate-pulse">
             <div className="h-5 w-40 bg-muted/40 rounded" />
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="mt-6 grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="aspect-[3/4] rounded-xl bg-muted/30" />
               ))}
@@ -173,13 +173,13 @@ export default function MyListPage() {
             <div className="mx-auto w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center">
               <Tv className="w-7 h-7 text-foreground-subtle" />
             </div>
-            <h2 className="mt-4 text-lg font-semibold text-foreground">Your list is empty</h2>
-            <p className="mt-1 text-sm text-foreground-muted">Add anime from the catalog to see them here.</p>
+            <h2 className="mt-4 text-lg font-semibold text-foreground">{t.profile.listEmptyTitle}</h2>
+            <p className="mt-1 text-sm text-foreground-muted">{t.profile.listEmptyBody}</p>
             <Link
               href="/catalog"
               className="inline-flex mt-6 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
-              Browse catalog
+			  {t.profile.listBrowseCatalog}
             </Link>
           </div>
         ) : (
@@ -214,9 +214,9 @@ export default function MyListPage() {
 
             <div className="mt-6 rounded-2xl border border-border/50 bg-background-secondary/30 p-6">
               {filteredCards.length === 0 ? (
-                <div className="text-sm text-foreground-muted">No items in this collection.</div>
+                <div className="text-sm text-foreground-muted">{t.profile.listEmptyTab}</div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {filteredCards.map(({ entry, title, image, status }) => (
               <UserCollectionCard
                 key={entry.id}

@@ -36,8 +36,14 @@ func main() {
 
 	// CORS middleware
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Vary", "Origin")
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 
@@ -69,6 +75,8 @@ func main() {
 		api.GET("/catalog/meta", handlers.GetPublicCatalogMeta)
 		api.GET("/schedule", handlers.GetSchedule)
 		api.GET("/settings/public", handlers.GetPublicSettings)
+		api.GET("/faq", handlers.GetPublicFAQ)
+		api.GET("/search/animes", handlers.SearchAnimes)
 		api.GET("/animes", handlers.GetAnimes)
 		api.GET("/animes/featured", handlers.GetFeaturedAnimes)
 		api.GET("/animes/:id", handlers.GetAnimeByID)
@@ -176,6 +184,8 @@ func main() {
 
 					adminAdmin.PUT("/settings/default-password", middleware.RootOnly(), handlers.AdminSetDefaultPassword)
 					adminAdmin.PUT("/settings/private-mode", middleware.RootOnly(), handlers.AdminSetPrivateMode)
+					adminAdmin.PUT("/settings/registration-disabled", middleware.RootOnly(), handlers.AdminSetRegistrationDisabled)
+					adminAdmin.PUT("/settings/footer-links", middleware.RootOnly(), handlers.AdminSetFooterLinks)
 					adminAdmin.PUT("/settings/schedule-timezone", middleware.RootOnly(), handlers.AdminSetScheduleTimezone)
 					adminAdmin.POST("/schedule/purge-old", middleware.RootOnly(), handlers.AdminPurgeOldSchedules)
 					adminAdmin.POST("/root/transfer", handlers.AdminTransferRoot)

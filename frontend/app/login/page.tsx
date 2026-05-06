@@ -6,6 +6,7 @@ import { ArrowLeft, User, Lock, Eye, EyeOff, Check } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useAuth } from "@/contexts/auth-context"
+import { getPublicSettings } from "@/lib/api"
 
 export default function LoginPage() {
   const { t } = useLanguage()
@@ -19,6 +20,7 @@ export default function LoginPage() {
     password: "",
   })
   const [focusedField, setFocusedField] = useState<string | null>(null)
+	const [registrationDisabled, setRegistrationDisabled] = useState<boolean | null>(null)
 
   useEffect(() => {
     const msg = sessionStorage.getItem("force_logout_message")
@@ -27,6 +29,22 @@ export default function LoginPage() {
       sessionStorage.removeItem("force_logout_message")
     }
   }, [])
+
+	useEffect(() => {
+		let mounted = true
+		;(async () => {
+			try {
+				const s = await getPublicSettings()
+				if (!mounted) return
+				setRegistrationDisabled(s.registration_disabled)
+			} catch {
+				;
+			}
+		})()
+		return () => {
+			mounted = false
+		}
+	}, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +55,8 @@ export default function LoginPage() {
       const response = await fetch("http://localhost:8080/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: formData.identifier, password: formData.password }),
+        credentials: "include",
+        body: JSON.stringify({ identifier: formData.identifier, password: formData.password, remember_me: rememberMe }),
       })
 
       const data = await response.json()
@@ -46,7 +65,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed")
       }
 
-      login(data.token, data.user)
+      login(data.token, data.user, rememberMe)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -216,7 +235,7 @@ export default function LoginPage() {
                 </label>
               </div>
               <Link 
-                href="/forgot-password" 
+                href="/forgot-password?from=login" 
                 className="text-sm text-foreground-muted hover:text-foreground transition-colors duration-300"
               >
                 {t.login.forgotPassword}
@@ -256,15 +275,17 @@ export default function LoginPage() {
           </form>
 
           {/* Register Link */}
-          <p className="text-center mt-8 text-foreground-muted text-sm">
-            {t.login.newToLycorisLib}{" "}
-            <Link 
-              href="/register" 
-              className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
-            >
-              {t.login.joinNow}
-            </Link>
-          </p>
+          {registrationDisabled !== true ? (
+            <p className="text-center mt-8 text-foreground-muted text-sm">
+              {t.login.newToLycorisLib}{" "}
+              <Link
+                href="/register"
+                className="text-primary font-medium hover:underline transition-all duration-300 hover:text-primary/80 hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"
+              >
+                {t.login.joinNow}
+              </Link>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
