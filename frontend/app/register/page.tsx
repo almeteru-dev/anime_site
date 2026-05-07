@@ -55,9 +55,14 @@ export default function RegisterPage() {
 
     // Password validation
     const password = formData.password
-    if (password.length < 10) {
-      setFieldErrors({ password: "Password must be at least 10 characters long" })
-      setError("Password must be at least 10 characters long")
+    if (password.length < 8) {
+      setFieldErrors({ password: "Password must be at least 8 characters long" })
+      setError("Password must be at least 8 characters long")
+      return
+    }
+    if (password.length > 100) {
+      setFieldErrors({ password: "Password must be at most 100 characters long" })
+      setError("Password must be at most 100 characters long")
       return
     }
     if (!/[A-Z]/.test(password)) {
@@ -251,6 +256,8 @@ export default function RegisterPage() {
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.createPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
+                  minLength={8}
+                  maxLength={100}
                   required
                 />
                 <button
@@ -284,6 +291,8 @@ export default function RegisterPage() {
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.register.confirmYourPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
+                  minLength={8}
+                  maxLength={100}
                   required
                 />
                 <button

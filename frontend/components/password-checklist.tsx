@@ -18,7 +18,7 @@ function hasSpecial(s: string) {
 export function PasswordChecklist(props: { password: string; className?: string }) {
   const p = props.password
   const items = [
-    { ok: p.length >= 10, label: "10+ characters" },
+    { ok: p.length >= 8 && p.length <= 100, label: "8-100 characters" },
     { ok: hasDigit(p), label: "1+ digit" },
     { ok: hasUppercase(p), label: "1+ uppercase letter" },
     { ok: hasSpecial(p), label: "1+ special character (!@#...)" },
@@ -38,4 +38,3 @@ export function PasswordChecklist(props: { password: string; className?: string 
     </div>
   )
 }
-

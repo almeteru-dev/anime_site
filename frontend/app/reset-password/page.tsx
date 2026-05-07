@@ -36,8 +36,12 @@ function ResetPasswordContent() {
 
     // Password validation
     const password = formData.password
-    if (password.length < 10) {
-      setError("Password must be at least 10 characters long")
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long")
+      return
+    }
+    if (password.length > 100) {
+      setError("Password must be at most 100 characters long")
       return
     }
     if (!/[A-Z]/.test(password)) {
@@ -126,6 +130,8 @@ function ResetPasswordContent() {
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.resetPassword.enterNewPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
+                  minLength={8}
+                  maxLength={100}
                   required
                 />
                 <button
@@ -157,6 +163,8 @@ function ResetPasswordContent() {
                   onBlur={() => setFocusedField(null)}
                   placeholder={t.resetPassword.confirmNewPassword}
                   className="w-full h-12 pl-12 pr-12 bg-background border border-border/60 rounded-xl text-foreground placeholder:text-foreground-subtle transition-all duration-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25"
+                  minLength={8}
+                  maxLength={100}
                   required
                 />
                 <button

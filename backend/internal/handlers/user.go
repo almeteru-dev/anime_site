@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -69,7 +70,7 @@ func UpdatePassword(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var input struct {
 		CurrentPassword string `json:"current_password" binding:"required"`
-		NewPassword     string `json:"new_password" binding:"required,min=10"`
+		NewPassword     string `json:"new_password" binding:"required,min=8,max=100"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -250,4 +251,46 @@ func VerifyNewEmailCode(c *gin.Context) {
 	app.DB.Delete(&vc)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Email updated successfully"})
+}
+
+func UpdateUsername(c *gin.Context) {
+	uid, ok := userIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var input struct {
+		Username string `json:"username" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := validateUsername(input.Username); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    username := strings.TrimSpace(input.Username)
+
+	var count int64
+	app.DB.Model(&models.User{}).Where("LOWER(username) = LOWER(?) AND id <> ?", username, uid).Count(&count)
+	if count > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+		return
+	}
+
+	if err := app.DB.Model(&models.User{}).Where("id = ?", uid).Update("username", username).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update username"})
+		return
+	}
+
+	var user models.User
+	if err := app.DB.First(&user, uid).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

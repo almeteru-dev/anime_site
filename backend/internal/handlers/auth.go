@@ -42,9 +42,17 @@ type LoginInput struct {
 	RememberMe bool   `json:"remember_me"`
 }
 
+const (
+	passwordMinLength = 8
+	passwordMaxLength = 100
+)
+
 func validatePassword(password string) error {
-	if len(password) < 10 {
-		return fmt.Errorf("password must be at least 10 characters long")
+	if len(password) < passwordMinLength {
+		return fmt.Errorf("password must be at least %d characters long", passwordMinLength)
+	}
+	if len(password) > passwordMaxLength {
+		return fmt.Errorf("password must be at most %d characters long", passwordMaxLength)
 	}
 
 	// Only English letters, digits, and special characters allowed
@@ -72,6 +80,18 @@ func validatePassword(password string) error {
 	return nil
 }
 
+func validateUsername(u string) error {
+    if len(u) < 4 || len(u) > 30 {
+        return fmt.Errorf("username must be between 4 and 30 characters")
+    }
+    // Только английские буквы, цифры и спецсимволы
+    re := regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$`)
+    if !re.MatchString(u) {
+        return fmt.Errorf("username contains invalid characters or cyrillic")
+    }
+    return nil
+}
+
 func generateToken(length int) string {
 	b := make([]byte, length)
 	if _, err := rand.Read(b); err != nil {
@@ -92,6 +112,22 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// Вместо: username, err := validation.NormalizeAndValidateUsername(input.Username)
+	// Напиши:
+	if err := validateUsername(input.Username); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	username := strings.TrimSpace(input.Username)
+
+	
+	input.Username = username
+	input.Email = strings.TrimSpace(input.Email)
+	if input.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+		return
+	}
+
 	if err := validatePassword(input.Password); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -104,7 +140,7 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		Username:     input.Username,
+		Username:     username,
 		Email:        input.Email,
 		PasswordHash: string(hashedPassword),
 		Role:         "user",
