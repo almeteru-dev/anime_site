@@ -91,3 +91,41 @@ Removes build artifacts and the backend binary.
 ```bash
 make clean
 ```
+
+
+## Production
+
+To run the application in production mode, you need to build the project first and then start the optimized services. This mode is faster and hides development tools (like the Next.js Dev Overlay).
+
+### 1) Build the project
+This command builds the Go binary using vendored modules (`-mod=vendor`) and creates an optimized Next.js production build.
+
+```bash
+make build
+```
+
+Outputs:
+- Backend binary: `./lycoris_server`
+- Frontend build artifacts: `frontend/.next/`
+
+### 2) Run in production
+After a successful build, you can start both services simultaneously or separately.
+
+**Run both (Backend + Frontend):**
+```bash
+make prod
+```
+
+**Run separately:**
+```bash
+make server   # Starts the compiled Go binary
+make client   # Starts the Next.js production server (npm run start)
+```
+
+## Clean
+
+Removes build artifacts and the backend binary.
+
+```bash
+make clean
+```
