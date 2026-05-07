@@ -48,7 +48,7 @@ func Seed(db *gorm.DB) {
 	db.Where("code = ?", "en").First(&en)
 
 	// 1.5. Admin User
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
 	adminUser := models.User{
 		Username:     "admin",
 		Email:        "admin@lycoris.tv",
