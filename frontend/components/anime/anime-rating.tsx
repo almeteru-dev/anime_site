@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { useLanguage } from "@/contexts/language-context"
 import { getMyAnimeRating, getMyCollection, rateAnime } from "@/lib/api"
 
 export function AnimeRating({ animeId }: { animeId: number }) {
   const { user } = useAuth()
+	const { t } = useLanguage()
   const [isWatched, setIsWatched] = useState<boolean | null>(null)
   const [value, setValue] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +34,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
         if (mounted && !didInitValue.current) {
           if (typeof myRating === "number" && Number.isFinite(myRating)) {
             const n = Math.trunc(myRating)
-            if (n >= 0 && n <= 9) {
+			if (n >= 1 && n <= 10) {
               setValue(String(n))
             }
           }
@@ -48,7 +50,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
   }, [animeId, user])
 
   const options = useMemo(() => {
-    return Array.from({ length: 10 }, (_, i) => String(i))
+    return Array.from({ length: 10 }, (_, i) => String(i + 1))
   }, [])
 
   const disabled = !user || isWatched !== true || isSaving
@@ -61,14 +63,14 @@ export function AnimeRating({ animeId }: { animeId: number }) {
     if (next === "") return
 
     const num = Number(next)
-    if (!Number.isInteger(num) || num < 0 || num > 9) {
-      setError("Rating must be between 0 and 9")
+    if (!Number.isInteger(num) || num < 1 || num > 10) {
+		setError("Rating must be between 1 and 10")
       return
     }
 
     setIsSaving(true)
     try {
-      await rateAnime({ animeId, rating: num })
+      await rateAnime({ animeId, score: num })
     } catch (e: any) {
       setError(e?.message || "Failed to save rating")
     } finally {
@@ -82,7 +84,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
 
   return (
     <div className="mt-2">
-      <div className="text-xs text-foreground-subtle">Your rating</div>
+      <div className="text-xs text-foreground-subtle">{t.anime.yourRating}</div>
       <div className="mt-1 flex items-center gap-2">
         <select
           value={value}
@@ -99,7 +101,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
         </select>
 
         {isWatched === false ? (
-          <div className="text-xs text-foreground-muted">Only “Watched” can rate</div>
+          <div className="text-xs text-foreground-muted">{t.anime.onlyWatchedCanRate}</div>
         ) : null}
       </div>
 

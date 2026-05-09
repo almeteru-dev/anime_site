@@ -65,7 +65,9 @@ export interface VideoLabel {
 export interface FAQItem {
   id: number
   question: string
+  question_ru?: string | null
   answer: string
+  answer_ru?: string | null
   is_published: boolean
   priority: number
   created_at?: string
@@ -136,6 +138,8 @@ export interface Anime {
   image?: string
   trailer_url?: string
   score: number
+  rating_avg?: number
+  rating_count?: number
   episodes: number
   episodes_aired: number
   aired_on: string | null
@@ -164,6 +168,10 @@ function resolveSiteOrigin(): string {
 	const vercel = process.env.VERCEL_URL
 	if (typeof vercel === "string" && vercel.trim()) {
 		return `https://${vercel.trim()}`
+	}
+
+	if (process.env.NODE_ENV === "production") {
+		console.error("CRITICAL: No valid NEXT_PUBLIC_SITE_URL or VERCEL_URL found in production environment.")
 	}
 
 	return "http://localhost:3000"
@@ -1074,16 +1082,16 @@ export async function getMyCollection(): Promise<UserCollectionEntry[]> {
 }
 
 export async function rateAnime(params: {
-	 animeId: number
-	 rating: number
-}): Promise<void> {
+	animeId: number
+	score: number
+}): Promise<{ anime_id: number; rating_avg: number; rating_count: number }> {
 	const res = await fetch(`${API_URL}/anime/rate`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 		},
 		credentials: "include",
-		body: JSON.stringify({ anime_id: params.animeId, rating: params.rating }),
+		body: JSON.stringify({ anime_id: params.animeId, score: params.score }),
 	})
 
 	if (!res.ok) {
@@ -1091,15 +1099,20 @@ export async function rateAnime(params: {
 		maybeForceLogout(data)
 		throw new Error(data.error || "Failed to save rating")
 	}
+
+	return res.json()
 }
 
-export async function getAnimeAverageRating(animeId: number): Promise<number> {
+export async function getAnimeRatingStats(animeId: number): Promise<{ rating_avg: number; rating_count: number }> {
 	const res = await fetch(`${API_URL}/anime/${animeId}/rating`, { cache: "no-store" })
 	if (!res.ok) {
 		throw new Error("Failed to fetch rating")
 	}
 	const data = await res.json().catch(() => ({}))
-	return typeof data.average_rating === "number" ? data.average_rating : 0
+	return {
+		rating_avg: typeof data.rating_avg === "number" ? data.rating_avg : 0,
+		rating_count: typeof data.rating_count === "number" ? data.rating_count : 0,
+	}
 }
 
 export async function getMyAnimeRating(params: { animeId: number }): Promise<number | null> {
@@ -1112,7 +1125,7 @@ export async function getMyAnimeRating(params: { animeId: number }): Promise<num
 		maybeForceLogout(data)
 		throw new Error(data.error || "Failed to fetch your rating")
 	}
-	return typeof data.rating === "number" ? data.rating : null
+	return typeof data.score === "number" ? data.score : null
 }
 
 export interface AdminMeta {
@@ -1529,7 +1542,7 @@ export async function adminListFAQ(params: { }): Promise<FAQItem[]> {
 }
 
 export async function adminCreateFAQ(params: {
-  input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
+  input: Pick<FAQItem, "question" | "answer" | "question_ru" | "answer_ru" | "is_published" | "priority">
 }): Promise<FAQItem> {
   const res = await fetch(`${API_URL}/admin/faq`, {
     method: "POST",
@@ -1549,7 +1562,7 @@ export async function adminCreateFAQ(params: {
 
 export async function adminUpdateFAQ(params: {
   id: number
-  input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
+  input: Pick<FAQItem, "question" | "answer" | "question_ru" | "answer_ru" | "is_published" | "priority">
 }): Promise<FAQItem> {
   const res = await fetch(`${API_URL}/admin/faq/${params.id}`, {
     method: "PUT",

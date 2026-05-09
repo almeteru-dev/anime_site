@@ -86,6 +86,8 @@ export const translations = {
     anime: {
       startWatching: "Start Watching",
       similarAnime: "Similar Anime",
+	  yourRating: "Your rating",
+	  onlyWatchedCanRate: "Only “Watched” can rate",
     },
     cookieConsent: {
       text:
@@ -146,6 +148,7 @@ export const translations = {
 	faqPage: {
 		subtitle: "Answers to common questions about the site.",
 		empty: "No FAQs published yet.",
+		back: "Back",
 	},
     // Profile Page
     profile: {
@@ -408,6 +411,8 @@ export const translations = {
     anime: {
       startWatching: "Начать просмотр",
       similarAnime: "Похожие аниме",
+	  yourRating: "Ваша оценка",
+	  onlyWatchedCanRate: "Оценка доступна только для статуса «Просмотрено»",
     },
     cookieConsent: {
       text:
@@ -468,6 +473,7 @@ export const translations = {
 	faqPage: {
 		subtitle: "Ответы на популярные вопросы о сайте.",
 		empty: "Пока нет опубликованных вопросов.",
+		back: "Назад",
 	},
     // Profile Page
     profile: {

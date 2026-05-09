@@ -3,7 +3,7 @@ FRONTEND_DIR=./frontend
 BACKEND_DIR=./backend
 
 # Добавил новые команды в .PHONY
-.PHONY: all install dev dev-back dev-front build build-back build-front client-build client server prod clean setup-env
+.PHONY: all install dev dev-back dev-front dev-all build build-back build-front client-build client server prod clean setup-env nginx
 
 all: install build
 
@@ -26,6 +26,19 @@ dev-front:
 dev:
 	$(MAKE) -j 2 dev-back dev-front
 
+dev-all:
+	@bash -c 'set -e; $(MAKE) dev-back & pid1=$$!; $(MAKE) dev-front & pid2=$$!; trap "kill $$pid1 $$pid2" INT TERM; wait $$pid1 $$pid2'
+
+nginx:
+	sudo cp ./nginx.conf.template /etc/nginx/sites-available/lycorislib
+	sudo rm -f /etc/nginx/sites-enabled/default
+	sudo ln -sf /etc/nginx/sites-available/lycorislib /etc/nginx/sites-enabled/lycorislib
+	@grep -q "server_name localhost" ./nginx.conf.template || (echo "ERROR: server_name localhost missing in nginx.conf.template" && exit 1)
+	@sudo systemctl stop apache2 >/dev/null 2>&1 || true
+	@sudo service apache2 stop >/dev/null 2>&1 || true
+	sudo nginx -t
+	sudo systemctl reload nginx || sudo service nginx reload
+
 # --- BUILD (Сборка проекта) ---
 build: build-back build-front
 
@@ -45,11 +58,11 @@ client:
 	cd $(FRONTEND_DIR) && npm run start
 
 # Запуск скомпилированного бэкенда
-server:
+server: build-back
 	cd $(BACKEND_DIR) && ../$(BINARY_NAME)
 
 # Запуск всего проекта в продакшн-режиме (одновременно)
-prod:
+prod: build
 	$(MAKE) -j 2 server client
 
 # --- CLEAN ---

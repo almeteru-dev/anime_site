@@ -12,7 +12,9 @@ import (
 
 type AdminFAQInput struct {
 	Question    string `json:"question"`
+	QuestionRU  string `json:"question_ru"`
 	Answer      string `json:"answer"`
+	AnswerRU    string `json:"answer_ru"`
 	IsPublished bool   `json:"is_published"`
 	Priority    int    `json:"priority"`
 }
@@ -34,7 +36,9 @@ func AdminCreateFAQ(c *gin.Context) {
 	}
 
 	question := strings.TrimSpace(input.Question)
+	questionRU := strings.TrimSpace(input.QuestionRU)
 	answer := strings.TrimSpace(input.Answer)
+	answerRU := strings.TrimSpace(input.AnswerRU)
 	if question == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Question is required"})
 		return
@@ -44,9 +48,20 @@ func AdminCreateFAQ(c *gin.Context) {
 		return
 	}
 
+	var qRuPtr *string
+	if questionRU != "" {
+		qRuPtr = &questionRU
+	}
+	var aRuPtr *string
+	if answerRU != "" {
+		aRuPtr = &answerRU
+	}
+
 	item := models.FAQItem{
 		Question:    question,
+		QuestionRU:  qRuPtr,
 		Answer:      answer,
+		AnswerRU:    aRuPtr,
 		IsPublished: input.IsPublished,
 		Priority:    input.Priority,
 	}
@@ -78,7 +93,9 @@ func AdminUpdateFAQ(c *gin.Context) {
 	}
 
 	question := strings.TrimSpace(input.Question)
+	questionRU := strings.TrimSpace(input.QuestionRU)
 	answer := strings.TrimSpace(input.Answer)
+	answerRU := strings.TrimSpace(input.AnswerRU)
 	if question == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Question is required"})
 		return
@@ -89,7 +106,17 @@ func AdminUpdateFAQ(c *gin.Context) {
 	}
 
 	item.Question = question
+	if questionRU == "" {
+		item.QuestionRU = nil
+	} else {
+		item.QuestionRU = &questionRU
+	}
 	item.Answer = answer
+	if answerRU == "" {
+		item.AnswerRU = nil
+	} else {
+		item.AnswerRU = &answerRU
+	}
 	item.IsPublished = input.IsPublished
 	item.Priority = input.Priority
 	if err := app.DB.Save(&item).Error; err != nil {
@@ -118,4 +145,3 @@ func AdminDeleteFAQ(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 }
-

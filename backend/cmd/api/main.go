@@ -1,12 +1,8 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -14,7 +10,6 @@ import (
 	"github.com/seva/animevista/internal/config"
 	"github.com/seva/animevista/internal/handlers"
 	"github.com/seva/animevista/internal/middleware"
-	"github.com/seva/animevista/internal/service"
 )
 
 func main() {
@@ -29,18 +24,16 @@ func main() {
 	// Initialize Database
 	app.InitDB()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	if app.Ent != nil {
-		service.StartAnimeAverageRatingWorker(ctx, app.Ent)
-	}
-
 	// Initialize Gin router
 	r := gin.Default()
 
 	// Trusted proxies setup
-	if err := r.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
-		log.Printf("Failed to set trusted proxies: %v", err)
+	if len(config.AppConfig.TRUSTED_PROXIES) > 0 {
+		if err := r.SetTrustedProxies(config.AppConfig.TRUSTED_PROXIES); err != nil {
+			log.Printf("Failed to set trusted proxies: %v", err)
+		}
+	} else {
+		_ = r.SetTrustedProxies(nil)
 	}
 
 	// CORS middleware
@@ -48,19 +41,20 @@ func main() {
 		frontendURL := config.AppConfig.FRONTEND_URL
 		origin := c.Request.Header.Get("Origin")
 
-		// Explicitly allow Frontend URL
-		if origin == frontendURL || origin == "http://localhost:3000" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else if !config.AppConfig.IS_PRODUCTION {
-			// In dev mode, allow origin if it's not empty
-			if origin != "" {
+		if !config.AppConfig.IS_PRODUCTION {
+			// In dev mode, allow localhost explicitly or matched origin
+			if origin == frontendURL || origin == "http://localhost:3000" {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			} else if origin != "" {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			} else {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
 			}
 		} else {
 			// In production, strictly allow only FRONTEND_URL
-			c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
+			if origin == frontendURL {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
+			}
 		}
 
 		c.Writer.Header().Set("Vary", "Origin")

@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+const API_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+if (process.env.NODE_ENV === "production" && (!process.env.BACKEND_API_URL && !process.env.NEXT_PUBLIC_API_URL)) {
+  console.error("CRITICAL: BACKEND_API_URL or NEXT_PUBLIC_API_URL is missing in production. Falling back to localhost:8080")
+}
 
 type PublicSettings = {
   private_mode: boolean

@@ -50,7 +50,12 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
             {/* Rating */}
             <div className="flex items-center gap-1.5">
               <Star className="w-5 h-5 fill-primary text-primary" />
-              <span className="font-semibold text-foreground">{anime.score.toFixed(1)}</span>
+              <span className="font-semibold text-foreground">
+                {(typeof anime.rating_avg === "number" ? anime.rating_avg : anime.score).toFixed(1)}
+              </span>
+              {typeof anime.rating_count === "number" && anime.rating_count > 0 ? (
+                <span className="text-xs text-foreground-muted">({anime.rating_count})</span>
+              ) : null}
             </div>
 
             {/* Year */}

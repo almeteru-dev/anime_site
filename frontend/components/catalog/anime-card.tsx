@@ -166,7 +166,12 @@ export function AnimeCard({
           {/* Rating Badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-lg bg-background/80 backdrop-blur-sm px-2 py-1">
             <Star className="h-3.5 w-3.5 fill-accent-primary text-accent-primary" />
-            <span className="text-xs font-semibold text-foreground">{anime.score.toFixed(1)}</span>
+			<span className="text-xs font-semibold text-foreground">
+				{typeof anime.rating_avg === "number" ? anime.rating_avg.toFixed(1) : anime.score.toFixed(1)}
+				{typeof anime.rating_count === "number" && anime.rating_count > 0 ? (
+					<span className="ml-1 text-[10px] text-foreground-muted">({anime.rating_count})</span>
+				) : null}
+			</span>
           </div>
 
           {/* User List Status Badge - Shows when status is set */}

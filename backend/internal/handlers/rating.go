@@ -6,11 +6,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/seva/animevista/ent"
-	"github.com/seva/animevista/ent/anime"
-	"github.com/seva/animevista/ent/userrating"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"gorm.io/gorm"
 )
 
 func userIDFromContext(c *gin.Context) (int64, bool) {
@@ -45,7 +43,8 @@ func userIDFromContext(c *gin.Context) (int64, bool) {
 
 type RateAnimeInput struct {
 	AnimeID int64   `json:"anime_id" binding:"required"`
-	Rating  float64 `json:"rating" binding:"required"`
+	Rating  *float64 `json:"rating"`
+	Score   *int     `json:"score"`
 }
 
 func RateAnime(c *gin.Context) {
@@ -60,16 +59,28 @@ func RateAnime(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if input.Rating < 0 || input.Rating > 10 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Rating must be between 0 and 9"})
+
+	var score int
+	if input.Score != nil {
+		score = *input.Score
+	} else if input.Rating != nil {
+		if math.Trunc(*input.Rating) != *input.Rating {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Score must be an integer"})
+			return
+		}
+		iv := int(*input.Rating)
+		if iv >= 0 && iv <= 9 {
+			score = iv + 1
+		} else {
+			score = iv
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "score is required"})
 		return
 	}
-	if math.Trunc(input.Rating) != input.Rating {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Rating must be an integer between 0 and 9"})
-		return
-	}
-	if input.Rating > 9 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Rating must be between 0 and 9"})
+
+	if score < 1 || score > 10 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Score must be between 1 and 10"})
 		return
 	}
 
@@ -87,22 +98,45 @@ func RateAnime(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	err = app.Ent.UserRating.
-		Create().
-		SetUserID(uid).
-		SetAnimeID(input.AnimeID).
-		SetRating(input.Rating).
-		OnConflictColumns(userrating.FieldUserID, userrating.FieldAnimeID).
-		UpdateNewValues().
-		SetRating(input.Rating).
-		Exec(ctx)
+	var avg float64
+	var cnt int64
+	err = app.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(
+			`INSERT INTO anime_ratings (user_id, anime_id, score)
+			 VALUES (?, ?, ?)
+			 ON CONFLICT (user_id, anime_id) DO UPDATE
+			 SET score = EXCLUDED.score, updated_at = NOW()`,
+			uid, input.AnimeID, score,
+		).Error; err != nil {
+			return err
+		}
+
+		row := tx.Raw(
+			`SELECT COALESCE(AVG(score)::float8, 0.0) AS avg_score,
+			        COALESCE(COUNT(*)::int8, 0)       AS cnt
+			 FROM anime_ratings
+			 WHERE anime_id = ?`,
+			input.AnimeID,
+		).Row()
+		if err := row.Scan(&avg, &cnt); err != nil {
+			return err
+		}
+
+		if err := tx.Exec(
+			`UPDATE anime SET rating_avg = ?, rating_count = ? WHERE id = ?`,
+			avg, cnt, input.AnimeID,
+		).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save rating"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "OK"})
+	c.JSON(http.StatusOK, gin.H{"anime_id": input.AnimeID, "rating_avg": avg, "rating_count": cnt})
 }
 
 func GetAnimeAverageRating(c *gin.Context) {
@@ -112,14 +146,18 @@ func GetAnimeAverageRating(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	a, err := app.Ent.Anime.Query().Where(anime.IDEQ(id64)).Only(ctx)
+	var avg float64
+	var cnt int
+	err = app.DB.Raw(
+		`SELECT COALESCE(rating_avg, 0.0), COALESCE(rating_count, 0) FROM anime WHERE id = ?`,
+		id64,
+	).Row().Scan(&avg, &cnt)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Anime not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"anime_id": id64, "average_rating": a.AverageRating})
+	c.JSON(http.StatusOK, gin.H{"anime_id": id64, "rating_avg": avg, "rating_count": cnt})
 }
 
 func GetMyAnimeRating(c *gin.Context) {
@@ -135,16 +173,15 @@ func GetMyAnimeRating(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-	r, err := app.Ent.UserRating.Query().Where(userrating.UserIDEQ(uid), userrating.AnimeIDEQ(id64)).Only(ctx)
+	var score int
+	err = app.DB.Raw(
+		`SELECT score FROM anime_ratings WHERE user_id = ? AND anime_id = ? LIMIT 1`,
+		uid, id64,
+	).Row().Scan(&score)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			c.JSON(http.StatusOK, gin.H{"anime_id": id64, "rating": nil})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rating"})
+		c.JSON(http.StatusOK, gin.H{"anime_id": id64, "score": nil})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"anime_id": id64, "rating": r.Rating})
+	c.JSON(http.StatusOK, gin.H{"anime_id": id64, "score": score})
 }

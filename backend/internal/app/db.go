@@ -56,6 +56,7 @@ func dropAllTables(db *gorm.DB) error {
 	return db.Exec(`
 DROP TABLE IF EXISTS user_collections CASCADE;
 DROP TABLE IF EXISTS anime_genres CASCADE;
+		DROP TABLE IF EXISTS anime_ratings CASCADE;
 DROP TABLE IF EXISTS video_sources CASCADE;
 DROP TABLE IF EXISTS video_labels CASCADE;
 DROP TABLE IF EXISTS faq_items CASCADE;

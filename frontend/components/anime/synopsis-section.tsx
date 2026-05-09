@@ -52,7 +52,7 @@ export function SynopsisSection({ anime }: SynopsisSectionProps) {
   }
 
   const labels = {
-    synopsis: locale === "ru" ? "Синопсис" : "Synopsis",
+    synopsis: locale === "ru" ? "Описание" : "Synopsis",
     genres: locale === "ru" ? "Жанры" : "Genres",
     altTitles: locale === "ru" ? "Альтернативные названия" : "Alternative Titles",
     details: locale === "ru" ? "Детали" : "Details",

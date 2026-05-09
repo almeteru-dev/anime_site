@@ -7,10 +7,11 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
+    const backendUrl = process.env.BACKEND_API_URL || "http://localhost:8080/api"
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8080/api/:path*",
+        destination: `${backendUrl}/:path*`,
       },
     ]
   },

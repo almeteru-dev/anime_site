@@ -20,6 +20,8 @@ type Anime struct {
 	ImageURL      string     `gorm:"column:image;type:varchar(500)" json:"image_url"`
 	TrailerURL    string     `gorm:"type:varchar(1000)" json:"trailer_url"`
 	Score         float64    `gorm:"type:decimal(3,2);default:0" json:"score"`
+	RatingAvg     float64    `gorm:"type:double precision;default:0" json:"rating_avg"`
+	RatingCount   int        `gorm:"default:0" json:"rating_count"`
 	Episodes      int        `gorm:"default:0" json:"episodes"`
 	EpisodesAired int        `gorm:"default:0" json:"episodes_aired"`
 	AiredOn       *time.Time `json:"aired_on"`
