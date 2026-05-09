@@ -28,11 +28,21 @@ async function getPublicSettings(): Promise<PublicSettings> {
   return value
 }
 
+function base64UrlToUtf8(input: string): string {
+  const b64 = input.replace(/-/g, "+").replace(/_/g, "/")
+  const padded = b64 + "===".slice((b64.length + 3) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new TextDecoder().decode(bytes)
+}
+
 function getJwtRoleFromCookie(token: string): string | null {
   const parts = token.split(".")
   if (parts.length < 2) return null
   try {
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"))
+    const payloadJson = base64UrlToUtf8(parts[1])
+    const payload = JSON.parse(payloadJson)
     return typeof payload?.role === "string" ? payload.role : null
   } catch {
     return null
@@ -68,8 +78,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const tokenCookie = req.cookies.get("auth_token")?.value || ""
-  const token = tokenCookie ? decodeURIComponent(tokenCookie) : ""
+  const rawToken = req.cookies.get("auth_token")?.value || ""
+  let token = rawToken
+  try {
+    token = decodeURIComponent(rawToken)
+  } catch {
+    token = rawToken
+  }
+
   const hasAuth = !!token
 
   if (pathname.startsWith("/admin")) {

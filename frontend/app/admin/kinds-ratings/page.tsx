@@ -41,7 +41,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function AdminKindsRatingsPage() {
-  const { token } = useAuth()
+  const { user } = useAuth()
   const [tab, setTab] = useState<"kinds" | "ratings" | "statuses" | "studios" | "sources" | "genres">("kinds")
   const [kinds, setKinds] = useState<KindOption[] | null>(null)
   const [ratings, setRatings] = useState<RatingOption[] | null>(null)
@@ -87,15 +87,14 @@ export default function AdminKindsRatingsPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
         const [k, r, st, su, so, ge, an] = await Promise.all([
-          adminListKinds({ token }),
-          adminListRatings({ token }),
-          adminListStatuses({ token }),
-          adminListStudios({ token }),
-          adminListSources({ token }),
-          adminListGenres({ token }),
+          adminListKinds({}),
+          adminListRatings({}),
+          adminListStatuses({}),
+          adminListStudios({}),
+          adminListSources({}),
+          adminListGenres({}),
           getAnimes(),
         ])
         if (!mounted) return
@@ -114,7 +113,7 @@ export default function AdminKindsRatingsPage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   const startEdit = (id: number, name: string, ruName: string) => {
     setEditingId(id)
@@ -129,7 +128,6 @@ export default function AdminKindsRatingsPage() {
   }
 
   const saveEdit = async () => {
-    if (!token) return
     const name = editingName.trim()
     const ru_name = supportsRussianName ? (editingRuName.trim() || null) : null
     if (!editingId || !name) return
@@ -137,23 +135,23 @@ export default function AdminKindsRatingsPage() {
     setError(null)
     try {
       if (tab === "kinds") {
-        const updated = await adminUpdateKind({ token, id: editingId, name, ru_name })
+        const updated = await adminUpdateKind({ id: editingId, name, ru_name })
         setKinds((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
       } else {
         if (tab === "ratings") {
-          const updated = await adminUpdateRating({ token, id: editingId, name })
+          const updated = await adminUpdateRating({ id: editingId, name })
           setRatings((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "genres") {
-          const updated = await adminUpdateGenre({ token, id: editingId, name, ru_name })
+          const updated = await adminUpdateGenre({ id: editingId, name, ru_name })
           setGenres((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "statuses") {
-          const updated = await adminUpdateStatus({ token, id: editingId, name, ru_name })
+          const updated = await adminUpdateStatus({ id: editingId, name, ru_name })
           setStatuses((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else if (tab === "studios") {
-          const updated = await adminUpdateStudio({ token, id: editingId, name })
+          const updated = await adminUpdateStudio({ id: editingId, name })
           setStudios((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         } else {
-          const updated = await adminUpdateSource({ token, id: editingId, name, ru_name })
+          const updated = await adminUpdateSource({ id: editingId, name, ru_name })
           setSources((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
         }
       }
@@ -166,7 +164,6 @@ export default function AdminKindsRatingsPage() {
   }
 
   const create = async () => {
-    if (!token) return
     const name = newName.trim()
     const ru_name = supportsRussianName ? (newRuName.trim() || null) : null
     if (!name) return
@@ -174,22 +171,22 @@ export default function AdminKindsRatingsPage() {
     setError(null)
     try {
       if (tab === "kinds") {
-        const created = await adminCreateKind({ token, name, ru_name })
+        const created = await adminCreateKind({ name, ru_name })
         setKinds((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "ratings") {
-        const created = await adminCreateRating({ token, name })
+        const created = await adminCreateRating({ name })
         setRatings((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "genres") {
-        const created = await adminCreateGenre({ token, name, ru_name })
+        const created = await adminCreateGenre({ name, ru_name })
         setGenres((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "statuses") {
-        const created = await adminCreateStatus({ token, name, ru_name })
+        const created = await adminCreateStatus({ name, ru_name })
         setStatuses((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else if (tab === "studios") {
-        const created = await adminCreateStudio({ token, name })
+        const created = await adminCreateStudio({ name })
         setStudios((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       } else {
-        const created = await adminCreateSource({ token, name, ru_name })
+        const created = await adminCreateSource({ name, ru_name })
         setSources((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
       }
       setNewName("")
@@ -202,27 +199,26 @@ export default function AdminKindsRatingsPage() {
   }
 
   const remove = async (id: number) => {
-    if (!token) return
     setSaving(true)
     setError(null)
     try {
       if (tab === "kinds") {
-        await adminDeleteKind({ token, id })
+        await adminDeleteKind({ id })
         setKinds((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       } else if (tab === "ratings") {
-        await adminDeleteRating({ token, id })
+        await adminDeleteRating({ id })
         setRatings((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       } else if (tab === "genres") {
-        await adminDeleteGenre({ token, id })
+        await adminDeleteGenre({ id })
         setGenres((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       } else if (tab === "statuses") {
-        await adminDeleteStatus({ token, id })
+        await adminDeleteStatus({ id })
         setStatuses((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       } else if (tab === "studios") {
-        await adminDeleteStudio({ token, id })
+        await adminDeleteStudio({ id })
         setStudios((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       } else {
-        await adminDeleteSource({ token, id })
+        await adminDeleteSource({ id })
         setSources((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       }
       if (editingId === id) cancelEdit()
@@ -331,12 +327,12 @@ export default function AdminKindsRatingsPage() {
                     type="button"
                     disabled={!selectedAnimeId || !selectedGenreId || saving}
                     onClick={async () => {
-                      if (!token || !selectedAnimeId || !selectedGenreId) return
+                      if (!selectedAnimeId || !selectedGenreId) return
                       setSaving(true)
                       setError(null)
                       try {
                         const nextIds = Array.from(new Set([...selectedAnimeGenres.map((g) => g.id), selectedGenreId]))
-                        const updated = await adminSetAnimeGenres({ token, animeId: selectedAnimeId, genre_ids: nextIds })
+                        const updated = await adminSetAnimeGenres({ animeId: selectedAnimeId, genre_ids: nextIds })
                         setSelectedAnimeGenres(updated)
                         setSelectedGenreId(null)
                       } catch (err: any) {
@@ -372,12 +368,12 @@ export default function AdminKindsRatingsPage() {
                         key={g.id}
                         type="button"
                         onClick={async () => {
-                          if (!token || !selectedAnimeId) return
+                          if (!selectedAnimeId) return
                           setSaving(true)
                           setError(null)
                           try {
                             const nextIds = selectedAnimeGenres.filter((x) => x.id !== g.id).map((x) => x.id)
-                            const updated = await adminSetAnimeGenres({ token, animeId: selectedAnimeId, genre_ids: nextIds })
+                            const updated = await adminSetAnimeGenres({ animeId: selectedAnimeId, genre_ids: nextIds })
                             setSelectedAnimeGenres(updated)
                           } catch (err: any) {
                             setError(err?.message || "Failed to remove genre")

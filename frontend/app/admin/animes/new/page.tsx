@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Image as ImageIcon, Plus, X } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
 import { adminCreateAnime, adminGetMeta, type AdminCreateAnimeInput, type AdminMeta } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { slugify } from "@/lib/slug"
 
 export default function AdminAddAnimePage() {
-  const { token } = useAuth()
   const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,9 +41,8 @@ export default function AdminAddAnimePage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const data = await adminGetMeta({ token })
+        const data = await adminGetMeta({})
         if (mounted) setMeta(data)
       } catch (e: any) {
         if (mounted) setError(e.message || "Failed to load metadata")
@@ -54,7 +51,7 @@ export default function AdminAddAnimePage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   useEffect(() => {
     setForm((p) => ({ ...p, url: slugify(p.title_en_romaji) }))
@@ -90,7 +87,6 @@ export default function AdminAddAnimePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setAttemptedSubmit(true)
-    if (!token) return
     if (!form.title_ru.trim() || !form.title_en_romaji.trim()) {
       setError("Title (RU) and Title (Romaji) are required")
       return
@@ -101,7 +97,7 @@ export default function AdminAddAnimePage() {
     setError(null)
     setExistingAnime(null)
     try {
-      await adminCreateAnime({ token, input: form })
+      await adminCreateAnime({ input: form })
       window.location.href = "/admin/animes"
     } catch (e: any) {
       const payload = e?.payload

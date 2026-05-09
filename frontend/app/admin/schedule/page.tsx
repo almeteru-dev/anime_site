@@ -35,7 +35,7 @@ function normalizeTimeInput(raw: string): string {
 }
 
 export default function AdminSchedulePage() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
 	const browserLocale = typeof navigator === "undefined" ? "en-US" : navigator.language
 	const [scheduleTimezone, setScheduleTimezone] = useState<string>("Etc/GMT-5")
 	const [selectedWeekday, setSelectedWeekday] = useState<number>(0)
@@ -82,9 +82,9 @@ export default function AdminSchedulePage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token || !canAccess) return
+      if (!canAccess) return
       try {
-        const data = await adminListSchedule({ token, from: range.from, to: range.to })
+        const data = await adminListSchedule({ from: range.from, to: range.to })
         if (!mounted) return
         setItems(data)
       } catch (e: any) {
@@ -95,7 +95,7 @@ export default function AdminSchedulePage() {
     return () => {
       mounted = false
     }
-  }, [canAccess, range.from, range.to, token])
+  }, [canAccess, range.from, range.to])
 
   useEffect(() => {
     let mounted = true
@@ -103,8 +103,8 @@ export default function AdminSchedulePage() {
     searchTimer.current = window.setTimeout(() => {
       ;(async () => {
         try {
-          if (!token || !canAccess) return
-          const data = await adminListOngoingAnimes({ token, q: animeQuery.trim() })
+          if (!canAccess) return
+          const data = await adminListOngoingAnimes({ q: animeQuery.trim() })
           if (!mounted) return
           setAnimeOptions(data)
         } catch {
@@ -117,14 +117,14 @@ export default function AdminSchedulePage() {
       mounted = false
       if (searchTimer.current) window.clearTimeout(searchTimer.current)
     }
-  }, [animeQuery, canAccess, token])
+  }, [animeQuery, canAccess])
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token || !canAccess) return
+      if (!canAccess) return
       try {
-        const data = await adminListOngoingAnimes({ token })
+        const data = await adminListOngoingAnimes({})
         if (!mounted) return
         setAnimeOptions(data)
       } catch {
@@ -135,10 +135,9 @@ export default function AdminSchedulePage() {
     return () => {
       mounted = false
     }
-  }, [canAccess, token])
+  }, [canAccess])
 
   const submit = async () => {
-    if (!token) return
     if (!selectedAnimeId) {
       setError("Select an anime")
       return
@@ -152,7 +151,6 @@ export default function AdminSchedulePage() {
     setSaving(true)
     try {
       const payload = {
-        token,
         anime_id: selectedAnimeId,
         episode_number: Math.max(1, Math.trunc(episodeNumber)),
         release_date: releaseDate,
@@ -209,11 +207,10 @@ export default function AdminSchedulePage() {
   }
 
   const remove = async (id: number) => {
-    if (!token) return
     setError(null)
     setSaving(true)
     try {
-      await adminDeleteSchedule({ token, id })
+      await adminDeleteSchedule({ id })
       setItems((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
     } catch (e: any) {
       setError(e.message || "Failed to delete")
@@ -253,10 +250,10 @@ export default function AdminSchedulePage() {
         <button
           type="button"
           onClick={openCreate}
-          disabled={!token || !canAccess}
+          disabled={!canAccess}
           className={cn(
             "h-11 rounded-xl px-4 text-sm font-semibold",
-            !token || !canAccess
+            !canAccess
               ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
               : "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
@@ -343,10 +340,10 @@ export default function AdminSchedulePage() {
               <button
                 type="button"
                 onClick={submit}
-                disabled={!token || !canAccess || saving}
+                disabled={!canAccess || saving}
                 className={cn(
                   "h-11 rounded-xl px-4 text-sm font-semibold",
-                  !token || !canAccess || saving
+                  !canAccess || saving
                     ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
@@ -382,7 +379,7 @@ export default function AdminSchedulePage() {
                   <button
                     type="button"
                     onClick={() => openEdit(it)}
-                    disabled={!token || !canAccess || saving}
+                    disabled={!canAccess || saving}
                     className="h-10 rounded-xl border border-border/60 bg-background px-4 text-sm font-semibold text-foreground hover:bg-background-tertiary/40 disabled:opacity-60"
                   >
                     Edit
@@ -390,7 +387,7 @@ export default function AdminSchedulePage() {
                   <button
                     type="button"
                     onClick={() => remove(it.id)}
-                    disabled={!token || !canAccess || saving}
+                    disabled={!canAccess || saving}
                     className="h-10 rounded-xl border border-red-500/40 bg-red-500/10 px-4 text-sm font-semibold text-red-300 hover:bg-red-500/15 disabled:opacity-60"
                   >
                     Delete

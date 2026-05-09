@@ -148,7 +148,64 @@ export interface Anime {
 	alt_titles?: { id: number; title: string }[] | null
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+function resolveSiteOrigin(): string {
+	const candidates = [
+		process.env.NEXT_PUBLIC_SITE_URL,
+		process.env.NEXT_PUBLIC_APP_URL,
+		process.env.NEXT_PUBLIC_FRONTEND_URL,
+	]
+
+	for (const c of candidates) {
+		if (typeof c === "string" && /^https?:\/\//.test(c)) {
+			return c.replace(/\/$/, "")
+		}
+	}
+
+	const vercel = process.env.VERCEL_URL
+	if (typeof vercel === "string" && vercel.trim()) {
+		return `https://${vercel.trim()}`
+	}
+
+	return "http://localhost:3000"
+}
+
+const API_URL = (() => {
+	if (typeof window !== "undefined") return "/api"
+	return `${resolveSiteOrigin()}/api`
+})()
+
+const baseFetch: typeof globalThis.fetch = (...args) => globalThis.fetch(...args)
+
+const fetch: typeof globalThis.fetch = async (input: any, init?: any) => {
+	const nextInit: RequestInit = {
+		...(init || {}),
+	}
+
+	if (typeof window !== "undefined" && !nextInit.credentials) {
+		nextInit.credentials = "include"
+	}
+
+	const res = await baseFetch(input, nextInit)
+	if (typeof window !== "undefined") {
+		if (res.status === 401) {
+			window.dispatchEvent(new CustomEvent("auth:force-logout", { detail: { error_code: "REVOKED" } }))
+		} else if (res.status === 403) {
+			try {
+				const cloned = res.clone()
+				const data = (await cloned.json()) as any
+				const code = data?.error_code
+				if (code === "BANNED" || code === "NOT_VERIFIED" || code === "REVOKED") {
+					window.dispatchEvent(
+						new CustomEvent("auth:force-logout", { detail: { error_code: code, ban_reason: data?.ban_reason || "" } })
+					)
+				}
+			} catch {
+				;
+			}
+		}
+	}
+	return res
+}
 
 export type AnimeSearchItem = {
 	id: number
@@ -220,7 +277,6 @@ export type AdminListUsersResponse = {
 }
 
 export async function adminListUsers(params: {
-  token: string
   q?: string
   role?: "all" | "user" | "moderator" | "admin" | "root"
   status?: "all" | "active" | "not_verified" | "banned"
@@ -235,7 +291,7 @@ export async function adminListUsers(params: {
   if (typeof params.limit === "number") qs.set("limit", String(params.limit))
 
   const res = await fetch(`${API_URL}/admin/users?${qs.toString()}`, {
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
     cache: "no-store",
   })
   const data = await res.json().catch(() => ({}))
@@ -246,11 +302,9 @@ export async function adminListUsers(params: {
   return data
 }
 
-export async function adminGetUser(params: { token: string; id: string }): Promise<AdminUser> {
+export async function adminGetUser(params: { id: string }): Promise<AdminUser> {
   const res = await fetch(`${API_URL}/admin/users/${params.id}`, {
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
     cache: "no-store",
   })
   const data = await res.json().catch(() => ({}))
@@ -262,7 +316,6 @@ export async function adminGetUser(params: { token: string; id: string }): Promi
 }
 
 export async function adminUpdateUser(params: {
-  token: string
   id: string
   input: { username?: string; email?: string; role?: "user" | "moderator" | "admin"; is_verified?: boolean }
 }): Promise<AdminUser> {
@@ -270,8 +323,8 @@ export async function adminUpdateUser(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
   const data = await res.json().catch(() => ({}))
@@ -282,12 +335,10 @@ export async function adminUpdateUser(params: {
   return data
 }
 
-export async function adminResetUserPasswordDefault(params: { token: string; id: string }): Promise<void> {
+export async function adminResetUserPasswordDefault(params: { id: string }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/users/${params.id}/reset-password-default`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -296,13 +347,13 @@ export async function adminResetUserPasswordDefault(params: { token: string; id:
   }
 }
 
-export async function adminSetDefaultPassword(params: { token: string; password: string }): Promise<void> {
+export async function adminSetDefaultPassword(params: { password: string }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/settings/default-password`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ password: params.password }),
   })
   const data = await res.json().catch(() => ({}))
@@ -312,13 +363,13 @@ export async function adminSetDefaultPassword(params: { token: string; password:
   }
 }
 
-export async function adminSetPrivateMode(params: { token: string; enabled: boolean }): Promise<void> {
+export async function adminSetPrivateMode(params: { enabled: boolean }): Promise<void> {
 	const res = await fetch(`${API_URL}/admin/settings/private-mode`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({ enabled: params.enabled }),
 	})
 
@@ -329,13 +380,13 @@ export async function adminSetPrivateMode(params: { token: string; enabled: bool
 	}
 }
 
-export async function adminSetRegistrationDisabled(params: { token: string; enabled: boolean }): Promise<void> {
+export async function adminSetRegistrationDisabled(params: { enabled: boolean }): Promise<void> {
 	const res = await fetch(`${API_URL}/admin/settings/registration-disabled`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({ enabled: params.enabled }),
 	})
 
@@ -360,7 +411,6 @@ export type FooterSocialLinks = {
 }
 
 export async function adminSetFooterLinks(params: {
-	token: string
 	contact_url: string
 	social_links: FooterSocialLinks
 }): Promise<void> {
@@ -368,8 +418,8 @@ export async function adminSetFooterLinks(params: {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({ contact_url: params.contact_url, social_links: params.social_links }),
 	})
 
@@ -423,13 +473,13 @@ export async function getPublicSettings(): Promise<{
 	}
 }
 
-export async function adminSetScheduleTimezone(params: { token: string; timezone: string }): Promise<{ timezone: string; old_timezone?: string; recalculated?: number }> {
+export async function adminSetScheduleTimezone(params: { timezone: string }): Promise<{ timezone: string; old_timezone?: string; recalculated?: number }> {
 	const res = await fetch(`${API_URL}/admin/settings/schedule-timezone`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({ timezone: params.timezone }),
 	})
 	const data = await res.json().catch(() => ({}))
@@ -440,12 +490,10 @@ export async function adminSetScheduleTimezone(params: { token: string; timezone
 	return data
 }
 
-export async function adminPurgeOldSchedules(params: { token: string }): Promise<{ deleted_count: number }> {
+export async function adminPurgeOldSchedules(params: { }): Promise<{ deleted_count: number }> {
 	const res = await fetch(`${API_URL}/admin/schedule/purge-old`, {
 		method: "POST",
-		headers: {
-			Authorization: `Bearer ${params.token}`,
-		},
+		credentials: "include",
 	})
 	const data = await res.json().catch(() => ({}))
 	if (!res.ok) {
@@ -476,11 +524,11 @@ export type OngoingAnimeItem = {
 	image_url: string
 }
 
-export async function adminListOngoingAnimes(params: { token: string; q?: string }): Promise<OngoingAnimeItem[]> {
+export async function adminListOngoingAnimes(params: { q?: string }): Promise<OngoingAnimeItem[]> {
 	const sp = new URLSearchParams()
 	if (params.q?.trim()) sp.set("q", params.q.trim())
 	const res = await fetch(`${API_URL}/admin/schedule/animes?${sp.toString()}`, {
-		headers: { Authorization: `Bearer ${params.token}` },
+		credentials: "include",
 		cache: "no-store",
 	})
 	const data = await res.json().catch(() => ([] as any))
@@ -500,10 +548,10 @@ export async function getSchedule(params: { from: string; to: string }): Promise
 	return res.json()
 }
 
-export async function adminListSchedule(params: { token: string; from: string; to: string }): Promise<ScheduleItem[]> {
+export async function adminListSchedule(params: { from: string; to: string }): Promise<ScheduleItem[]> {
 	const sp = new URLSearchParams({ from: params.from, to: params.to })
 	const res = await fetch(`${API_URL}/admin/schedule?${sp.toString()}`, {
-		headers: { Authorization: `Bearer ${params.token}` },
+		credentials: "include",
 		cache: "no-store",
 	})
 	if (!res.ok) {
@@ -515,7 +563,6 @@ export async function adminListSchedule(params: { token: string; from: string; t
 }
 
 export async function adminCreateSchedule(params: {
-	token: string
 	anime_id: number
 	episode_number: number
 	release_date: string
@@ -525,8 +572,8 @@ export async function adminCreateSchedule(params: {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({
 			anime_id: params.anime_id,
 			episode_number: params.episode_number,
@@ -542,10 +589,10 @@ export async function adminCreateSchedule(params: {
 	return data
 }
 
-export async function adminDeleteSchedule(params: { token: string; id: number }): Promise<void> {
+export async function adminDeleteSchedule(params: { id: number }): Promise<void> {
 	const res = await fetch(`${API_URL}/admin/schedule/${params.id}`, {
 		method: "DELETE",
-		headers: { Authorization: `Bearer ${params.token}` },
+		credentials: "include",
 	})
 	const data = await res.json().catch(() => ({}))
 	if (!res.ok) {
@@ -555,7 +602,6 @@ export async function adminDeleteSchedule(params: { token: string; id: number })
 }
 
 export async function adminUpdateSchedule(params: {
-	token: string
 	id: number
 	anime_id: number
 	episode_number: number
@@ -566,8 +612,8 @@ export async function adminUpdateSchedule(params: {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({
 			anime_id: params.anime_id,
 			episode_number: params.episode_number,
@@ -584,15 +630,14 @@ export async function adminUpdateSchedule(params: {
 }
 
 export async function adminCreateUser(params: {
-  token: string
   input: { username: string; email: string; password: string; role: "user" | "moderator" | "admin" }
 }): Promise<AdminUser> {
   const res = await fetch(`${API_URL}/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
   const data = await res.json().catch(() => ({}))
@@ -604,7 +649,6 @@ export async function adminCreateUser(params: {
 }
 
 export async function adminTransferRoot(params: {
-  token: string
   target_user_id: number
   password: string
 }): Promise<{ message: string; force_logout?: boolean }> {
@@ -612,8 +656,8 @@ export async function adminTransferRoot(params: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ target_user_id: params.target_user_id, password: params.password }),
   })
   const data = await res.json().catch(() => ({}))
@@ -625,7 +669,6 @@ export async function adminTransferRoot(params: {
 }
 
 export async function adminBanUser(params: {
-  token: string
   id: string
   reason: string
 }): Promise<AdminUser> {
@@ -633,8 +676,8 @@ export async function adminBanUser(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ reason: params.reason }),
   })
   const data = await res.json().catch(() => ({}))
@@ -645,12 +688,10 @@ export async function adminBanUser(params: {
   return data
 }
 
-export async function adminUnbanUser(params: { token: string; id: string }): Promise<AdminUser> {
+export async function adminUnbanUser(params: { id: string }): Promise<AdminUser> {
   const res = await fetch(`${API_URL}/admin/users/${params.id}/unban`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -660,12 +701,10 @@ export async function adminUnbanUser(params: { token: string; id: string }): Pro
   return data
 }
 
-export async function adminDeleteUser(params: { token: string; id: string }): Promise<void> {
+export async function adminDeleteUser(params: { id: string }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/users/${params.id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -793,13 +832,13 @@ export async function resetPassword(token: string, password: string): Promise<vo
   }
 }
 
-export async function updateAge(params: { token: string; age: number }): Promise<void> {
+export async function updateAge(params: { age: number }): Promise<void> {
   const res = await fetch(`${API_URL}/me/age`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ age: params.age }),
   })
   if (!res.ok) {
@@ -810,7 +849,6 @@ export async function updateAge(params: { token: string; age: number }): Promise
 }
 
 export async function updatePassword(params: { 
-  token: string; 
   current_password: string; 
   new_password: string 
 }): Promise<void> {
@@ -818,8 +856,8 @@ export async function updatePassword(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ 
       current_password: params.current_password, 
       new_password: params.new_password 
@@ -832,13 +870,13 @@ export async function updatePassword(params: {
   }
 }
 
-export async function requestOldEmailCode(params: { token: string; email: string }): Promise<void> {
+export async function requestOldEmailCode(params: { email: string }): Promise<void> {
   const res = await fetch(`${API_URL}/me/email/request-old`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ email: params.email }),
   })
   if (!res.ok) {
@@ -848,13 +886,13 @@ export async function requestOldEmailCode(params: { token: string; email: string
   }
 }
 
-export async function verifyOldEmailCode(params: { token: string; code: string }): Promise<void> {
+export async function verifyOldEmailCode(params: { code: string }): Promise<void> {
   const res = await fetch(`${API_URL}/me/email/verify-old`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ code: params.code }),
   })
   if (!res.ok) {
@@ -864,13 +902,13 @@ export async function verifyOldEmailCode(params: { token: string; code: string }
   }
 }
 
-export async function requestNewEmailCode(params: { token: string; email: string }): Promise<void> {
+export async function requestNewEmailCode(params: { email: string }): Promise<void> {
   const res = await fetch(`${API_URL}/me/email/request-new`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ email: params.email }),
   })
   if (!res.ok) {
@@ -880,13 +918,13 @@ export async function requestNewEmailCode(params: { token: string; email: string
   }
 }
 
-export async function verifyNewEmailCode(params: { token: string; code: string }): Promise<void> {
+export async function verifyNewEmailCode(params: { code: string }): Promise<void> {
   const res = await fetch(`${API_URL}/me/email/verify-new`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ code: params.code }),
   })
   if (!res.ok) {
@@ -950,11 +988,9 @@ export interface User {
   created_at: string
 }
 
-export async function getMe(params: { token: string }): Promise<User> {
+export async function getMe(): Promise<User> {
   const res = await fetch(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
     cache: "no-store",
   })
 
@@ -990,14 +1026,13 @@ export interface UserCollectionEntry {
 export async function addToMyCollection(params: {
   animeId: string
   status: WatchlistStatus
-  token: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/collections`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ anime_id: Number(params.animeId), status: params.status }),
   })
 
@@ -1010,13 +1045,10 @@ export async function addToMyCollection(params: {
 
 export async function removeFromMyCollection(params: {
   animeId: string
-  token: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/collections/${params.animeId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
 
   if (!res.ok) {
@@ -1026,13 +1058,9 @@ export async function removeFromMyCollection(params: {
   }
 }
 
-export async function getMyCollection(params: {
-  token: string
-}): Promise<UserCollectionEntry[]> {
+export async function getMyCollection(): Promise<UserCollectionEntry[]> {
   const res = await fetch(`${API_URL}/collections`, {
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
     cache: "no-store",
   })
 
@@ -1046,7 +1074,6 @@ export async function getMyCollection(params: {
 }
 
 export async function rateAnime(params: {
-	 token: string
 	 animeId: number
 	 rating: number
 }): Promise<void> {
@@ -1054,8 +1081,8 @@ export async function rateAnime(params: {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
-			Authorization: `Bearer ${params.token}`,
 		},
+		credentials: "include",
 		body: JSON.stringify({ anime_id: params.animeId, rating: params.rating }),
 	})
 
@@ -1075,11 +1102,9 @@ export async function getAnimeAverageRating(animeId: number): Promise<number> {
 	return typeof data.average_rating === "number" ? data.average_rating : 0
 }
 
-export async function getMyAnimeRating(params: { token: string; animeId: number }): Promise<number | null> {
+export async function getMyAnimeRating(params: { animeId: number }): Promise<number | null> {
 	const res = await fetch(`${API_URL}/anime/${params.animeId}/my-rating`, {
-		headers: {
-			Authorization: `Bearer ${params.token}`,
-		},
+		credentials: "include",
 		cache: "no-store",
 	})
 	const data = await res.json().catch(() => ({}))
@@ -1106,7 +1131,6 @@ export interface AdminUpsertEpisodeInput {
 }
 
 export async function adminCreateEpisode(params: {
-  token: string
   animeId: string
   input: AdminUpsertEpisodeInput
 }): Promise<Episode> {
@@ -1114,8 +1138,8 @@ export async function adminCreateEpisode(params: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1135,7 +1159,6 @@ export async function adminCreateEpisode(params: {
 }
 
 export async function adminUpdateEpisode(params: {
-  token: string
   episodeId: string
   input: AdminUpsertEpisodeInput
 }): Promise<Episode> {
@@ -1143,8 +1166,8 @@ export async function adminUpdateEpisode(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1164,14 +1187,11 @@ export async function adminUpdateEpisode(params: {
 }
 
 export async function adminDeleteEpisode(params: {
-  token: string
   episodeId: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/episodes/${params.episodeId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -1192,9 +1212,9 @@ export interface AdminUpsertVideoSourceInput {
   sort_order?: number
 }
 
-export async function adminListVideoLabels(params: { token: string }): Promise<VideoLabel[]> {
+export async function adminListVideoLabels(params: { }): Promise<VideoLabel[]> {
   const res = await fetch(`${API_URL}/admin/video-labels`, {
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
     cache: "no-store",
   })
   if (!res.ok) throw new Error((await res.json()).error || "Failed to fetch video labels")
@@ -1202,7 +1222,6 @@ export async function adminListVideoLabels(params: { token: string }): Promise<V
 }
 
 export async function adminCreateVideoLabel(params: {
-  token: string
   name: string
   is_external_player: boolean
 }): Promise<VideoLabel> {
@@ -1210,8 +1229,8 @@ export async function adminCreateVideoLabel(params: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ name: params.name, is_external_player: params.is_external_player }),
   })
   if (!res.ok) throw new Error((await res.json()).error || "Failed to create video label")
@@ -1219,7 +1238,6 @@ export async function adminCreateVideoLabel(params: {
 }
 
 export async function adminUpdateVideoLabel(params: {
-  token: string
   id: number
   name: string
   is_external_player: boolean
@@ -1228,24 +1246,23 @@ export async function adminUpdateVideoLabel(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ name: params.name, is_external_player: params.is_external_player }),
   })
   if (!res.ok) throw new Error((await res.json()).error || "Failed to update video label")
   return res.json()
 }
 
-export async function adminDeleteVideoLabel(params: { token: string; id: number }): Promise<void> {
+export async function adminDeleteVideoLabel(params: { id: number }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/video-labels/${params.id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
   })
   if (!res.ok) throw new Error((await res.json()).error || "Failed to delete video label")
 }
 
 export async function adminCreateVideoSource(params: {
-  token: string
   episodeId: string
   input: AdminUpsertVideoSourceInput
 }): Promise<VideoSource> {
@@ -1253,8 +1270,8 @@ export async function adminCreateVideoSource(params: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1267,7 +1284,6 @@ export async function adminCreateVideoSource(params: {
 }
 
 export async function adminUpdateVideoSource(params: {
-  token: string
   sourceId: string
   input: AdminUpsertVideoSourceInput
 }): Promise<VideoSource> {
@@ -1275,8 +1291,8 @@ export async function adminUpdateVideoSource(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1289,14 +1305,11 @@ export async function adminUpdateVideoSource(params: {
 }
 
 export async function adminDeleteVideoSource(params: {
-  token: string
   sourceId: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/video-sources/${params.sourceId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -1306,14 +1319,11 @@ export async function adminDeleteVideoSource(params: {
 }
 
 export async function adminSetDefaultVideoSource(params: {
-  token: string
   sourceId: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/video-sources/${params.sourceId}/default`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -1322,11 +1332,9 @@ export async function adminSetDefaultVideoSource(params: {
   }
 }
 
-export async function adminListVoiceGroups(params: { token: string }): Promise<VoiceGroup[]> {
+export async function adminListVoiceGroups(params: { }): Promise<VoiceGroup[]> {
   const res = await fetch(`${API_URL}/admin/voice-groups`, {
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
     cache: "no-store",
   })
 
@@ -1340,15 +1348,14 @@ export async function adminListVoiceGroups(params: { token: string }): Promise<V
 }
 
 export async function adminCreateVoiceGroup(params: {
-  token: string
   input: { name: string; type: "dub" | "sub" }
 }): Promise<VoiceGroup> {
   const res = await fetch(`${API_URL}/admin/voice-groups`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1361,7 +1368,6 @@ export async function adminCreateVoiceGroup(params: {
 }
 
 export async function adminUpdateVoiceGroup(params: {
-  token: string
   id: string
   input: { name: string; type: "dub" | "sub" }
 }): Promise<VoiceGroup> {
@@ -1369,8 +1375,8 @@ export async function adminUpdateVoiceGroup(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
   const data = await res.json().catch(() => ({}))
@@ -1382,14 +1388,11 @@ export async function adminUpdateVoiceGroup(params: {
 }
 
 export async function adminDeleteVoiceGroup(params: {
-  token: string
   id: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/voice-groups/${params.id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -1414,11 +1417,9 @@ export async function getAnimeEpisodesFiltered(params: {
   return res.json()
 }
 
-export async function adminGetMeta(params: { token: string }): Promise<AdminMeta> {
+export async function adminGetMeta(params: { }): Promise<AdminMeta> {
   const res = await fetch(`${API_URL}/admin/meta`, {
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
     cache: "no-store",
   })
 
@@ -1455,15 +1456,14 @@ export interface AdminCreateAnimeInput {
 }
 
 export async function adminCreateAnime(params: {
-  token: string
   input: AdminCreateAnimeInput
 }): Promise<Anime> {
   const res = await fetch(`${API_URL}/admin/animes`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1479,7 +1479,6 @@ export async function adminCreateAnime(params: {
 }
 
 export async function adminUpdateAnime(params: {
-  token: string
   id: string
   input: Omit<AdminCreateAnimeInput, "url">
 }): Promise<Anime> {
@@ -1487,8 +1486,8 @@ export async function adminUpdateAnime(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
 
@@ -1502,14 +1501,11 @@ export async function adminUpdateAnime(params: {
 }
 
 export async function adminDeleteAnime(params: {
-  token: string
   id: string
 }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/animes/${params.id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${params.token}`,
-    },
+    credentials: "include",
   })
 
   if (!res.ok) {
@@ -1519,9 +1515,9 @@ export async function adminDeleteAnime(params: {
   }
 }
 
-export async function adminListFAQ(params: { token: string }): Promise<FAQItem[]> {
+export async function adminListFAQ(params: { }): Promise<FAQItem[]> {
   const res = await fetch(`${API_URL}/admin/faq`, {
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
     cache: "no-store",
   })
   const data = await res.json().catch(() => ([]))
@@ -1533,15 +1529,14 @@ export async function adminListFAQ(params: { token: string }): Promise<FAQItem[]
 }
 
 export async function adminCreateFAQ(params: {
-  token: string
   input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
 }): Promise<FAQItem> {
   const res = await fetch(`${API_URL}/admin/faq`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
   const data = await res.json().catch(() => ({}))
@@ -1553,7 +1548,6 @@ export async function adminCreateFAQ(params: {
 }
 
 export async function adminUpdateFAQ(params: {
-  token: string
   id: number
   input: Pick<FAQItem, "question" | "answer" | "is_published" | "priority">
 }): Promise<FAQItem> {
@@ -1561,8 +1555,8 @@ export async function adminUpdateFAQ(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify(params.input),
   })
   const data = await res.json().catch(() => ({}))
@@ -1573,10 +1567,10 @@ export async function adminUpdateFAQ(params: {
   return data as FAQItem
 }
 
-export async function adminDeleteFAQ(params: { token: string; id: number }): Promise<void> {
+export async function adminDeleteFAQ(params: { id: number }): Promise<void> {
   const res = await fetch(`${API_URL}/admin/faq/${params.id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -1585,9 +1579,9 @@ export async function adminDeleteFAQ(params: { token: string; id: number }): Pro
   }
 }
 
-export async function adminListFeaturedAnimes(params: { token: string }): Promise<Anime[]> {
+export async function adminListFeaturedAnimes(params: { }): Promise<Anime[]> {
   const res = await fetch(`${API_URL}/admin/animes/featured`, {
-    headers: { Authorization: `Bearer ${params.token}` },
+    credentials: "include",
     cache: "no-store",
   })
   const data = await res.json().catch(() => ([]))
@@ -1599,7 +1593,6 @@ export async function adminListFeaturedAnimes(params: { token: string }): Promis
 }
 
 export async function adminSetAnimeFeatured(params: {
-  token: string
   id: string
   featured: boolean
 }): Promise<Anime> {
@@ -1607,8 +1600,8 @@ export async function adminSetAnimeFeatured(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ featured: params.featured }),
   })
   const data = await res.json().catch(() => ({}))
@@ -1652,9 +1645,9 @@ export function getAnimePosterUrl(anime: Anime): string {
 
 // Generic Metadata Admin Functions
 
-async function adminListMetaItem<T>(token: string, path: string): Promise<T[]> {
+async function adminListMetaItem<T>(path: string): Promise<T[]> {
   const res = await fetch(`${API_URL}/admin/${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
     cache: "no-store",
   })
   if (!res.ok) {
@@ -1670,13 +1663,13 @@ type AdminMetaPayload = {
   ru_name?: string | null
 }
 
-async function adminCreateMetaItem<T>(token: string, path: string, payload: AdminMetaPayload): Promise<T> {
+async function adminCreateMetaItem<T>(path: string, payload: AdminMetaPayload): Promise<T> {
   const res = await fetch(`${API_URL}/admin/${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
@@ -1687,13 +1680,13 @@ async function adminCreateMetaItem<T>(token: string, path: string, payload: Admi
   return data
 }
 
-async function adminUpdateMetaItem<T>(token: string, path: string, id: number, payload: AdminMetaPayload): Promise<T> {
+async function adminUpdateMetaItem<T>(path: string, id: number, payload: AdminMetaPayload): Promise<T> {
   const res = await fetch(`${API_URL}/admin/${path}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
@@ -1704,10 +1697,10 @@ async function adminUpdateMetaItem<T>(token: string, path: string, id: number, p
   return data
 }
 
-async function adminDeleteMetaItem(token: string, path: string, id: number): Promise<void> {
+async function adminDeleteMetaItem(path: string, id: number): Promise<void> {
   const res = await fetch(`${API_URL}/admin/${path}/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -1717,54 +1710,53 @@ async function adminDeleteMetaItem(token: string, path: string, id: number): Pro
 }
 
 // Kinds
-export const adminListKinds = (p: { token: string }) => adminListMetaItem<KindOption>(p.token, "kinds")
-export const adminCreateKind = (p: { token: string; name: string; ru_name?: string | null }) =>
-  adminCreateMetaItem<KindOption>(p.token, "kinds", { name: p.name, ru_name: p.ru_name ?? null })
-export const adminUpdateKind = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
-  adminUpdateMetaItem<KindOption>(p.token, "kinds", p.id, { name: p.name, ru_name: p.ru_name ?? null })
-export const adminDeleteKind = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "kinds", p.id)
+export const adminListKinds = (p: { }) => adminListMetaItem<KindOption>("kinds")
+export const adminCreateKind = (p: { name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<KindOption>("kinds", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateKind = (p: { id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<KindOption>("kinds", p.id, { name: p.name, ru_name: p.ru_name ?? null })
+export const adminDeleteKind = (p: { id: number }) => adminDeleteMetaItem("kinds", p.id)
 
 // Ratings
-export const adminListRatings = (p: { token: string }) => adminListMetaItem<RatingOption>(p.token, "ratings")
-export const adminCreateRating = (p: { token: string; name: string }) => adminCreateMetaItem<RatingOption>(p.token, "ratings", { name: p.name })
-export const adminUpdateRating = (p: { token: string; id: number; name: string }) =>
-  adminUpdateMetaItem<RatingOption>(p.token, "ratings", p.id, { name: p.name })
-export const adminDeleteRating = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "ratings", p.id)
+export const adminListRatings = (p: { }) => adminListMetaItem<RatingOption>("ratings")
+export const adminCreateRating = (p: { name: string }) => adminCreateMetaItem<RatingOption>("ratings", { name: p.name })
+export const adminUpdateRating = (p: { id: number; name: string }) =>
+  adminUpdateMetaItem<RatingOption>("ratings", p.id, { name: p.name })
+export const adminDeleteRating = (p: { id: number }) => adminDeleteMetaItem("ratings", p.id)
 
 // Statuses
-export const adminListStatuses = (p: { token: string }) => adminListMetaItem<Status>(p.token, "statuses")
-export const adminCreateStatus = (p: { token: string; name: string; ru_name?: string | null }) =>
-  adminCreateMetaItem<Status>(p.token, "statuses", { name: p.name, ru_name: p.ru_name ?? null })
-export const adminUpdateStatus = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
-  adminUpdateMetaItem<Status>(p.token, "statuses", p.id, { name: p.name, ru_name: p.ru_name ?? null })
-export const adminDeleteStatus = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "statuses", p.id)
+export const adminListStatuses = (p: { }) => adminListMetaItem<Status>("statuses")
+export const adminCreateStatus = (p: { name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Status>("statuses", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateStatus = (p: { id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Status>("statuses", p.id, { name: p.name, ru_name: p.ru_name ?? null })
+export const adminDeleteStatus = (p: { id: number }) => adminDeleteMetaItem("statuses", p.id)
 
 // Studios
-export const adminListStudios = (p: { token: string }) => adminListMetaItem<Studio>(p.token, "studios")
-export const adminCreateStudio = (p: { token: string; name: string; ru_name?: string | null }) =>
-  adminCreateMetaItem<Studio>(p.token, "studios", { name: p.name, ru_name: p.ru_name ?? null })
-export const adminUpdateStudio = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
-  adminUpdateMetaItem<Studio>(p.token, "studios", p.id, { name: p.name, ru_name: p.ru_name ?? null })
-export const adminDeleteStudio = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "studios", p.id)
+export const adminListStudios = (p: { }) => adminListMetaItem<Studio>("studios")
+export const adminCreateStudio = (p: { name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Studio>("studios", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateStudio = (p: { id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Studio>("studios", p.id, { name: p.name, ru_name: p.ru_name ?? null })
+export const adminDeleteStudio = (p: { id: number }) => adminDeleteMetaItem("studios", p.id)
 
 // Sources
-export const adminListSources = (p: { token: string }) => adminListMetaItem<Source>(p.token, "sources")
-export const adminCreateSource = (p: { token: string; name: string; ru_name?: string | null }) =>
-  adminCreateMetaItem<Source>(p.token, "sources", { name: p.name, ru_name: p.ru_name ?? null })
-export const adminUpdateSource = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
-  adminUpdateMetaItem<Source>(p.token, "sources", p.id, { name: p.name, ru_name: p.ru_name ?? null })
-export const adminDeleteSource = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "sources", p.id)
+export const adminListSources = (p: { }) => adminListMetaItem<Source>("sources")
+export const adminCreateSource = (p: { name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Source>("sources", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateSource = (p: { id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Source>("sources", p.id, { name: p.name, ru_name: p.ru_name ?? null })
+export const adminDeleteSource = (p: { id: number }) => adminDeleteMetaItem("sources", p.id)
 
 // Genres
-export const adminListGenres = (p: { token: string }) => adminListMetaItem<Genre>(p.token, "genres")
-export const adminCreateGenre = (p: { token: string; name: string; ru_name?: string | null }) =>
-  adminCreateMetaItem<Genre>(p.token, "genres", { name: p.name, ru_name: p.ru_name ?? null })
-export const adminUpdateGenre = (p: { token: string; id: number; name: string; ru_name?: string | null }) =>
-  adminUpdateMetaItem<Genre>(p.token, "genres", p.id, { name: p.name, ru_name: p.ru_name ?? null })
-export const adminDeleteGenre = (p: { token: string; id: number }) => adminDeleteMetaItem(p.token, "genres", p.id)
+export const adminListGenres = (p: { }) => adminListMetaItem<Genre>("genres")
+export const adminCreateGenre = (p: { name: string; ru_name?: string | null }) =>
+  adminCreateMetaItem<Genre>("genres", { name: p.name, ru_name: p.ru_name ?? null })
+export const adminUpdateGenre = (p: { id: number; name: string; ru_name?: string | null }) =>
+  adminUpdateMetaItem<Genre>("genres", p.id, { name: p.name, ru_name: p.ru_name ?? null })
+export const adminDeleteGenre = (p: { id: number }) => adminDeleteMetaItem("genres", p.id)
 
 export async function adminSetAnimeGenres(params: {
-  token: string
   animeId: string
   genre_ids: number[]
 }): Promise<Genre[]> {
@@ -1772,8 +1764,8 @@ export async function adminSetAnimeGenres(params: {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ genre_ids: params.genre_ids }),
   })
   const data = await res.json().catch(() => ({}))

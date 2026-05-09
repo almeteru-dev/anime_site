@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/config"
 	"github.com/seva/animevista/internal/handlers"
 	"github.com/seva/animevista/internal/middleware"
 	"github.com/seva/animevista/internal/service"
@@ -21,6 +22,9 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
+
+	// Initialize Config
+	config.LoadConfig()
 
 	// Initialize Database
 	app.InitDB()
@@ -34,16 +38,33 @@ func main() {
 	// Initialize Gin router
 	r := gin.Default()
 
+	// Trusted proxies setup
+	if err := r.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
+		log.Printf("Failed to set trusted proxies: %v", err)
+	}
+
 	// CORS middleware
 	r.Use(func(c *gin.Context) {
+		frontendURL := config.AppConfig.FRONTEND_URL
 		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
+
+		// Explicitly allow Frontend URL
+		if origin == frontendURL || origin == "http://localhost:3000" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			c.Writer.Header().Set("Vary", "Origin")
-			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		} else if !config.AppConfig.IS_PRODUCTION {
+			// In dev mode, allow origin if it's not empty
+			if origin != "" {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			} else {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
+			}
 		} else {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			// In production, strictly allow only FRONTEND_URL
+			c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
 		}
+
+		c.Writer.Header().Set("Vary", "Origin")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 
@@ -67,6 +88,7 @@ func main() {
 		// Auth routes
 		api.POST("/register", handlers.Register)
 		api.POST("/login", handlers.Login)
+		api.POST("/logout", handlers.Logout)
 		api.GET("/verify-email", handlers.VerifyEmail)
 		api.POST("/resend-verification", handlers.ResendVerification)
 		api.POST("/forgot-password", handlers.ForgotPassword)
@@ -195,11 +217,8 @@ func main() {
 		}
 	}
 
-	// Get port from environment
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	// Get port from config
+	port := config.AppConfig.PORT
 
 	// Start server
 	log.Printf("Server starting on port %s", port)

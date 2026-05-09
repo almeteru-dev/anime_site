@@ -58,7 +58,7 @@ export function AnimePlayerContainer({
   episode: Episode | null
   startWatchingNonce?: number
 }) {
-  const { token } = useAuth()
+  const { user } = useAuth()
   const artRef = useRef<ArtVideoPlayerHandle | null>(null)
   const [selectedServer, setSelectedServer] = useState("Server 1")
   const [selectedAudio, setSelectedAudio] = useState("Subbed")
@@ -154,11 +154,11 @@ export function AnimePlayerContainer({
   }
 
   const handleUpdateList = async (animeId: string, status: UserListStatus) => {
-    if (!token) {
+    if (!user) {
       throw new Error("Unauthorized")
     }
 
-    await addToMyCollection({ animeId, status: status as WatchlistStatus, token })
+    await addToMyCollection({ animeId, status: status as WatchlistStatus })
   }
 
   return (

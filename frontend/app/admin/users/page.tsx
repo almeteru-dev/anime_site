@@ -17,7 +17,7 @@ import { UsersTable } from "@/components/admin/users/UsersTable"
 import { UsersToolbar, type RoleFilter, type StatusFilter } from "@/components/admin/users/UsersToolbar"
 
 export default function AdminUsersPage() {
-  const { token, user: me } = useAuth()
+  const { user: me } = useAuth()
 
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [total, setTotal] = useState<number>(0)
@@ -42,12 +42,10 @@ export default function AdminUsersPage() {
 
   const load = useCallback(
     async (next: { q: string; role: RoleFilter; status: StatusFilter }) => {
-      if (!token) return
       const seq = ++fetchSeq.current
       setError(null)
       try {
         const res = await adminListUsers({
-          token,
           q: next.q,
           role: next.role,
           status: next.status,
@@ -64,11 +62,10 @@ export default function AdminUsersPage() {
         setTotal(0)
       }
     },
-    [token]
+    []
   )
 
   useEffect(() => {
-    if (!token) return
     if (queryDebounce.current) window.clearTimeout(queryDebounce.current)
     queryDebounce.current = window.setTimeout(() => {
       load({ q: effectiveQuery, role, status })
@@ -76,7 +73,7 @@ export default function AdminUsersPage() {
     return () => {
       if (queryDebounce.current) window.clearTimeout(queryDebounce.current)
     }
-  }, [effectiveQuery, role, status, token, load])
+  }, [effectiveQuery, role, status, load])
 
   const resetFilters = () => {
     setQuery("")
@@ -85,7 +82,6 @@ export default function AdminUsersPage() {
   }
 
   const handleCreate = async () => {
-    if (!token) return
     setCreateError(null)
     const pw = createForm.password
     if (pw.length < 10) {
@@ -107,7 +103,7 @@ export default function AdminUsersPage() {
     setIsBusy(true)
     setError(null)
     try {
-      await adminCreateUser({ token, input: createForm })
+      await adminCreateUser({ input: createForm })
       setCreateForm({ username: "", email: "", password: "", role: "user" })
       setCreateOpen(false)
       await load({ q: effectiveQuery, role, status })
@@ -125,7 +121,7 @@ export default function AdminUsersPage() {
   }
 
   const handleBan = async () => {
-    if (!token || !banTarget) return
+    if (!banTarget) return
     const reason = banReason.trim()
     if (!reason) {
       setError("Ban reason is required")
@@ -134,7 +130,7 @@ export default function AdminUsersPage() {
     setIsBusy(true)
     setError(null)
     try {
-      await adminBanUser({ token, id: String(banTarget.id), reason })
+      await adminBanUser({ id: String(banTarget.id), reason })
       setBanOpen(false)
       setBanTarget(null)
       await load({ q: effectiveQuery, role, status })
@@ -146,11 +142,10 @@ export default function AdminUsersPage() {
   }
 
   const handleUnban = async (u: AdminUser) => {
-    if (!token) return
     setIsBusy(true)
     setError(null)
     try {
-      await adminUnbanUser({ token, id: String(u.id) })
+      await adminUnbanUser({ id: String(u.id) })
       await load({ q: effectiveQuery, role, status })
     } catch (e: any) {
       setError(e?.message || "Failed to unban user")
@@ -160,13 +155,12 @@ export default function AdminUsersPage() {
   }
 
   const handleDelete = async (u: AdminUser) => {
-    if (!token) return
     const ok = window.confirm(`Delete user ${u.email}? This cannot be undone.`)
     if (!ok) return
     setIsBusy(true)
     setError(null)
     try {
-      await adminDeleteUser({ token, id: String(u.id) })
+      await adminDeleteUser({ id: String(u.id) })
       await load({ q: effectiveQuery, role, status })
     } catch (e: any) {
       setError(e?.message || "Failed to delete user")

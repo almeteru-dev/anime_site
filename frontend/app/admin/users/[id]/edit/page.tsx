@@ -12,7 +12,7 @@ import { canManageUser, roleLabel } from "@/lib/roles"
 type StatusChoice = "active" | "not_verified" | "banned"
 
 export default function AdminUserEditPage() {
-  const { token, user: me } = useAuth()
+  const { user: me } = useAuth()
   const params = useParams<{ id: string }>()
   const router = useRouter()
 
@@ -34,11 +34,11 @@ export default function AdminUserEditPage() {
   useEffect(() => {
     let cancelled = false
     async function run() {
-      if (!token || !userId) return
+      if (!userId) return
       setPageError(null)
       setNotice(null)
       try {
-        const u = await adminGetUser({ token, id: userId })
+        const u = await adminGetUser({ id: userId })
         if (cancelled) return
         setUser(u)
         setRole(u.role === "admin" ? "admin" : u.role === "moderator" ? "moderator" : "user")
@@ -53,7 +53,7 @@ export default function AdminUserEditPage() {
     return () => {
       cancelled = true
     }
-  }, [token, userId])
+  }, [userId])
 
   const canEditTarget = !!user && canManageUser(me?.role || "user", me?.id ?? null, user.role, user.id)
   const canEditStatus = !!user && !user.is_banned && user.role !== "root" && canEditTarget
@@ -67,7 +67,7 @@ export default function AdminUserEditPage() {
   const canTransferRoot = me?.role === "root" && user?.role === "admin"
 
   const onSave = async () => {
-    if (!token || !user) return
+    if (!user) return
     setStatusError(null)
     setRoleError(null)
     setPageError(null)
@@ -87,7 +87,6 @@ export default function AdminUserEditPage() {
     setIsBusy(true)
     try {
       const updated = await adminUpdateUser({
-        token,
         id: String(user.id),
         input: { is_verified: nextVerified, role },
       })
@@ -104,7 +103,7 @@ export default function AdminUserEditPage() {
   }
 
   const onResetPassword = async () => {
-    if (!token || !user) return
+    if (!user) return
     setPageError(null)
     setNotice(null)
 
@@ -118,7 +117,7 @@ export default function AdminUserEditPage() {
 
     setIsBusy(true)
     try {
-      await adminResetUserPasswordDefault({ token, id: String(user.id) })
+      await adminResetUserPasswordDefault({ id: String(user.id) })
       setNotice("Password reset to default")
     } catch (e: any) {
       setPageError(e?.message || "Failed to reset password")
@@ -128,7 +127,7 @@ export default function AdminUserEditPage() {
   }
 
   const onTransferRoot = async () => {
-    if (!token || !user) return
+    if (!user) return
     setTransferError(null)
 
     if (!canTransferRoot) {
@@ -142,7 +141,7 @@ export default function AdminUserEditPage() {
 
     setIsBusy(true)
     try {
-      await adminTransferRoot({ token, target_user_id: user.id, password: transferPassword })
+      await adminTransferRoot({ target_user_id: user.id, password: transferPassword })
       window.dispatchEvent(new CustomEvent("auth:force-logout", { detail: { error_code: "REVOKED" } }))
     } catch (e: any) {
       setTransferError(e?.message || "Failed to transfer root")

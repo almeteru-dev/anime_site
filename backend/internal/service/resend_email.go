@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"html"
 	"log"
-	"os"
 	"strings"
 	"sync"
 
 	"github.com/resend/resend-go/v3"
+	"github.com/seva/animevista/internal/config"
 )
 
 const resendFrom = "LycorisLib <noreply@lycorislib.moe>"
@@ -23,7 +23,7 @@ var (
 )
 
 func getResendClient() (*resend.Client, error) {
-	apiKey := strings.TrimSpace(os.Getenv("RESEND_API_KEY"))
+	apiKey := strings.TrimSpace(config.AppConfig.RESEND_API_KEY)
 	if apiKey == "" {
 		return nil, ErrResendNotConfigured
 	}

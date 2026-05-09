@@ -116,7 +116,7 @@ interface CatalogClientProps {
 }
 
 export function CatalogClient({ initialAnimes, meta, initialSearchParams }: CatalogClientProps) {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
 
   const initial = useMemo(() => {
@@ -154,9 +154,9 @@ export function CatalogClient({ initialAnimes, meta, initialSearchParams }: Cata
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token || !user) return
+      if (!user) return
       try {
-        const data = await getMyCollection({ token })
+        const data = await getMyCollection()
         if (!mounted) return
         const next: Record<string, AnimeStatus> = {}
         for (const entry of data) {
@@ -174,7 +174,7 @@ export function CatalogClient({ initialAnimes, meta, initialSearchParams }: Cata
     return () => {
       mounted = false
     }
-  }, [token, user])
+  }, [user])
 
   // Paginate results
   const totalPages = Math.ceil(initialAnimes.length / ITEMS_PER_PAGE)
@@ -299,12 +299,12 @@ export function CatalogClient({ initialAnimes, meta, initialSearchParams }: Cata
           onMobileFilterToggle={() => setMobileFiltersOpen(true)}
           userStatuses={userStatuses}
           onStatusChange={async (animeId, newStatus) => {
-            if (!token || !user) return
+            if (!user) return
             if (!newStatus) return
 
             setUserStatuses((prev) => ({ ...prev, [String(animeId)]: newStatus }))
             setCollectionStatus(user.id, String(animeId), newStatus as WatchlistStatus)
-            await addToMyCollection({ animeId: String(animeId), status: newStatus as WatchlistStatus, token })
+            await addToMyCollection({ animeId: String(animeId), status: newStatus as WatchlistStatus })
           }}
         />
       </div>

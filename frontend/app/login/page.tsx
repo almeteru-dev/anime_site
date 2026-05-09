@@ -8,6 +8,8 @@ import { LanguageSwitcher } from "@/components/language-switcher"
 import { useAuth } from "@/contexts/auth-context"
 import { getPublicSettings } from "@/lib/api"
 
+const API_URL = "/api"
+
 export default function LoginPage() {
   const { t } = useLanguage()
   const { login } = useAuth()
@@ -52,7 +54,7 @@ export default function LoginPage() {
     setError(null)
     
     try {
-      const response = await fetch("http://localhost:8080/api/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -65,7 +67,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed")
       }
 
-      login(data.token, data.user, rememberMe)
+      login(data.user, rememberMe)
     } catch (err: any) {
       setError(err.message)
     } finally {

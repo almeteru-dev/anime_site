@@ -11,7 +11,7 @@ import type { AnimeStatus } from "@/components/anime-status-manager"
 import { cn } from "@/lib/utils"
 
 export default function MyListPage() {
-  const { token, user, logout } = useAuth()
+  const { user } = useAuth()
   const { t, locale } = useLanguage()
   const [items, setItems] = useState<UserCollectionEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -20,19 +20,15 @@ export default function MyListPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) {
+      if (!user) {
         setItems([])
         return
       }
       try {
-        const data = await getMyCollection({ token })
+        const data = await getMyCollection()
         if (mounted) setItems(data)
       } catch (e: any) {
         const msg = e?.message || "Failed to load"
-        if (msg === "Invalid or expired token") {
-          logout()
-          return
-        }
         if (mounted) setError(msg)
       }
     })()
@@ -40,7 +36,7 @@ export default function MyListPage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [user])
 
   const mapBackendToUiStatus = (name: string): AnimeStatus => {
     const n = (name || "").toLowerCase()
@@ -91,31 +87,23 @@ export default function MyListPage() {
   }, [activeTab, counts, items, tabs])
 
   const handleStatusChange = async (animeId: string, newStatus: AnimeStatus) => {
-    if (!token) return
+    if (!user) return
     if (!newStatus) return
     try {
-      await addToMyCollection({ animeId, status: newStatus as WatchlistStatus, token })
-      const refreshed = await getMyCollection({ token })
+      await addToMyCollection({ animeId, status: newStatus as WatchlistStatus })
+      const refreshed = await getMyCollection()
       setItems(refreshed)
     } catch (e: any) {
-      if (e?.message === "Invalid or expired token") {
-        logout()
-        return
-      }
       setError(e?.message || "Failed to update")
     }
   }
 
   const handleRemove = async (animeId: string) => {
-    if (!token) return
+    if (!user) return
     try {
-      await removeFromMyCollection({ animeId, token })
+      await removeFromMyCollection({ animeId })
       setItems((prev) => (prev ? prev.filter((e) => String(e.anime_id) !== String(animeId)) : prev))
     } catch (e: any) {
-      if (e?.message === "Invalid or expired token") {
-        logout()
-        return
-      }
       setError(e?.message || "Failed to remove")
     }
   }
@@ -143,7 +131,7 @@ export default function MyListPage() {
           </Link>
         </div>
 
-        {!token ? (
+        {!user ? (
           <div className="rounded-2xl border border-border/50 bg-background-secondary/40 p-8 text-center">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center">
               <Tv className="w-7 h-7 text-foreground-subtle" />

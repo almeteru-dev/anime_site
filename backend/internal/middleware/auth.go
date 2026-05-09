@@ -4,56 +4,59 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
+
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/config"
 	"github.com/seva/animevista/internal/models"
 	"gorm.io/gorm"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+		tokenString, err := c.Cookie("auth_token")
+		if err != nil {
+			log.Printf("AuthMiddleware: auth_token cookie missing: %v", err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required", "error_code": "REVOKED"})
 			c.Abort()
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(config.AppConfig.JWT_SECRET), nil
 		})
 
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		if err != nil {
+			log.Printf("AuthMiddleware: token parsing error: %v", err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
+			c.Abort()
+			return
+		}
+
+		if !token.Valid {
+			log.Println("AuthMiddleware: token is invalid")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims", "error_code": "REVOKED"})
 			c.Abort()
 			return
 		}
 
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims", "error_code": "REVOKED"})
 			c.Abort()
 			return
 		}
@@ -61,8 +64,6 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tokenVersionFloat, ok := claims["token_version"].(float64)
 		if !ok {
-			c.SetCookie("token", "", -1, "/", "", false, true)
-			c.SetCookie("user", "", -1, "/", "", false, true)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
 			c.Abort()
 			return
@@ -73,8 +74,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		err = app.DB.Select("id", "role", "token_version", "is_banned", "ban_reason", "is_verified").First(&user, userID).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.SetCookie("token", "", -1, "/", "", false, true)
-				c.SetCookie("user", "", -1, "/", "", false, true)
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
 				c.Abort()
 				return
@@ -85,8 +84,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if user.TokenVersion != tokenVersion {
-			c.SetCookie("token", "", -1, "/", "", false, true)
-			c.SetCookie("user", "", -1, "/", "", false, true)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "error_code": "REVOKED"})
 			c.Abort()
 			return
@@ -97,8 +94,6 @@ func AuthMiddleware() gin.HandlerFunc {
 			if user.BanReason != nil {
 				reason = *user.BanReason
 			}
-			c.SetCookie("token", "", -1, "/", "", false, true)
-			c.SetCookie("user", "", -1, "/", "", false, true)
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":      "You have been banned. Reason: " + reason,
 				"error_code": "BANNED",
@@ -109,8 +104,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if !user.IsVerified {
-			c.SetCookie("token", "", -1, "/", "", false, true)
-			c.SetCookie("user", "", -1, "/", "", false, true)
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":      "Account is not verified",
 				"error_code": "NOT_VERIFIED",

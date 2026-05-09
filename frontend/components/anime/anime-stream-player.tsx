@@ -65,7 +65,7 @@ export function AnimeStreamPlayer({
   episodesByServer: EpisodesByServer
   startWatchingNonce: number
 }) {
-  const { token } = useAuth()
+  const { user } = useAuth()
   const { locale } = useLanguage()
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const artRef = useRef<ArtVideoPlayerHandle | null>(null)
@@ -80,14 +80,14 @@ export function AnimeStreamPlayer({
   const [initialListStatus, setInitialStatus] = useState<UserListStatus | null>(null)
 
   useEffect(() => {
-    if (!token) return
-    getMyCollection({ token }).then((list) => {
+    if (!user) return
+    getMyCollection().then((list) => {
       const entry = list.find((x) => x.anime_id === anime.id)
       if (entry) {
         setInitialStatus(entry.collection_type.name.toLowerCase().replace(" ", "_") as UserListStatus)
       }
     })
-  }, [anime.id, token])
+  }, [anime.id, user])
 
   const currentData = useMemo(() => episodesByServer["default"] || null, [episodesByServer])
   const dubbedGroups = currentData?.dub || []
@@ -151,8 +151,8 @@ export function AnimeStreamPlayer({
   }, [activeUrl, autoplayTrailer, selectedEpisode])
 
   const handleUpdateList = async (animeId: string, status: any) => {
-    if (!token) throw new Error("Unauthorized")
-    await addToMyCollection({ animeId, status: status as WatchlistStatus, token })
+    if (!user) throw new Error("Unauthorized")
+    await addToMyCollection({ animeId, status: status as WatchlistStatus })
   }
 
   const chooseFirstPlayable = () => {

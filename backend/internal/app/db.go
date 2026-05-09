@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/seva/animevista/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -29,7 +30,7 @@ func InitDB() {
 
 	log.Println("Database connection established")
 
-	reset := os.Getenv("DB_RESET") == "true"
+	reset := config.AppConfig.DB_RESET
 	if reset {
 		if err := dropAllTables(DB); err != nil {
 			log.Fatalf("Failed to reset database: %v", err)

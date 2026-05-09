@@ -10,6 +10,7 @@ import (
 	"github.com/seva/animevista/internal/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"log"
 )
 
 func adminRoleLevel(role string) int {
@@ -116,12 +117,15 @@ func AdminListUsers(c *gin.Context) {
 
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
+		log.Printf("AdminListUsers: failed to count users: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count users"})
 		return
 	}
 
 	var users []models.User
-	if err := db.Order("created_at desc").Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+	if err := db.Select("id", "username", "email", "role", "is_verified", "is_banned", "ban_reason", "created_at").
+		Order("created_at desc").Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		log.Printf("AdminListUsers: failed to fetch users: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
 		return
 	}
@@ -138,7 +142,9 @@ func AdminGetUser(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := app.DB.First(&user, targetID).Error; err != nil {
+	if err := app.DB.Select("id", "username", "email", "role", "is_verified", "is_banned", "ban_reason", "created_at").
+		First(&user, targetID).Error; err != nil {
+		log.Printf("AdminGetUser: user not found id=%d: %v", targetID, err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}

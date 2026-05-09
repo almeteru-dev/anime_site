@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export default function ProfilePage() {
-  const { token, user: authUser } = useAuth()
+  const { user: authUser } = useAuth()
   const { t } = useLanguage()
   const [profile, setProfile] = useState<User | null>(null)
   const [collection, setCollection] = useState<UserCollectionEntry[]>([])
@@ -51,11 +51,10 @@ export default function ProfilePage() {
   })
 
   const fetchData = async () => {
-    if (!token) return
     try {
       const [userData, collectionData] = await Promise.all([
-        getMe({ token }),
-        getMyCollection({ token })
+        getMe(),
+        getMyCollection()
       ])
       setProfile(userData)
       setAgeInput(userData.age?.toString() || "")
@@ -69,11 +68,14 @@ export default function ProfilePage() {
   }
 
   useEffect(() => {
+    if (!authUser) {
+      setIsLoading(false)
+      return
+    }
     fetchData()
-  }, [token])
+  }, [authUser])
 
   const handleUpdateAge = async () => {
-    if (!token) return
     const age = parseInt(ageInput)
     if (isNaN(age) || age < 1 || age > 120) {
       setError(t.profile.invalidAge)
@@ -84,7 +86,7 @@ export default function ProfilePage() {
     setError(null)
     setSuccessMsg(null)
     try {
-      await updateAge({ token, age })
+      await updateAge({ age })
       setSuccessMsg(t.profile.ageUpdated)
       await fetchData()
     } catch (e: any) {
@@ -95,7 +97,7 @@ export default function ProfilePage() {
   }
 
   const validatePassword = (pass: string) => {
-    if (pass.length < 8 || pass.length > 100) return t.profile.passwordRuleLength
+    if (pass.length < 10) return t.profile.passwordRuleLength
     if (!/^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]+$/.test(pass)) return t.profile.passwordEnglishOnly
     if (!/[0-9]/.test(pass)) return t.profile.passwordRuleDigit
     if (!/[!@#\$%\^\&*\)\(+=._-]/.test(pass)) return t.profile.passwordRuleSpecial
@@ -104,7 +106,6 @@ export default function ProfilePage() {
   }
 
   const handleUpdatePassword = async () => {
-    if (!token) return
     const passError = validatePassword(passwordForm.new)
     if (passError) {
       setError(passError)
@@ -120,7 +121,6 @@ export default function ProfilePage() {
     setSuccessMsg(null)
     try {
       await updatePassword({ 
-        token, 
         current_password: passwordForm.current, 
         new_password: passwordForm.new 
       })
@@ -134,11 +134,10 @@ export default function ProfilePage() {
   }
 
   const handleEmailStep1 = async () => {
-    if (!token) return
     setIsSaving(true)
     setError(null)
     try {
-      await requestOldEmailCode({ token, email: emailForm.current })
+      await requestOldEmailCode({ email: emailForm.current })
       setEmailStep(2)
     } catch (e: any) {
       setError(e.message)
@@ -148,11 +147,10 @@ export default function ProfilePage() {
   }
 
   const handleEmailStep2 = async () => {
-    if (!token) return
     setIsSaving(true)
     setError(null)
     try {
-      await verifyOldEmailCode({ token, code: emailForm.oldCode })
+      await verifyOldEmailCode({ code: emailForm.oldCode })
       setEmailStep(3)
     } catch (e: any) {
       setError(e.message)
@@ -162,11 +160,10 @@ export default function ProfilePage() {
   }
 
   const handleEmailStep3 = async () => {
-    if (!token) return
     setIsSaving(true)
     setError(null)
     try {
-      await requestNewEmailCode({ token, email: emailForm.new })
+      await requestNewEmailCode({ email: emailForm.new })
       setEmailStep(4)
     } catch (e: any) {
       setError(e.message)
@@ -176,11 +173,10 @@ export default function ProfilePage() {
   }
 
   const handleEmailStep4 = async () => {
-    if (!token) return
     setIsSaving(true)
     setError(null)
     try {
-      await verifyNewEmailCode({ token, code: emailForm.newCode })
+      await verifyNewEmailCode({ code: emailForm.newCode })
       setSuccessMsg(t.profile.emailUpdated)
       setEmailStep(1)
       await fetchData()
@@ -214,7 +210,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (!token || !profile) {
+  if (!authUser || !profile) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">{t.profile.accessDeniedTitle}</h1>
@@ -462,12 +458,10 @@ export default function ProfilePage() {
                   onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
                   className="w-full h-12 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 transition-colors"
                   placeholder="••••••••••••"
-                  minLength={8}
-                  maxLength={100}
                 />
                 <div className="pt-1 space-y-1">
                   {[
-                    { label: t.profile.passwordRuleLength, met: passwordForm.new.length >= 8 && passwordForm.new.length <= 100 },
+                    { label: t.profile.passwordRuleLength, met: passwordForm.new.length >= 10 },
                     { label: t.profile.passwordRuleDigit, met: /[0-9]/.test(passwordForm.new) },
                     { label: t.profile.passwordRuleUpper, met: /[A-Z]/.test(passwordForm.new) },
                     { label: t.profile.passwordRuleSpecial, met: /[!@#\$%\^\&*\)\(+=._-]/.test(passwordForm.new) },
@@ -489,8 +483,6 @@ export default function ProfilePage() {
                   onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})}
                   className="w-full h-12 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50 transition-colors"
                   placeholder="••••••••••••"
-                  minLength={8}
-                  maxLength={100}
                 />
               </div>
               <button 

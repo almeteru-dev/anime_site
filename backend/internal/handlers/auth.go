@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -15,17 +14,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/config"
 	"github.com/seva/animevista/internal/models"
 	"github.com/seva/animevista/internal/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func publicWebBaseURL() string {
-	base := strings.TrimSpace(os.Getenv("WEB_BASE_URL"))
-	if base == "" {
-		base = "http://localhost:3000"
-	}
-	return strings.TrimRight(base, "/")
+	return strings.TrimRight(config.AppConfig.FRONTEND_URL, "/")
 }
 
 type RegisterInput struct {
@@ -81,15 +77,15 @@ func validatePassword(password string) error {
 }
 
 func validateUsername(u string) error {
-    if len(u) < 4 || len(u) > 30 {
-        return fmt.Errorf("username must be between 4 and 30 characters")
-    }
-    // Только английские буквы, цифры и спецсимволы
-    re := regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$`)
-    if !re.MatchString(u) {
-        return fmt.Errorf("username contains invalid characters or cyrillic")
-    }
-    return nil
+	if len(u) < 4 || len(u) > 30 {
+		return fmt.Errorf("username must be between 4 and 30 characters")
+	}
+	// Только английские буквы, цифры и спецсимволы
+	re := regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$`)
+	if !re.MatchString(u) {
+		return fmt.Errorf("username contains invalid characters or cyrillic")
+	}
+	return nil
 }
 
 func generateToken(length int) string {
@@ -120,7 +116,6 @@ func Register(c *gin.Context) {
 	}
 	username := strings.TrimSpace(input.Username)
 
-	
 	input.Username = username
 	input.Email = strings.TrimSpace(input.Email)
 	if input.Email == "" {
@@ -410,26 +405,41 @@ func Login(c *gin.Context) {
 		"exp":           exp.Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	tokenString, err := token.SignedString([]byte(config.AppConfig.JWT_SECRET))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
 
+	// Set auth_token via HttpOnly cookie
 	ck := &http.Cookie{
 		Name:     "auth_token",
-		Value:    url.QueryEscape(tokenString),
+		Value:    tokenString,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Secure:   c.Request.TLS != nil,
+		HttpOnly: true,
+		Secure:   config.AppConfig.IS_PRODUCTION,
 	}
 	if input.RememberMe {
-		ck.MaxAge = 60 * 60 * 24 * 30
+		ck.MaxAge = int(exp.Sub(time.Now()).Seconds())
 	}
 	http.SetCookie(c.Writer, ck)
 
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-		"user":  user,
+		"user": user,
 	})
+}
+
+func Logout(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   config.AppConfig.IS_PRODUCTION,
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

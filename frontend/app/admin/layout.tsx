@@ -9,11 +9,11 @@ import { roleLevel } from "@/lib/roles"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, token, logout, isLoading } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
-  if (!isLoading && (!token || !user)) {
+  if (!isLoading && !user) {
     router.push("/")
     return null
   }

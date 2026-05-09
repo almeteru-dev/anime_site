@@ -40,7 +40,7 @@ function pickTranslation(anime: Anime, code: "ru" | "en") {
 
 export default function AdminEditAnimePage() {
   const params = useParams<{ id: string }>()
-  const { token, user: me } = useAuth()
+  const { user: me } = useAuth()
   const [meta, setMeta] = useState<AdminMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,9 +124,8 @@ export default function AdminEditAnimePage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const [m, a, vl] = await Promise.all([adminGetMeta({ token }), getAnimeByID(params.id), adminListVideoLabels({ token })])
+        const [m, a, vl] = await Promise.all([adminGetMeta({}), getAnimeByID(params.id), adminListVideoLabels({})])
         if (!mounted) return
         setMeta(m)
         setVideoLabels(vl)
@@ -161,15 +160,14 @@ export default function AdminEditAnimePage() {
     return () => {
       mounted = false
     }
-  }, [params.id, token])
+  }, [params.id])
 
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const groups = await adminListVoiceGroups({ token })
+        const groups = await adminListVoiceGroups({})
         if (mounted) setVoiceGroups(groups)
       } catch (e: any) {
         if (mounted) setEpisodeError(e.message || "Failed to load voice groups")
@@ -178,7 +176,7 @@ export default function AdminEditAnimePage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   const dubVoiceGroups = useMemo(() => {
     return (voiceGroups || []).filter((g) => g.type === "dub")
@@ -261,7 +259,6 @@ export default function AdminEditAnimePage() {
   }
 
   const quickAddGroup = async () => {
-    if (!token) return
     if (me?.role === "moderator") {
       setEpisodeError("Moderators cannot manage voice groups")
       return
@@ -272,7 +269,6 @@ export default function AdminEditAnimePage() {
     setEpisodeError(null)
     try {
       const created = await adminCreateVoiceGroup({
-        token,
         input: { name, type: selectedGroupType },
       })
       setVoiceGroups((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
@@ -287,7 +283,6 @@ export default function AdminEditAnimePage() {
   }
 
   const saveVoiceGroup = async () => {
-    if (!token) return
     if (me?.role === "moderator") {
       setEpisodeError("Moderators cannot manage voice groups")
       return
@@ -300,14 +295,12 @@ export default function AdminEditAnimePage() {
     try {
       if (editingVoiceGroupId) {
         const updated = await adminUpdateVoiceGroup({
-          token,
           id: String(editingVoiceGroupId),
           input: { name, type: voiceGroupForm.type },
         })
         setVoiceGroups((prev) => (prev ? prev.map((g) => (g.id === updated.id ? updated : g)).sort((a, b) => a.name.localeCompare(b.name)) : prev))
       } else {
         const created = await adminCreateVoiceGroup({
-          token,
           input: { name, type: voiceGroupForm.type },
         })
         setVoiceGroups((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
@@ -328,7 +321,6 @@ export default function AdminEditAnimePage() {
   }
 
   const deleteVoiceGroup = async (g: VoiceGroup) => {
-    if (!token) return
     if (me?.role === "moderator") {
       setEpisodeError("Moderators cannot manage voice groups")
       return
@@ -339,7 +331,7 @@ export default function AdminEditAnimePage() {
     setEpisodeSaving(true)
     setEpisodeError(null)
     try {
-      await adminDeleteVoiceGroup({ token, id: String(g.id) })
+      await adminDeleteVoiceGroup({ id: String(g.id) })
       setVoiceGroups((prev) => (prev ? prev.filter((x) => x.id !== g.id) : prev))
       if (selectedGroupId === g.id) {
         setSelectedGroupId(null)
@@ -354,7 +346,6 @@ export default function AdminEditAnimePage() {
   }
 
   const saveEpisode = async () => {
-    if (!token) return
     if (!selectedGroupId) {
       setEpisodeError("Select a voice group first")
       return
@@ -378,14 +369,12 @@ export default function AdminEditAnimePage() {
     try {
       if (editingEpisodeId) {
         const updated = await adminUpdateEpisode({
-          token,
           episodeId: String(editingEpisodeId),
           input,
         })
         setEpisodes((prev) => (prev ? prev.map((e) => (e.id === updated.id ? updated : e)).sort((a, b) => a.number - b.number) : prev))
       } else {
         const created = await adminCreateEpisode({
-          token,
           animeId: params.id,
           input,
         })
@@ -393,7 +382,6 @@ export default function AdminEditAnimePage() {
         if (shouldCreateSource) {
           try {
             const initialSource = await adminCreateVideoSource({
-              token,
               episodeId: String(created.id),
               input: episodeSourceForm,
             })
@@ -423,14 +411,13 @@ export default function AdminEditAnimePage() {
   }
 
   const deleteEpisode = async (ep: Episode) => {
-    if (!token) return
     if (me?.role === "moderator") return
     const ok = window.confirm(`Delete episode ${ep.number}?`)
     if (!ok) return
     setEpisodeSaving(true)
     setEpisodeError(null)
     try {
-      await adminDeleteEpisode({ token, episodeId: String(ep.id) })
+      await adminDeleteEpisode({ episodeId: String(ep.id) })
       setEpisodes((prev) => (prev ? prev.filter((x) => x.id !== ep.id) : prev))
       if (editingEpisodeId === ep.id) resetEpisodeForm()
       if (selectedEpisodeForSources?.id === ep.id) setSelectedEpisodeForSources(null)
@@ -442,13 +429,12 @@ export default function AdminEditAnimePage() {
   }
 
   const saveSource = async () => {
-    if (!token || !selectedEpisodeForSources) return
+    if (!selectedEpisodeForSources) return
     setEpisodeSaving(true)
     setEpisodeError(null)
     try {
       if (editingSourceId) {
         const updated = await adminUpdateVideoSource({
-          token,
           sourceId: String(editingSourceId),
           input: sourceForm,
         })
@@ -461,7 +447,6 @@ export default function AdminEditAnimePage() {
         })
       } else {
         const created = await adminCreateVideoSource({
-          token,
           episodeId: String(selectedEpisodeForSources.id),
           input: sourceForm,
         })
@@ -491,7 +476,7 @@ export default function AdminEditAnimePage() {
   }
 
   const deleteSource = async (source: VideoSource) => {
-    if (!token || !selectedEpisodeForSources) return
+    if (!selectedEpisodeForSources) return
     if (me?.role === "moderator") return
     if (selectedEpisodeForSources.video_sources?.length === 1) {
       setEpisodeError("Cannot delete the last source")
@@ -503,7 +488,7 @@ export default function AdminEditAnimePage() {
     setEpisodeSaving(true)
     setEpisodeError(null)
     try {
-      await adminDeleteVideoSource({ token, sourceId: String(source.id) })
+      await adminDeleteVideoSource({ sourceId: String(source.id) })
       setSelectedEpisodeForSources((prev) => {
         if (!prev) return prev
         const filtered = (prev.video_sources || []).filter((s) => s.id !== source.id)
@@ -521,11 +506,11 @@ export default function AdminEditAnimePage() {
   }
 
   const setDefaultSource = async (sourceId: number) => {
-    if (!token || !selectedEpisodeForSources) return
+    if (!selectedEpisodeForSources) return
     setEpisodeSaving(true)
     setEpisodeError(null)
     try {
-      await adminSetDefaultVideoSource({ token, sourceId: String(sourceId) })
+      await adminSetDefaultVideoSource({ sourceId: String(sourceId) })
       setSelectedEpisodeForSources((prev) => {
         if (!prev) return prev
         return {
@@ -572,14 +557,12 @@ export default function AdminEditAnimePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!token) return
     if (!canSubmit) return
 
     setIsLoading(true)
     setError(null)
     try {
       await adminUpdateAnime({
-        token,
         id: params.id,
         input: {
           kind: form.kind,

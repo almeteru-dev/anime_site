@@ -69,33 +69,48 @@ func AdminTransferRoot(c *gin.Context) {
 	}
 
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
-		res := tx.Exec(`
-			WITH req AS (
-				SELECT id FROM users WHERE id = ? AND role = 'root' FOR UPDATE
-			), tgt AS (
-				SELECT id FROM users WHERE id = ? AND role = 'admin' FOR UPDATE
-			)
-			UPDATE users
-			SET
-				role = CASE
-					WHEN id = ? THEN 'admin'
-					WHEN id = ? THEN 'root'
-					ELSE role
-				END,
-				token_version = CASE
-					WHEN id = ? THEN token_version + 1
-					ELSE token_version
-				END
-			WHERE id IN (?, ?)
-			  AND EXISTS (SELECT 1 FROM req)
-			  AND EXISTS (SELECT 1 FROM tgt)
-		`, requesterID, target.ID, requesterID, target.ID, requesterID, requesterID, target.ID)
-		if res.Error != nil {
-			return res.Error
+		lockReq := tx.Exec(`SELECT id FROM users WHERE id = ? AND role = 'root' FOR UPDATE`, requesterID)
+		if lockReq.Error != nil {
+			return lockReq.Error
 		}
-		if res.RowsAffected != 2 {
+		if lockReq.RowsAffected != 1 {
 			return gorm.ErrRecordNotFound
 		}
+
+		lockTgt := tx.Exec(`SELECT id FROM users WHERE id = ? AND role = 'admin' FOR UPDATE`, target.ID)
+		if lockTgt.Error != nil {
+			return lockTgt.Error
+		}
+		if lockTgt.RowsAffected != 1 {
+			return gorm.ErrRecordNotFound
+		}
+
+		// Step 1: demote current root first to satisfy the unique "one root" constraint
+		res1 := tx.Exec(`
+			UPDATE users
+			SET role = 'admin', token_version = token_version + 1
+			WHERE id = ? AND role = 'root'
+		`, requesterID)
+		if res1.Error != nil {
+			return res1.Error
+		}
+		if res1.RowsAffected != 1 {
+			return gorm.ErrRecordNotFound
+		}
+
+		// Step 2: promote target admin to root
+		res2 := tx.Exec(`
+			UPDATE users
+			SET role = 'root', token_version = token_version + 1
+			WHERE id = ? AND role = 'admin'
+		`, target.ID)
+		if res2.Error != nil {
+			return res2.Error
+		}
+		if res2.RowsAffected != 1 {
+			return gorm.ErrRecordNotFound
+		}
+
 		return nil
 	})
 	if err != nil {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { PlusCircle, Pencil, Trash2 } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-context"
@@ -17,7 +17,7 @@ import { FAQFormDialog, type FAQFormValues } from "@/components/admin/faq/faq-fo
 import { FAQDeleteDialog } from "@/components/admin/faq/faq-delete-dialog"
 
 export default function AdminFAQPage() {
-  const { token } = useAuth()
+  const { user } = useAuth()
 
   const [items, setItems] = useState<FAQItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -38,24 +38,20 @@ export default function AdminFAQPage() {
     })
   }, [items])
 
-  useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      if (!token) return
-      try {
-        const data = await adminListFAQ({ token })
-        if (!mounted) return
-        setItems(data)
-      } catch (e: any) {
-        if (!mounted) return
-        setError(e.message || "Failed to load")
-        setItems([])
-      }
-    })()
-    return () => {
-      mounted = false
+  const load = useCallback(async () => {
+    setError(null)
+    try {
+      const data = await adminListFAQ({})
+      setItems(data)
+    } catch (e: any) {
+      setError(e.message || "Failed to load FAQ")
+      setItems([])
     }
-  }, [token])
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const openCreate = () => {
     setFormMode("create")
@@ -70,15 +66,14 @@ export default function AdminFAQPage() {
   }
 
   const save = async (values: FAQFormValues) => {
-    if (!token) return
     setSaving(true)
     setError(null)
     try {
       if (editing) {
-        const updated = await adminUpdateFAQ({ token, id: editing.id, input: values })
+        const updated = await adminUpdateFAQ({ id: editing.id, input: values })
         setItems((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)) : prev))
       } else {
-        const created = await adminCreateFAQ({ token, input: values })
+        const created = await adminCreateFAQ({ input: values })
         setItems((prev) => ([...(prev || []), created]))
       }
     } catch (e: any) {
@@ -95,11 +90,11 @@ export default function AdminFAQPage() {
   }
 
   const doDelete = async () => {
-    if (!token || !deleting) return
+    if (!deleting) return
     setSaving(true)
     setError(null)
     try {
-      await adminDeleteFAQ({ token, id: deleting.id })
+      await adminDeleteFAQ({ id: deleting.id })
       setItems((prev) => (prev ? prev.filter((x) => x.id !== deleting.id) : prev))
       setDeleteOpen(false)
       setDeleting(null)

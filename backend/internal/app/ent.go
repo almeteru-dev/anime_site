@@ -3,22 +3,19 @@ package app
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/seva/animevista/ent"
+	"github.com/seva/animevista/internal/config"
 	_ "github.com/lib/pq"
 )
 
 var Ent *ent.Client
 
 func PostgresDSN() string {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", host, user, password, dbname, port)
+	c := config.AppConfig
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		c.DB_HOST, c.DB_USER, c.DB_PASSWORD, c.DB_NAME, c.DB_PORT)
 }
 
 func InitEnt() {

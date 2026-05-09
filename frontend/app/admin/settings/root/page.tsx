@@ -27,7 +27,7 @@ function clientPasswordError(pw: string): string | null {
 }
 
 export default function RootSettingsPage() {
-  const { token, user: me } = useAuth()
+  const { user: me } = useAuth()
   const router = useRouter()
 
   const [pw, setPw] = useState("")
@@ -78,7 +78,6 @@ export default function RootSettingsPage() {
   }, [])
 
   const onSaveDefaultPassword = async () => {
-    if (!token) return
     if (me?.role !== "root") {
       setError("Root access required")
       return
@@ -98,7 +97,7 @@ export default function RootSettingsPage() {
 
     setIsBusy(true)
     try {
-      await adminSetDefaultPassword({ token, password: next })
+      await adminSetDefaultPassword({ password: next })
       setNotice("Default password updated")
       setPw("")
       setShow(false)
@@ -110,7 +109,6 @@ export default function RootSettingsPage() {
   }
 
   const onSavePrivateMode = async () => {
-    if (!token) return
     if (me?.role !== "root") {
       setError("Root access required")
       return
@@ -120,7 +118,7 @@ export default function RootSettingsPage() {
     setNotice(null)
     setIsBusy(true)
     try {
-      await adminSetPrivateMode({ token, enabled: privateMode })
+      await adminSetPrivateMode({ enabled: privateMode })
       setNotice("Private Mode updated")
     } catch (e: any) {
       setError(e?.message || "Failed to update private mode")
@@ -130,7 +128,6 @@ export default function RootSettingsPage() {
   }
 
 	const onSaveRegistrationDisabled = async () => {
-		if (!token) return
 		if (me?.role !== "root") {
 			setError("Root access required")
 			return
@@ -140,7 +137,7 @@ export default function RootSettingsPage() {
 		setNotice(null)
 		setIsBusy(true)
 		try {
-			await adminSetRegistrationDisabled({ token, enabled: registrationDisabled })
+			await adminSetRegistrationDisabled({ enabled: registrationDisabled })
 			setNotice("Registration setting updated")
 		} catch (e: any) {
 			setError(e?.message || "Failed to update registration setting")
@@ -150,7 +147,6 @@ export default function RootSettingsPage() {
 	}
 
 	const onSaveFooterLinks = async () => {
-		if (!token) return
 		if (me?.role !== "root") {
 			setError("Root access required")
 			return
@@ -182,7 +178,6 @@ export default function RootSettingsPage() {
 		setIsBusy(true)
 		try {
 			await adminSetFooterLinks({
-				token,
 				contact_url: footerContactURL,
 				social_links: {
 					...footerSocial,
@@ -202,7 +197,6 @@ export default function RootSettingsPage() {
 	}
 
 	const onSaveTimezone = async () => {
-		if (!token) return
 		if (me?.role !== "root") {
 			setError("Root access required")
 			return
@@ -220,7 +214,7 @@ export default function RootSettingsPage() {
 		if (!ok) return
 		setIsBusy(true)
 		try {
-			const res = await adminSetScheduleTimezone({ token, timezone: next })
+			const res = await adminSetScheduleTimezone({ timezone: next })
 			setScheduleTimezone(res.timezone)
 			setTimezoneDraft(res.timezone)
 			const recalculated = typeof (res as any).recalculated === "number" ? (res as any).recalculated : 0
@@ -233,7 +227,6 @@ export default function RootSettingsPage() {
 	}
 
 	const onPurgeSchedules = async () => {
-		if (!token) return
 		if (me?.role !== "root") {
 			setError("Root access required")
 			return
@@ -244,7 +237,7 @@ export default function RootSettingsPage() {
 		if (!ok) return
 		setIsBusy(true)
 		try {
-			const res = await adminPurgeOldSchedules({ token })
+			const res = await adminPurgeOldSchedules({})
 			setNotice(`Deleted ${res.deleted_count} schedules older than 1 month.`)
 		} catch (e: any) {
 			setError(e?.message || "Failed to purge schedules")

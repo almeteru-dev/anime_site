@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { getMyAnimeRating, getMyCollection, rateAnime } from "@/lib/api"
 
 export function AnimeRating({ animeId }: { animeId: number }) {
-  const { token } = useAuth()
+  const { user } = useAuth()
   const [isWatched, setIsWatched] = useState<boolean | null>(null)
   const [value, setValue] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
@@ -15,7 +15,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) {
+      if (!user) {
         if (mounted) setIsWatched(null)
 		if (mounted) setValue("")
 		if (mounted) setError(null)
@@ -23,8 +23,8 @@ export function AnimeRating({ animeId }: { animeId: number }) {
         return
       }
       try {
-        const itemsPromise = getMyCollection({ token })
-        const ratingPromise = getMyAnimeRating({ token, animeId }).catch(() => null)
+        const itemsPromise = getMyCollection()
+        const ratingPromise = getMyAnimeRating({ animeId }).catch(() => null)
         const items = await itemsPromise
         const myRating = await ratingPromise
         const entry = items.find((x) => x.anime_id === animeId)
@@ -45,18 +45,18 @@ export function AnimeRating({ animeId }: { animeId: number }) {
     return () => {
       mounted = false
     }
-  }, [animeId, token])
+  }, [animeId, user])
 
   const options = useMemo(() => {
     return Array.from({ length: 10 }, (_, i) => String(i))
   }, [])
 
-  const disabled = !token || isWatched !== true || isSaving
+  const disabled = !user || isWatched !== true || isSaving
 
   const onChange = async (next: string) => {
     setValue(next)
     setError(null)
-    if (!token) return
+    if (!user) return
     if (isWatched !== true) return
     if (next === "") return
 
@@ -68,7 +68,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
 
     setIsSaving(true)
     try {
-      await rateAnime({ token, animeId, rating: num })
+      await rateAnime({ animeId, rating: num })
     } catch (e: any) {
       setError(e?.message || "Failed to save rating")
     } finally {
@@ -76,7 +76,7 @@ export function AnimeRating({ animeId }: { animeId: number }) {
     }
   }
 
-  if (!token) {
+  if (!user) {
     return null
   }
 

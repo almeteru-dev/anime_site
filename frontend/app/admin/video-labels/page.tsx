@@ -12,7 +12,6 @@ import {
 } from "@/lib/api"
 
 export default function AdminVideoLabelsPage() {
-  const { token } = useAuth()
   const [labels, setLabels] = useState<VideoLabel[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -31,9 +30,8 @@ export default function AdminVideoLabelsPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const data = await adminListVideoLabels({ token })
+        const data = await adminListVideoLabels({})
         if (!mounted) return
         setLabels(data)
       } catch (e: any) {
@@ -44,7 +42,7 @@ export default function AdminVideoLabelsPage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   const startEdit = (l: VideoLabel) => {
     setEditingId(l.id)
@@ -59,13 +57,12 @@ export default function AdminVideoLabelsPage() {
   }
 
   const create = async () => {
-    if (!token) return
     const name = newName.trim()
     if (!name) return
     setSaving(true)
     setError(null)
     try {
-      const created = await adminCreateVideoLabel({ token, name, is_external_player: newExternal })
+      const created = await adminCreateVideoLabel({ name, is_external_player: newExternal })
       setLabels((prev) => ([...(prev || []), created]))
       setNewName("")
       setNewExternal(false)
@@ -77,14 +74,13 @@ export default function AdminVideoLabelsPage() {
   }
 
   const save = async () => {
-    if (!token) return
     if (!editingId) return
     const name = editingName.trim()
     if (!name) return
     setSaving(true)
     setError(null)
     try {
-      const updated = await adminUpdateVideoLabel({ token, id: editingId, name, is_external_player: editingExternal })
+      const updated = await adminUpdateVideoLabel({ id: editingId, name, is_external_player: editingExternal })
       setLabels((prev) => (prev ? prev.map((x) => (x.id === updated.id ? updated : x)) : prev))
       cancelEdit()
     } catch (e: any) {
@@ -95,11 +91,10 @@ export default function AdminVideoLabelsPage() {
   }
 
   const remove = async (id: number) => {
-    if (!token) return
     setSaving(true)
     setError(null)
     try {
-      await adminDeleteVideoLabel({ token, id })
+      await adminDeleteVideoLabel({ id })
       setLabels((prev) => (prev ? prev.filter((x) => x.id !== id) : prev))
       if (editingId === id) cancelEdit()
     } catch (e: any) {

@@ -62,7 +62,7 @@ export function AnimeCard({
   onRemove,
 }: AnimeCardProps) {
   const { locale, t } = useLanguage()
-  const { token } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [isHovered, setIsHovered] = useState(false)
   const [imageError, setImageError] = useState(false)
@@ -100,15 +100,15 @@ export function AnimeCard({
     if (onStatusChange) {
       await onStatusChange(animeId, newStatus)
     } else {
-      if (!token) {
+      if (!user) {
         router.push('/login')
         return
       }
 
       if (!newStatus) return
-      await addToMyCollection({ animeId, status: newStatus as WatchlistStatus, token })
+      await addToMyCollection({ animeId, status: newStatus as WatchlistStatus })
     }
-  }, [onStatusChange, router, token])
+  }, [onStatusChange, router, user])
 
   const handleLocalRemove = useCallback(async (animeId: string) => {
     setLocalStatus(null)
@@ -118,13 +118,13 @@ export function AnimeCard({
       return
     }
 
-    if (!token) {
+    if (!user) {
       router.push('/login')
       return
     }
 
-    await removeFromMyCollection({ animeId, token })
-  }, [onRemove, router, token])
+    await removeFromMyCollection({ animeId })
+  }, [onRemove, router, user])
 
   return (
     <div

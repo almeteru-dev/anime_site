@@ -17,7 +17,7 @@ import {
 } from "@/lib/api"
 
 export default function AdminAnimesPage() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const { locale } = useLanguage()
   const [animes, setAnimes] = useState<Anime[] | null>(null)
   const [meta, setMeta] = useState<AdminMeta | null>(null)
@@ -36,9 +36,8 @@ export default function AdminAnimesPage() {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const m = await adminGetMeta({ token })
+        const m = await adminGetMeta({})
         if (mounted) setMeta(m)
       } catch (e: any) {
         if (mounted) setError(e.message || "Failed to load metadata")
@@ -47,14 +46,13 @@ export default function AdminAnimesPage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      if (!token) return
       try {
-        const featured = await adminListFeaturedAnimes({ token })
+        const featured = await adminListFeaturedAnimes({})
         if (!mounted) return
         setFeaturedIds(new Set((featured || []).map((a) => a.id)))
       } catch {
@@ -64,7 +62,7 @@ export default function AdminAnimesPage() {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -100,13 +98,12 @@ export default function AdminAnimesPage() {
   }, [animes])
 
   const handleDelete = async (id: string) => {
-    if (!token) return
     if (user?.role === "moderator") return
     const ok = window.confirm("Delete this anime? This cannot be undone.")
     if (!ok) return
 
     try {
-      await adminDeleteAnime({ token, id })
+      await adminDeleteAnime({ id })
       setAnimes((prev) => (prev ? prev.filter((a) => String(a.id) !== id) : prev))
     } catch (e: any) {
       setError(e.message || "Failed to delete")
@@ -116,7 +113,6 @@ export default function AdminAnimesPage() {
   const featuredCount = featuredIds.size
 
   const toggleFeatured = async (a: Anime) => {
-    if (!token) return
     const currently = featuredIds.has(a.id) || !!a.is_featured
     const next = !currently
     if (next && featuredCount >= 5 && !currently) {
@@ -124,7 +120,7 @@ export default function AdminAnimesPage() {
       return
     }
     try {
-      const updated = await adminSetAnimeFeatured({ token, id: String(a.id), featured: next })
+      const updated = await adminSetAnimeFeatured({ id: String(a.id), featured: next })
       setAnimes((prev) => (prev ? prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)) : prev))
       setFeaturedIds((prev) => {
         const n = new Set(prev)

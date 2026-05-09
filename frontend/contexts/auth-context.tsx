@@ -13,8 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  token: string | null
-  login: (token: string, user: User, rememberMe: boolean) => void
+  login: (user: User, rememberMe: boolean) => void
   logout: () => void
   isLoading: boolean
 }
@@ -23,19 +22,52 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const savedToken = sessionStorage.getItem('token') || localStorage.getItem('token')
-    const savedUser = sessionStorage.getItem('user') || localStorage.getItem('user')
+    const savedSession = sessionStorage.getItem('user')
+    const savedLocal = localStorage.getItem('user')
+    const savedUser = savedSession || savedLocal
+    const persistTo: 'session' | 'local' | null = savedSession ? 'session' : savedLocal ? 'local' : null
 
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser))
+      } catch {
+        sessionStorage.removeItem('user')
+        localStorage.removeItem('user')
+      }
     }
-    setIsLoading(false)
+
+    ;(async () => {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include', cache: 'no-store' })
+        if (res.status === 401) {
+          window.dispatchEvent(new CustomEvent('auth:force-logout', { detail: { error_code: 'REVOKED' } }))
+          return
+        }
+        if (!res.ok) return
+
+        const data = (await res.json()) as any
+        const nextUser = data?.user || data
+        if (nextUser && typeof nextUser === 'object') {
+          setUser(nextUser)
+          const encoded = JSON.stringify(nextUser)
+          if (persistTo === 'local') {
+            localStorage.setItem('user', encoded)
+            sessionStorage.removeItem('user')
+          } else if (persistTo === 'session') {
+            sessionStorage.setItem('user', encoded)
+            localStorage.removeItem('user')
+          }
+        }
+      } catch {
+        ;
+      } finally {
+        setIsLoading(false)
+      }
+    })()
   }, [])
 
   useEffect(() => {
@@ -50,14 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem('force_logout_message', 'Your session is no longer valid. Please sign in again.')
       }
 
-      setToken(null)
+      try {
+        void fetch('/api/logout', { method: 'POST', credentials: 'include' })
+      } catch {
+        ;
+      }
+
       setUser(null)
-      localStorage.removeItem('token')
       localStorage.removeItem('user')
-      sessionStorage.removeItem('token')
       sessionStorage.removeItem('user')
 
-	  document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
       router.push('/login')
     }
 
@@ -65,19 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('auth:force-logout', handler)
   }, [router])
 
-  const login = (newToken: string, newUser: User, rememberMe: boolean) => {
-    setToken(newToken)
+  const login = (newUser: User, rememberMe: boolean) => {
     setUser(newUser)
 
 	if (rememberMe) {
-		localStorage.setItem('token', newToken)
 		localStorage.setItem('user', JSON.stringify(newUser))
-		sessionStorage.removeItem('token')
 		sessionStorage.removeItem('user')
 	} else {
-		sessionStorage.setItem('token', newToken)
 		sessionStorage.setItem('user', JSON.stringify(newUser))
-		localStorage.removeItem('token')
 		localStorage.removeItem('user')
 	}
 
@@ -85,19 +114,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    setToken(null)
+    try {
+      void fetch('/api/logout', { method: 'POST', credentials: 'include' })
+    } catch {
+      ;
+    }
+
     setUser(null)
-    localStorage.removeItem('token')
     localStorage.removeItem('user')
-	sessionStorage.removeItem('token')
 	sessionStorage.removeItem('user')
 
-	document.cookie = 'auth_token=; Path=/; Max-Age=0; SameSite=Lax'
     router.push('/login')
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

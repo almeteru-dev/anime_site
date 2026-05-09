@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation"
 import { PasswordChecklist } from "@/components/password-checklist"
 import { getPublicSettings } from "@/lib/api"
 
+const API_URL = "/api"
+
 export default function RegisterPage() {
   const { t } = useLanguage()
   const router = useRouter()
@@ -90,7 +92,7 @@ export default function RegisterPage() {
     setError(null)
 
     try {
-      const response = await fetch("http://localhost:8080/api/register", {
+      const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
