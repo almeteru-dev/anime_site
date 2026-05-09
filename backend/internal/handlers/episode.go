@@ -169,31 +169,6 @@ func AdminCreateEpisode(c *gin.Context) {
 		if err := createEpisodeCompat(tx, &ep); err != nil {
 			return err
 		}
-
-		label, err := getOrCreateVideoLabelByName(tx, "Server 1")
-		if err != nil {
-			if isMissingRelationErr(err, "video_labels") {
-				return nil
-			}
-			return err
-		}
-
-		// Create default video source
-		source := models.VideoSource{
-			EpisodeID: ep.ID,
-			LabelID:   &label.ID,
-			Label:     label.Name,
-			Type:      models.VideoSourceTypeIframe,
-			URL:       "", // Admin will need to edit this
-			IsDefault: true,
-			IsActive:  true,
-		}
-		if err := tx.Create(&source).Error; err != nil {
-			if isMissingRelationErr(err, "video_sources") {
-				return nil
-			}
-			return err
-		}
 		return nil
 	})
 
