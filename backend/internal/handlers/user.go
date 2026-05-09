@@ -12,7 +12,9 @@ import (
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
 	"github.com/seva/animevista/internal/service"
+	"github.com/seva/animevista/internal/validation"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // GetProfile fetches the user's profile information
@@ -70,7 +72,7 @@ func UpdatePassword(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var input struct {
 		CurrentPassword string `json:"current_password" binding:"required"`
-		NewPassword     string `json:"new_password" binding:"required,min=8,max=100"`
+		NewPassword     string `json:"new_password" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -89,13 +91,21 @@ func UpdatePassword(c *gin.Context) {
 		return
 	}
 
+	if err := validation.ValidatePassword(input.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
 
-	if err := app.DB.Model(&user).Update("password_hash", string(hashedPassword)).Error; err != nil {
+	if err := app.DB.Model(&user).Updates(map[string]any{
+		"password_hash": string(hashedPassword),
+		"token_version": gorm.Expr("token_version + 1"),
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
 	}
@@ -112,11 +122,17 @@ func generateCode() string {
 func RequestOldEmailCode(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var input struct {
-		Email string `json:"email" binding:"required,email"`
+		Email string `json:"email" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
 		return
 	}
 
@@ -126,7 +142,7 @@ func RequestOldEmailCode(c *gin.Context) {
 		return
 	}
 
-	if user.Email != input.Email {
+	if strings.ToLower(user.Email) != strings.ToLower(email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Incorrect current email"})
 		return
 	}
@@ -183,7 +199,7 @@ func VerifyOldEmailCode(c *gin.Context) {
 func RequestNewEmailCode(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var input struct {
-		Email string `json:"email" binding:"required,email"`
+		Email string `json:"email" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -191,9 +207,15 @@ func RequestNewEmailCode(c *gin.Context) {
 		return
 	}
 
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
+		return
+	}
+
 	// Check if new email is already taken
 	var count int64
-	app.DB.Model(&models.User{}).Where("email = ?", input.Email).Count(&count)
+	app.DB.Model(&models.User{}).Where("email = ?", email).Count(&count)
 	if count > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 		return
@@ -204,7 +226,7 @@ func RequestNewEmailCode(c *gin.Context) {
 
 	vc := models.VerificationCode{
 		UserID:    int64(userID.(int64)),
-		Email:     input.Email,
+		Email:     email,
 		Code:      code,
 		Type:      "new_email",
 		ExpiresAt: expiresAt,
@@ -215,7 +237,7 @@ func RequestNewEmailCode(c *gin.Context) {
 		return
 	}
 
-	if err := service.SendEmailChangeCode(input.Email, code, "new email verification"); err != nil {
+	if err := service.SendEmailChangeCode(email, code, "new email verification"); err != nil {
 		log.Printf("failed to send new email verification code to %s: %v", input.Email, err)
 		_ = app.DB.Delete(&vc).Error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification code"})
@@ -268,11 +290,12 @@ func UpdateUsername(c *gin.Context) {
 		return
 	}
 
-	if err := validateUsername(input.Username); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-    username := strings.TrimSpace(input.Username)
+	acceptLang := c.GetHeader("Accept-Language")
+	username, err := validation.NormalizeAndValidateUsername(input.Username)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validation.UsernameErrorMessage(acceptLang)})
+		return
+	}
 
 	var count int64
 	app.DB.Model(&models.User{}).Where("LOWER(username) = LOWER(?) AND id <> ?", username, uid).Count(&count)

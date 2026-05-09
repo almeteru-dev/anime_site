@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"github.com/seva/animevista/internal/validation"
 	"gorm.io/gorm/clause"
 )
 
@@ -51,7 +52,7 @@ func AdminSetDefaultPassword(c *gin.Context) {
 	}
 
 	password := strings.TrimSpace(input.Password)
-	if err := validatePassword(password); err != nil {
+	if err := validation.ValidatePassword(password); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

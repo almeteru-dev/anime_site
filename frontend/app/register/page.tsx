@@ -99,6 +99,7 @@ export default function RegisterPage() {
           username: formData.username,
           email: formData.email,
           password: formData.password,
+		   confirm_password: formData.confirmPassword,
         }),
       })
 
@@ -215,6 +216,7 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+			  <div className="text-xs text-foreground-subtle">{t.register.usernameHint}</div>
             </div>
 
             {/* Email Field */}

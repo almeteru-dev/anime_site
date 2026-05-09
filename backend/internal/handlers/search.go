@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/validation"
 )
 
 type AnimeSearchItem struct {
@@ -17,7 +18,7 @@ type AnimeSearchItem struct {
 }
 
 func SearchAnimes(c *gin.Context) {
-	q := strings.TrimSpace(c.Query("q"))
+	q := validation.SanitizeSearchQuery(c.Query("q"))
 	if len([]rune(q)) < 2 {
 		c.JSON(http.StatusOK, []AnimeSearchItem{})
 		return
@@ -95,4 +96,3 @@ func SearchAnimes(c *gin.Context) {
 
 	c.JSON(http.StatusOK, rows)
 }
-

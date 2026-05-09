@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"github.com/seva/animevista/internal/validation"
 )
 
 func splitCSVParam(raw string) []string {
@@ -27,7 +28,7 @@ func splitCSVParam(raw string) []string {
 func GetAnimes(c *gin.Context) {
 	var animes []models.Anime
 
-	q := strings.TrimSpace(c.Query("q"))
+	q := validation.SanitizeSearchQuery(c.Query("q"))
 	genres := splitCSVParam(c.Query("genres"))
 	types := splitCSVParam(c.Query("types"))
 	statuses := splitCSVParam(c.Query("statuses"))

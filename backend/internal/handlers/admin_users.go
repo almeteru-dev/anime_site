@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"github.com/seva/animevista/internal/validation"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"log"
@@ -250,7 +251,7 @@ func AdminUpdateUser(c *gin.Context) {
 
 type AdminCreateUserInput struct {
 	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	Role     string `json:"role"`
 }
@@ -269,6 +270,20 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 
+	username, err := validation.NormalizeAndValidateUsername(input.Username)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validation.UsernameErrorMessage(c.GetHeader("Accept-Language"))})
+		return
+	}
+	input.Username = username
+
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
+		return
+	}
+	input.Email = email
+
 	role := strings.TrimSpace(input.Role)
 	if role == "" {
 		role = "user"
@@ -282,7 +297,7 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 
-	if err := validatePassword(input.Password); err != nil {
+	if err := validation.ValidatePassword(input.Password); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -294,8 +309,8 @@ func AdminCreateUser(c *gin.Context) {
 	}
 
 	user := models.User{
-		Username:     input.Username,
-		Email:        input.Email,
+		Username:     username,
+		Email:        email,
 		PasswordHash: string(hashedPassword),
 		Role:         role,
 		IsVerified:   true,
@@ -420,7 +435,7 @@ func AdminResetUserPasswordDefault(c *gin.Context) {
 	}
 
 	password := getDefaultPassword()
-	if err := validatePassword(password); err != nil {
+	if err := validation.ValidatePassword(password); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Default password is invalid"})
 		return
 	}

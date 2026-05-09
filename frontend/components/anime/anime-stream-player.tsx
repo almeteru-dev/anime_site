@@ -332,7 +332,7 @@ export function AnimeStreamPlayer({
 
           {selectedGroupId && episodeList.length > 0 ? (
             <div>
-              <div className="text-sm font-semibold text-foreground mb-2">Episodes</div>
+              <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Серии" : "Episodes"}</div>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                 {episodeList.map((ep) => (
                   <button

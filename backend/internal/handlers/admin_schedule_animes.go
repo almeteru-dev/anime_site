@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
+	"github.com/seva/animevista/internal/validation"
 )
 
 type AdminScheduleAnimeItem struct {
@@ -16,7 +17,7 @@ type AdminScheduleAnimeItem struct {
 }
 
 func AdminListOngoingAnimes(c *gin.Context) {
-	q := strings.TrimSpace(c.Query("q"))
+	q := validation.SanitizeSearchQuery(c.Query("q"))
 	like := ""
 	if q != "" {
 		like = "%" + strings.ToLower(q) + "%"

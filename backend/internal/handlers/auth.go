@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/seva/animevista/internal/config"
 	"github.com/seva/animevista/internal/models"
 	"github.com/seva/animevista/internal/service"
+	"github.com/seva/animevista/internal/validation"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,9 +25,10 @@ func publicWebBaseURL() string {
 }
 
 type RegisterInput struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Username        string `json:"username" binding:"required"`
+	Email           string `json:"email" binding:"required"`
+	Password        string `json:"password" binding:"required"`
+	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
 type LoginInput struct {
@@ -36,56 +37,6 @@ type LoginInput struct {
 	Username   string `json:"username"`
 	Password   string `json:"password" binding:"required"`
 	RememberMe bool   `json:"remember_me"`
-}
-
-const (
-	passwordMinLength = 8
-	passwordMaxLength = 100
-)
-
-func validatePassword(password string) error {
-	if len(password) < passwordMinLength {
-		return fmt.Errorf("password must be at least %d characters long", passwordMinLength)
-	}
-	if len(password) > passwordMaxLength {
-		return fmt.Errorf("password must be at most %d characters long", passwordMaxLength)
-	}
-
-	// Only English letters, digits, and special characters allowed
-	// No Cyrillic or other non-English characters
-	englishOnly := regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$`)
-	if !englishOnly.MatchString(password) {
-		return fmt.Errorf("password must only contain English letters, digits, and special characters")
-	}
-
-	hasUppercase := regexp.MustCompile(`[A-Z]`).MatchString(password)
-	if !hasUppercase {
-		return fmt.Errorf("password must contain at least one uppercase letter")
-	}
-
-	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
-	if !hasDigit {
-		return fmt.Errorf("password must contain at least one digit")
-	}
-
-	hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password)
-	if !hasSpecial {
-		return fmt.Errorf("password must contain at least one special character")
-	}
-
-	return nil
-}
-
-func validateUsername(u string) error {
-	if len(u) < 4 || len(u) > 30 {
-		return fmt.Errorf("username must be between 4 and 30 characters")
-	}
-	// Только английские буквы, цифры и спецсимволы
-	re := regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$`)
-	if !re.MatchString(u) {
-		return fmt.Errorf("username contains invalid characters or cyrillic")
-	}
-	return nil
 }
 
 func generateToken(length int) string {
@@ -108,22 +59,20 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// Вместо: username, err := validation.NormalizeAndValidateUsername(input.Username)
-	// Напиши:
-	if err := validateUsername(input.Username); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	username := strings.TrimSpace(input.Username)
-
-	input.Username = username
-	input.Email = strings.TrimSpace(input.Email)
-	if input.Email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+	acceptLang := c.GetHeader("Accept-Language")
+	username, err := validation.NormalizeAndValidateUsername(input.Username)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validation.UsernameErrorMessage(acceptLang)})
 		return
 	}
 
-	if err := validatePassword(input.Password); err != nil {
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
+		return
+	}
+
+	if err := validation.ValidatePasswordAndConfirm(input.Password, input.ConfirmPassword); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -136,7 +85,7 @@ func Register(c *gin.Context) {
 
 	user := models.User{
 		Username:     username,
-		Email:        input.Email,
+		Email:        email,
 		PasswordHash: string(hashedPassword),
 		Role:         "user",
 		IsVerified:   false,
@@ -204,15 +153,21 @@ func VerifyEmail(c *gin.Context) {
 
 func ResendVerification(c *gin.Context) {
 	var input struct {
-		Email string `json:"email" binding:"required,email"`
+		Email string `json:"email" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
+		return
+	}
+
 	var user models.User
-	if err := app.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := app.DB.Where("email = ?", email).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
@@ -259,15 +214,21 @@ func ResendVerification(c *gin.Context) {
 
 func ForgotPassword(c *gin.Context) {
 	var input struct {
-		Email string `json:"email" binding:"required,email"`
+		Email string `json:"email" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	email, err := validation.NormalizeAndValidateEmail(input.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is incorrect"})
+		return
+	}
+
 	var user models.User
-	if err := app.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := app.DB.Where("email = ?", email).First(&user).Error; err != nil {
 		// Don't reveal if user exists for security
 		c.JSON(http.StatusOK, gin.H{"message": "If your email exists in our system, you will receive a reset link."})
 		return
@@ -318,7 +279,7 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 
-	if err := validatePassword(input.Password); err != nil {
+	if err := validation.ValidatePassword(input.Password); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

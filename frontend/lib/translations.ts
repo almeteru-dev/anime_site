@@ -111,10 +111,11 @@ export const translations = {
     },
     // Register Page
     register: {
-      joinTheVista: "Join the Vista",
+	  joinTheVista: "Join LycorisLib",
       createAccountStart: "Create your account and start streaming",
       username: "Username",
       enterUsername: "Enter your username",
+	  usernameHint: "You can only use English letters of any case, numbers, and symbols - and _",
       emailAddress: "Email Address",
       enterEmail: "Enter your email",
       password: "Password",
@@ -313,6 +314,7 @@ export const translations = {
       minShort: "min",
       newEpisode: "New Episode",
       perEp: "per ep",
+	  gallery: "Gallery",
     },
     // Language
     language: {
@@ -431,10 +433,11 @@ export const translations = {
     },
     // Register Page
     register: {
-      joinTheVista: "Присоединиться к Vista",
+	  joinTheVista: "Присоединиться к LycorisLib",
       createAccountStart: "Создайте аккаунт и начните просмотр",
       username: "Имя пользователя",
       enterUsername: "Введите имя пользователя",
+	  usernameHint: "Можно использовать только английские буквы любого регистра, цифры и символы - и _",
       emailAddress: "Email адрес",
       enterEmail: "Введите ваш email",
       password: "Пароль",
@@ -633,6 +636,7 @@ export const translations = {
       minShort: "мин",
       newEpisode: "Новый эпизод",
       perEp: "за эп.",
+	  gallery: "Галерея",
     },
     // Language
     language: {

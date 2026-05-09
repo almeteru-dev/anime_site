@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
+import { useLanguage } from "@/contexts/language-context"
 
 interface GallerySectionProps {
   images: {
@@ -13,6 +14,7 @@ interface GallerySectionProps {
 
 export function GallerySection({ images }: GallerySectionProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const { t } = useLanguage()
 
   const handlePrevious = () => {
     if (selectedIndex !== null) {
@@ -32,7 +34,7 @@ export function GallerySection({ images }: GallerySectionProps) {
         {/* Section Header */}
         <div className="flex items-center gap-2 mb-6">
           <ImageIcon className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold text-foreground">Gallery</h2>
+          <h2 className="text-xl font-bold text-foreground">{t.common.gallery}</h2>
         </div>
 
         {/* Image Grid */}
