@@ -69,6 +69,19 @@ make up80 # Запуск напрямую на 80 порту (если хост 
 2. Сохрани их на VPS: `/etc/ssl/cloudflare/origin.pem` и `origin.key`.
 3. Настрой системный Nginx на хосте:
 
+#### Создание конфига
+
+Создай файл конфигурации (замени `lycoris` на имя своего проекта):
+
+```bash
+sudo nano /etc/nginx/sites-available/lycoris
+
+```
+
+#### Шаг 2: Настройка проксирования
+
+Вставь следующий блок (для работы с **Cloudflare Origin Certificate**):
+
 ```nginx
 server {
     listen 443 ssl http2;
@@ -86,6 +99,23 @@ server {
 }
 
 ```
+
+#### Шаг 3: Активация сайта
+
+Выполни эти команды, чтобы Nginx увидел новый файл:
+
+```bash
+# 1. Создаем ссылку для активации
+sudo ln -s /etc/nginx/sites-available/lycoris /etc/nginx/sites-enabled/
+
+# 2. Проверяем на ошибки
+sudo nginx -t
+
+# 3. Перезапускаем сервис
+sudo systemctl reload nginx
+
+```
+
 
 ### Вариант Б: Certbot (Let's Encrypt)
 
