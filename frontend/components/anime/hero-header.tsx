@@ -3,7 +3,7 @@
 import { Star, Play, Calendar, Film, Clock, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { type Anime, getAnimePosterUrl, getLocalizedTitle } from "@/lib/api"
+import { type Anime, getAnimeBackgroundUrl, getLocalizedTitle } from "@/lib/api"
 import { useLanguage } from "@/contexts/language-context"
 
 interface HeroHeaderProps {
@@ -14,7 +14,7 @@ interface HeroHeaderProps {
 export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
   const { locale, t } = useLanguage()
   const title = getLocalizedTitle(anime, locale)
-  const posterUrl = getAnimePosterUrl(anime)
+  const bgUrl = getAnimeBackgroundUrl(anime)
 
   const statusLabel = anime.status
     ? locale === "ru"
@@ -27,7 +27,7 @@ export function HeroHeader({ anime, onStartWatching }: HeroHeaderProps) {
       {/* Background Image with Gradient Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${posterUrl || `https://placehold.co/1400x900/F1F5F9/00D2FF?text=${encodeURIComponent(title)}`})` }}
+        style={{ backgroundImage: `url(${bgUrl || `https://placehold.co/1400x900/F1F5F9/00D2FF?text=${encodeURIComponent(title)}`})` }}
       >
         {/* Multi-layer gradient for cinematic depth */}
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-transparent" />

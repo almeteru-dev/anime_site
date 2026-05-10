@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
+	"gorm.io/gorm"
 )
 
 var slugNonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
@@ -99,6 +100,7 @@ type AdminCreateAnimeInput struct {
 	Score         float64  `json:"score"`
 	Episodes      int      `json:"episodes"`
 	PosterURL     string   `json:"poster_url"`
+	BackgroundURL string   `json:"background_url"`
 	StudioID      *int     `json:"studio_id"`
 	StatusID      *int     `json:"status_id"`
 	SourceID      *int     `json:"source_id"`
@@ -108,6 +110,7 @@ type AdminCreateAnimeInput struct {
 	DescriptionRU string   `json:"description_ru"`
 	DescriptionEN string   `json:"description_en"`
 	AltTitles     []string `json:"alt_titles"`
+	GalleryURLs   []string `json:"gallery_urls"`
 }
 
 func AdminCreateAnime(c *gin.Context) {
@@ -172,6 +175,7 @@ func AdminCreateAnime(c *gin.Context) {
 		StatusID:      input.StatusID,
 		SourceID:      input.SourceID,
 		ImageURL:      input.PosterURL,
+		BackgroundURL: input.BackgroundURL,
 	}
 	if strings.TrimSpace(anime.Kind) != "" {
 		var k models.KindOption
@@ -203,6 +207,10 @@ func AdminCreateAnime(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if err := replaceAnimeGalleryImagesTx(app.DB, anime.ID, input.GalleryURLs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	if len(input.GenreIDs) > 0 {
 		var genres []models.Genre
@@ -230,7 +238,9 @@ func AdminCreateAnime(c *gin.Context) {
 	}).Error
 
 	var created models.Anime
-	_ = app.DB.Preload("Studio").Preload("Status").Preload("Source").Preload("Genres").Preload("Translations.Language").Preload("AltTitles").First(&created, anime.ID).Error
+	_ = app.DB.Preload("Studio").Preload("Status").Preload("Source").Preload("Genres").Preload("Translations.Language").Preload("AltTitles").
+		Preload("GalleryImages", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order asc, id asc") }).
+		First(&created, anime.ID).Error
 
 	c.JSON(http.StatusCreated, created)
 }
@@ -246,6 +256,7 @@ type AdminUpdateAnimeInput struct {
 	Score         float64  `json:"score"`
 	Episodes      int      `json:"episodes"`
 	PosterURL     string   `json:"poster_url"`
+	BackgroundURL string   `json:"background_url"`
 	StudioID      *int     `json:"studio_id"`
 	StatusID      *int     `json:"status_id"`
 	SourceID      *int     `json:"source_id"`
@@ -255,6 +266,7 @@ type AdminUpdateAnimeInput struct {
 	DescriptionRU string   `json:"description_ru"`
 	DescriptionEN string   `json:"description_en"`
 	AltTitles     []string `json:"alt_titles"`
+	GalleryURLs   []string `json:"gallery_urls"`
 }
 
 func AdminUpdateAnime(c *gin.Context) {
@@ -342,6 +354,7 @@ func AdminUpdateAnime(c *gin.Context) {
 	anime.StatusID = input.StatusID
 	anime.SourceID = input.SourceID
 	anime.ImageURL = input.PosterURL
+	anime.BackgroundURL = input.BackgroundURL
 
 	tx := app.DB.Begin()
 	if err := tx.Save(&anime).Error; err != nil {
@@ -350,6 +363,11 @@ func AdminUpdateAnime(c *gin.Context) {
 		return
 	}
 	if err := replaceAnimeAltTitlesTx(tx, anime.ID, input.AltTitles); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := replaceAnimeGalleryImagesTx(tx, anime.ID, input.GalleryURLs); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -403,7 +421,9 @@ func AdminUpdateAnime(c *gin.Context) {
 	}
 
 	var updated models.Anime
-	_ = app.DB.Preload("Studio").Preload("Status").Preload("Source").Preload("Genres").Preload("Translations.Language").Preload("AltTitles").First(&updated, anime.ID).Error
+	_ = app.DB.Preload("Studio").Preload("Status").Preload("Source").Preload("Genres").Preload("Translations.Language").Preload("AltTitles").
+		Preload("GalleryImages", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order asc, id asc") }).
+		First(&updated, anime.ID).Error
 	c.JSON(http.StatusOK, updated)
 }
 

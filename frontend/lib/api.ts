@@ -139,6 +139,7 @@ export interface Anime {
   rating: string
   image_url: string
   image?: string
+	background_url?: string
   trailer_url?: string
   score: number
   rating_avg?: number
@@ -153,6 +154,7 @@ export interface Anime {
   genres: Genre[] | null
   translations: AnimeTranslation[] | null
 	alt_titles?: { id: number; title: string }[] | null
+	gallery_images?: { id: number; url: string; sort_order: number }[] | null
 }
 
 function resolveSiteOrigin(): string {
@@ -964,6 +966,9 @@ export async function getAnimeBySlug(slug: string): Promise<AnimeDetailsResponse
     throw new Error(data.error || "Failed to fetch anime")
   }
   const data = await res.json()
+	if (data && typeof data === "object" && typeof (data as any).error === "string") {
+		throw new Error((data as any).error)
+	}
   return (data.anime ? data : { anime: data, episodes: {} }) as AnimeDetailsResponse
 }
 
@@ -1479,6 +1484,7 @@ export interface AdminCreateAnimeInput {
   score?: number
   episodes?: number
   poster_url?: string
+	background_url?: string
   studio_id?: number | null
   status_id?: number | null
   source_id?: number | null
@@ -1488,6 +1494,7 @@ export interface AdminCreateAnimeInput {
   description_ru?: string
   description_en?: string
 	alt_titles?: string[]
+	gallery_urls?: string[]
 }
 
 export async function adminCreateAnime(params: {
@@ -1676,6 +1683,10 @@ export function getLocalizedEpisodeDescription(episode: Episode | EpisodeItem, l
 
 export function getAnimePosterUrl(anime: Anime): string {
   return anime.image_url || anime.image || ""
+}
+
+export function getAnimeBackgroundUrl(anime: Anime): string {
+	return (anime.background_url || "").trim() || getAnimePosterUrl(anime)
 }
 
 // Generic Metadata Admin Functions

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/language-context"
-import { type Anime, getAnimePosterUrl, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
+import { type Anime, getAnimeBackgroundUrl, getLocalizedTitle, getLocalizedDescription } from "@/lib/api"
 
 interface HeroCarouselProps {
   animes: Anime[]
@@ -53,7 +53,7 @@ export function HeroCarousel({ animes }: HeroCarouselProps) {
               {/* Background Image */}
               <div className="absolute inset-0">
                 <Image
-                  src={getAnimePosterUrl(anime) || `https://placehold.co/1400x900/081229/00E5FF?text=${encodeURIComponent(getLocalizedTitle(anime, locale))}`}
+                  src={getAnimeBackgroundUrl(anime) || `https://placehold.co/1400x900/081229/00E5FF?text=${encodeURIComponent(getLocalizedTitle(anime, locale))}`}
                   alt={getLocalizedTitle(anime, locale)}
                   fill
                   className="object-cover"

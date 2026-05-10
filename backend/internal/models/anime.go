@@ -18,6 +18,7 @@ type Anime struct {
 	Duration      int        `json:"duration"`
 	Rating        string     `gorm:"type:varchar(50)" json:"rating"`
 	ImageURL      string     `gorm:"column:image;type:varchar(500)" json:"image_url"`
+	BackgroundURL string     `gorm:"type:varchar(500);default:''" json:"background_url"`
 	TrailerURL    string     `gorm:"type:varchar(1000)" json:"trailer_url"`
 	Score         float64    `gorm:"type:decimal(3,2);default:0" json:"score"`
 	RatingAvg     float64    `gorm:"type:double precision;default:0" json:"rating_avg"`
@@ -27,13 +28,14 @@ type Anime struct {
 	AiredOn       *time.Time `json:"aired_on"`
 	ReleasedOn    *time.Time `json:"released_on"`
 
-	Studio       *Studio            `gorm:"foreignKey:StudioID" json:"studio,omitempty"`
-	Status       *Status            `gorm:"foreignKey:StatusID" json:"status,omitempty"`
-	Source       *Source            `gorm:"foreignKey:SourceID" json:"source,omitempty"`
-	Genres       []Genre            `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
-	Translations []AnimeTranslation `gorm:"foreignKey:AnimeID" json:"translations,omitempty"`
-	AltTitles    []AnimeAltTitle    `gorm:"foreignKey:AnimeID" json:"alt_titles,omitempty"`
-	EpisodeItems []Episode          `gorm:"foreignKey:AnimeID" json:"episode_items,omitempty"`
+	Studio        *Studio             `gorm:"foreignKey:StudioID" json:"studio,omitempty"`
+	Status        *Status             `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	Source        *Source             `gorm:"foreignKey:SourceID" json:"source,omitempty"`
+	Genres        []Genre             `gorm:"many2many:anime_genres;" json:"genres,omitempty"`
+	Translations  []AnimeTranslation  `gorm:"foreignKey:AnimeID" json:"translations,omitempty"`
+	AltTitles     []AnimeAltTitle     `gorm:"foreignKey:AnimeID" json:"alt_titles,omitempty"`
+	GalleryImages []AnimeGalleryImage `gorm:"foreignKey:AnimeID" json:"gallery_images,omitempty"`
+	EpisodeItems  []Episode           `gorm:"foreignKey:AnimeID" json:"episode_items,omitempty"`
 }
 
 func (Anime) TableName() string {

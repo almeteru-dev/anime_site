@@ -183,11 +183,11 @@ func GetAnimeByID(c *gin.Context) {
 		Preload("Source").
 		Preload("Genres").
 		Preload("Translations.Language").
-		Preload("AltTitles")
+		Preload("AltTitles").
+		Preload("GalleryImages", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order asc, id asc") })
 
 	var err error
-
-	if _, err := strconv.ParseInt(identifier, 10, 64); err == nil {
+	if _, parseErr := strconv.ParseInt(identifier, 10, 64); parseErr == nil {
 		err = q.First(&anime, identifier).Error
 	} else {
 		err = q.Where("url = ?", identifier).First(&anime).Error

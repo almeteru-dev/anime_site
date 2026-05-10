@@ -67,6 +67,7 @@ DROP TABLE IF EXISTS source_translations CASCADE;
 DROP TABLE IF EXISTS status_translations CASCADE;
 DROP TABLE IF EXISTS anime_translations CASCADE;
 DROP TABLE IF EXISTS anime_alt_titles CASCADE;
+		DROP TABLE IF EXISTS anime_gallery_images CASCADE;
 DROP TABLE IF EXISTS episodes CASCADE;
 DROP TABLE IF EXISTS voice_groups CASCADE;
 DROP TABLE IF EXISTS rating_options CASCADE;
@@ -84,6 +85,15 @@ DROP TABLE IF EXISTS languages CASCADE;
 }
 
 func runSQLMigrations(db *gorm.DB, migrationsDir string) error {
+	if err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			name TEXT PRIMARY KEY,
+			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`).Error; err != nil {
+		return fmt.Errorf("create schema_migrations: %w", err)
+	}
+
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
 		return fmt.Errorf("read migrations dir: %w", err)
@@ -101,7 +111,44 @@ func runSQLMigrations(db *gorm.DB, migrationsDir string) error {
 	}
 	sort.Strings(files)
 
+	var appliedCount int64
+	if err := db.Raw(`SELECT COUNT(*) FROM schema_migrations`).Row().Scan(&appliedCount); err != nil {
+		return fmt.Errorf("count schema_migrations: %w", err)
+	}
+
+	if appliedCount == 0 {
+		var hasAnimeTable bool
+		if err := db.Raw(`SELECT to_regclass('public.anime') IS NOT NULL`).Row().Scan(&hasAnimeTable); err != nil {
+			return fmt.Errorf("detect anime table: %w", err)
+		}
+		if hasAnimeTable {
+			var hasBackgroundURL bool
+			var hasGallery bool
+			var hasVoiceGroupID bool
+			_ = db.Raw(`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='anime' AND column_name='background_url')`).Row().Scan(&hasBackgroundURL)
+			_ = db.Raw(`SELECT to_regclass('public.anime_gallery_images') IS NOT NULL`).Row().Scan(&hasGallery)
+			_ = db.Raw(`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='video_sources' AND column_name='voice_group_id')`).Row().Scan(&hasVoiceGroupID)
+
+			if hasBackgroundURL || hasGallery || hasVoiceGroupID {
+				for _, name := range files {
+					if err := db.Exec(`INSERT INTO schema_migrations (name) VALUES (?) ON CONFLICT (name) DO NOTHING`, name).Error; err != nil {
+						return fmt.Errorf("bootstrap schema_migrations (%s): %w", name, err)
+					}
+				}
+				return nil
+			}
+		}
+	}
+
 	for _, name := range files {
+		var already bool
+		if err := db.Raw(`SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE name = ?)`, name).Row().Scan(&already); err != nil {
+			return fmt.Errorf("check migration %s: %w", name, err)
+		}
+		if already {
+			continue
+		}
+
 		path := filepath.Join(migrationsDir, name)
 		b, err := os.ReadFile(path)
 		if err != nil {
@@ -111,7 +158,12 @@ func runSQLMigrations(db *gorm.DB, migrationsDir string) error {
 		if sql == "" {
 			continue
 		}
-		if err := db.Exec(sql).Error; err != nil {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec(sql).Error; err != nil {
+				return err
+			}
+			return tx.Exec(`INSERT INTO schema_migrations (name) VALUES (?)`, name).Error
+		}); err != nil {
 			return fmt.Errorf("exec migration %s: %w", name, err)
 		}
 	}

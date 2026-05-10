@@ -104,7 +104,9 @@ export default function AdminEditAnimePage() {
     description_ru: "",
     description_en: "",
     poster_url: "",
+	background_url: "",
     trailer_url: "",
+    gallery_urls: [] as string[],
     status_id: null as number | null,
     studio_id: null as number | null,
     source_id: null as number | null,
@@ -145,7 +147,9 @@ export default function AdminEditAnimePage() {
           description_ru: ru?.description || "",
           description_en: en?.description || "",
           poster_url: a.image_url || a.image || "",
+			  background_url: a.background_url || "",
           trailer_url: a.trailer_url || "",
+          gallery_urls: (a.gallery_images || []).slice().sort((x: any, y: any) => (x.sort_order || 0) - (y.sort_order || 0)).map((x: any) => x.url).slice(0, 6),
           status_id: a.status_id ?? null,
           studio_id: a.studio_id ?? null,
           source_id: a.source_id ?? null,
@@ -558,6 +562,7 @@ export default function AdminEditAnimePage() {
           score: form.score,
           episodes: form.episodes,
           poster_url: form.poster_url,
+			  background_url: form.background_url,
           studio_id: form.studio_id,
           status_id: form.status_id,
           source_id: form.source_id,
@@ -565,6 +570,7 @@ export default function AdminEditAnimePage() {
           title_ru: form.title_ru,
           title_en_romaji: form.title_en_romaji,
           alt_titles: form.alt_titles,
+          gallery_urls: form.gallery_urls,
           description_ru: form.description_ru,
           description_en: form.description_en,
         },
@@ -626,7 +632,23 @@ export default function AdminEditAnimePage() {
               </div>
             </div>
 
-            <div className="space-y-2 lg:col-span-2">
+			<div className="space-y-2">
+				<label className="text-xs font-semibold text-foreground-muted">Background URL</label>
+				<div className="relative">
+					<div className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-subtle">
+						<ImageIcon className="w-4 h-4" />
+					</div>
+					<input
+						value={form.background_url || ""}
+						onChange={(e) => setForm((p) => ({ ...p, background_url: e.target.value }))}
+						placeholder="https://... (leave empty to use Poster URL)"
+						className="w-full h-11 rounded-xl bg-background border border-border/60 pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary/50"
+					/>
+				</div>
+				<div className="text-[11px] text-foreground-subtle">Used for the blurred hero background (home + anime page). Defaults to Poster URL.</div>
+			</div>
+
+			<div className="space-y-2 lg:col-span-2">
               <label className="text-xs font-semibold text-foreground-muted">Trailer URL (optional)</label>
               <input
                 value={form.trailer_url || ""}
@@ -961,6 +983,60 @@ export default function AdminEditAnimePage() {
                   </div>
                 </div>
               )}
+
+			  <div className="mt-4 space-y-3">
+				<div className="flex items-center justify-between gap-3">
+					<div className="text-xs font-semibold text-foreground-muted">Gallery (manual, up to 6)</div>
+					<button
+						type="button"
+						disabled={form.gallery_urls.length >= 6}
+						onClick={() =>
+							setForm((p) => ({
+								...p,
+								gallery_urls: p.gallery_urls.length >= 6 ? p.gallery_urls : [...p.gallery_urls, ""],
+							}))
+						}
+						className={cn(
+							"inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold",
+							form.gallery_urls.length >= 6
+								? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
+								: "bg-primary text-primary-foreground hover:bg-primary/90"
+						)}
+					>
+						+
+					</button>
+				</div>
+				<div className="text-[11px] text-foreground-subtle">Add image links gradually. Poster URL is not added automatically.</div>
+				{form.gallery_urls.length === 0 ? (
+					<div className="rounded-xl border border-border/60 bg-background p-3 text-sm text-foreground-muted">No gallery images.</div>
+				) : (
+					<div className="space-y-2">
+						{form.gallery_urls.map((u, idx) => (
+							<div key={idx} className="flex items-center gap-2">
+								<input
+									value={u}
+									onChange={(e) =>
+										setForm((p) => {
+											const next = p.gallery_urls.slice()
+											next[idx] = e.target.value
+											return { ...p, gallery_urls: next }
+										})
+									}
+									placeholder="https://..."
+									className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
+								/>
+								<button
+									type="button"
+									onClick={() => setForm((p) => ({ ...p, gallery_urls: p.gallery_urls.filter((_, i) => i !== idx) }))}
+									className="inline-flex items-center justify-center rounded-xl border border-border/60 bg-background px-3 py-2 text-xs font-semibold text-red-300 hover:bg-background-tertiary/30"
+								>
+									Remove
+								</button>
+							</div>
+						))}
+					</div>
+				)}
+			  </div>
             </div>
           </div>
 

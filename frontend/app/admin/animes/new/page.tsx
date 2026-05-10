@@ -24,6 +24,7 @@ export default function AdminAddAnimePage() {
     description_ru: "",
     description_en: "",
     poster_url: "",
+		background_url: "",
     trailer_url: "",
     status_id: null,
     studio_id: null,
@@ -173,6 +174,22 @@ export default function AdminAddAnimePage() {
                 />
               </div>
             </div>
+
+			<div className="space-y-2">
+				<label className="text-xs font-semibold text-foreground-muted">Background URL</label>
+				<div className="relative">
+					<div className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-subtle">
+						<ImageIcon className="w-4 h-4" />
+					</div>
+					<input
+						value={form.background_url || ""}
+						onChange={(e) => setForm((p) => ({ ...p, background_url: e.target.value }))}
+						placeholder="https://... (leave empty to use Poster URL)"
+						className="w-full h-11 rounded-xl bg-background border border-border/60 pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary/50"
+					/>
+				</div>
+				<div className="text-[11px] text-foreground-subtle">Used for the blurred hero background (home + anime page). Defaults to Poster URL.</div>
+			</div>
 
             <div className="space-y-2 lg:col-span-2">
               <label className="text-xs font-semibold text-foreground-muted">Trailer URL (optional)</label>

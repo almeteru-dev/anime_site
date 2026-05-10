@@ -23,7 +23,7 @@ export function AnimeDetailsClient({
       <HeroHeader anime={anime} onStartWatching={() => setStartWatchingNonce((n) => n + 1)} />
       <SynopsisSection anime={anime} />
       <AnimeStreamPlayer anime={anime} episodesByServer={episodes} startWatchingNonce={startWatchingNonce} />
-      <GallerySection images={galleryImages} />
+	  {galleryImages.length > 0 ? <GallerySection images={galleryImages} /> : null}
     </div>
   )
 }
