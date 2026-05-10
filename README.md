@@ -22,6 +22,12 @@ make install
 - `ALLOWED_ORIGINS=https://your-domain`
 - `COOKIE_SECURE=auto`
 
+Важно про порты и TLS:
+
+- Этот проект поднимается через Docker и публикует контейнерный nginx на порт `8081` хоста (в `docker-compose.yml` это `8081:80`).
+- HTTPS лучше делать на хосте (nginx/caddy/traefik) или через Cloudflare, а потом проксировать на `http://127.0.0.1:8081`.
+- Поэтому при домене используй `make up` (порт `8081`), а `make up80` не используй, если на хосте уже есть nginx/caddy на `80/443`.
+
 И задай домен для фронта (для SSR/абсолютных URL):
 
 ```bash
@@ -45,7 +51,16 @@ NEXT_PUBLIC_SITE_URL=https://your-domain
 make up
 ```
 
-Если у тебя TLS терминируется на хосте (nginx/caddy/traefik), это значит:
+Остановить Docker не нужно — host nginx/caddy/Cloudflare будет просто проксировать на уже запущенный порт `8081`.
+
+Если ты случайно запускал `make up80` и порт `80` занят, останови compose и подними обратно на `8081`:
+
+```bash
+docker compose down
+make up
+```
+
+Если у тебя TLS терминируется на хосте (nginx/caddy/traefik) или домен за Cloudflare, это значит:
 
 - Снаружи пользователи заходят на `https://your-domain`.
 - HTTPS “заканчивается” на хостовом прокси.
@@ -60,7 +75,7 @@ make up
 curl -i http://127.0.0.1:8081/api/ping
 ```
 
-2) Настрой хостовый reverse-proxy так, чтобы он принимал домен и проксировал на `127.0.0.1:8081`.
+2) Настрой reverse-proxy на хосте так, чтобы он принимал домен на `80/443` и проксировал на `127.0.0.1:8081`.
 
 Пример для nginx на хосте (схематично):
 
@@ -78,7 +93,239 @@ server {
 }
 ```
 
-Если этот вариант не используешь, можно публиковать контейнерный nginx на `80:80` (см. ниже в README), но это будет HTTP без TLS.
+Если этот вариант не используешь, можно публиковать контейнерный nginx на `80:80` (см. ниже в README), но тогда host nginx/caddy не должен занимать `:80`, и HTTPS у тебя не появится.
+
+### TLS (HTTPS) на домене: подробно
+
+HTTPS можно сделать двумя способами:
+
+1) TLS на хосте (рекомендуется): host nginx/caddy/traefik принимает `:443` и проксирует на контейнерный nginx `127.0.0.1:8081`.
+2) TLS внутри Docker (сложнее): контейнер сам получает сертификат и слушает `:443`.
+
+Ниже — пошагово вариант 1 (самый простой в поддержке).
+
+#### Шаг 0: DNS и порты
+
+- DNS: `A` запись `your-domain` → IP твоего VPS.
+- Открой порты на VPS:
+  - обязательно `80/tcp` (нужно Let’s Encrypt для выдачи/продления)
+  - обязательно `443/tcp` (сам HTTPS)
+
+Если на сервере уже крутится nginx/apache и занимает `80/443`, нужно либо отключить их, либо использовать их как прокси.
+
+#### Если домен за Cloudflare
+
+Cloudflare добавляет второй участок TLS: браузер → Cloudflare и Cloudflare → твой VPS.
+
+Рекомендуемые настройки в Cloudflare:
+
+- `SSL/TLS` → режим `Full (strict)`
+- `SSL/TLS` → `Edge Certificates` → включи `Always Use HTTPS` (по желанию)
+
+Дальше есть два нормальных варианта на VPS. Проект при этом всё равно поднимается на `127.0.0.1:8081`, а TLS делается на хосте.
+
+##### Вариант CF-1 (рекомендуется с Cloudflare): Cloudflare Origin Certificate + nginx на хосте
+
+Этот вариант не требует Let’s Encrypt и обычно самый стабильный, когда домен проксируется через Cloudflare.
+
+1) В Cloudflare создай Origin Certificate:
+
+- `SSL/TLS` → `Origin Server` → `Create Certificate`
+- Сохрани два блока: сертификат (cert) и приватный ключ (key)
+
+2) На VPS поставь nginx (если ещё нет):
+
+```bash
+sudo apt update
+sudo apt install -y nginx
+```
+
+3) На VPS создай папку под сертификаты и положи файлы:
+
+```bash
+sudo mkdir -p /etc/ssl/cloudflare
+sudo nano /etc/ssl/cloudflare/origin.pem
+sudo nano /etc/ssl/cloudflare/origin.key
+sudo chmod 600 /etc/ssl/cloudflare/origin.key
+```
+
+4) В корне репозитория подними проект (это создаст `backend/.env.docker`, если нет) и запусти Docker:
+
+```bash
+cd ~/Program/anime_site
+make install
+make up
+curl -i http://127.0.0.1:8081/api/ping
+```
+
+5) Настрой nginx на хосте как reverse-proxy + TLS.
+
+Создай конфиг (на VPS):
+
+```bash
+sudo nano /etc/nginx/sites-available/lycorislib
+```
+
+Пример:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name your-domain;
+
+  ssl_certificate     /etc/ssl/cloudflare/origin.pem;
+  ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+
+  location / {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+
+server {
+  listen 80;
+  server_name your-domain;
+  return 301 https://$host$request_uri;
+}
+```
+
+Включи сайт и перезагрузи nginx:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/lycorislib /etc/nginx/sites-enabled/lycorislib
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+6) В Cloudflare убедись, что режим `Full (strict)` включён. Проверка:
+
+- `https://your-domain/api/ping` должен отдавать `200`.
+
+Важно: Origin Certificate валиден только для соединения Cloudflare → VPS. Это нормально.
+
+##### Вариант CF-2: Let’s Encrypt на хосте (Caddy или nginx+certbot)
+
+Можно использовать инструкции ниже (Caddy / nginx+certbot). Если Cloudflare проксирует домен (оранжевое облако), иногда проще временно выключить проксирование на время выдачи сертификата или использовать DNS-01.
+
+#### Вариант A: Caddy (сам выдаёт и продлевает сертификаты)
+
+1) Останови/убери сервисы, которые держат `80/443` (если есть).
+
+2) Установи Caddy (Ubuntu):
+
+```bash
+sudo apt update
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+```
+
+3) Подними проект в Docker на `8081`:
+
+```bash
+make up
+curl -i http://127.0.0.1:8081/api/ping
+```
+
+4) Настрой Caddy как reverse-proxy.
+
+Открой `/etc/caddy/Caddyfile` и добавь:
+
+```caddy
+your-domain {
+  reverse_proxy 127.0.0.1:8081
+}
+```
+
+Применить:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+5) Проверка:
+
+- `https://your-domain/api/ping` должен отдавать `200`.
+
+Где лежат сертификаты: Caddy хранит и обновляет их сам, руками обычно ничего делать не нужно.
+
+#### Вариант B: nginx + certbot (Let’s Encrypt)
+
+1) Установи nginx и certbot:
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+2) Подними проект в Docker на `8081`:
+
+```bash
+make up
+curl -i http://127.0.0.1:8081/api/ping
+```
+
+3) Создай nginx конфиг reverse-proxy (HTTP), чтобы certbot смог пройти проверку домена.
+
+Например файл `/etc/nginx/sites-available/lycorislib`:
+
+```nginx
+server {
+  listen 80;
+  server_name your-domain;
+
+  location / {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}
+```
+
+Включи сайт и перезагрузи nginx:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/lycorislib /etc/nginx/sites-enabled/lycorislib
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+4) Получи сертификат и включи HTTPS:
+
+```bash
+sudo certbot --nginx -d your-domain
+```
+
+certbot сам добавит `listen 443 ssl;` и пути к сертификатам в nginx-конфиг.
+
+5) Автопродление:
+
+```bash
+sudo systemctl status certbot.timer --no-pager
+sudo certbot renew --dry-run
+```
+
+#### Env при HTTPS
+
+Когда домен реально открывается по `https://`:
+
+- `backend/.env.docker`:
+  - `FRONTEND_URL=https://your-domain`
+  - `BACKEND_URL=https://your-domain`
+  - `ALLOWED_ORIGINS=https://your-domain`
+  - `COOKIE_SECURE=auto` (станет `true` автоматически)
+
+После смены env перезапусти:
+
+```bash
+docker compose up -d
+```
 
 Автостарт после перезагрузки VPS:
 
