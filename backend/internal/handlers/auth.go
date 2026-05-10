@@ -373,16 +373,26 @@ func Login(c *gin.Context) {
 	}
 
 	// Set auth_token via HttpOnly cookie
+	sameSite := config.AppConfig.CookieSameSite()
+	secure := config.AppConfig.CookieSecure()
+	if sameSite == http.SameSiteNoneMode && !secure {
+		sameSite = http.SameSiteLaxMode
+	}
 	ck := &http.Cookie{
 		Name:     "auth_token",
 		Value:    tokenString,
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 		HttpOnly: true,
-		Secure:   config.AppConfig.IS_PRODUCTION,
+		Secure:   secure,
+	}
+	if config.AppConfig.COOKIE_DOMAIN != "" {
+		ck.Domain = config.AppConfig.COOKIE_DOMAIN
 	}
 	if input.RememberMe {
-		ck.MaxAge = int(exp.Sub(time.Now()).Seconds())
+		maxAge := int(exp.Sub(time.Now()).Seconds())
+		ck.MaxAge = maxAge
+		ck.Expires = exp
 	}
 	http.SetCookie(c.Writer, ck)
 
@@ -392,14 +402,21 @@ func Login(c *gin.Context) {
 }
 
 func Logout(c *gin.Context) {
+	sameSite := config.AppConfig.CookieSameSite()
+	secure := config.AppConfig.CookieSecure()
+	if sameSite == http.SameSiteNoneMode && !secure {
+		sameSite = http.SameSiteLaxMode
+	}
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "auth_token",
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   config.AppConfig.IS_PRODUCTION,
+		SameSite: sameSite,
+		Secure:   secure,
+		Domain:   config.AppConfig.COOKIE_DOMAIN,
 	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})

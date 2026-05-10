@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: lycoris-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -19,6 +20,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: lycoris-backend
+    restart: unless-stopped
     env_file:
       - ./backend/.env.docker
     depends_on:
@@ -30,11 +32,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: lycoris-frontend
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
       INTERNAL_API_URL: http://backend:8080/api
-      NEXT_PUBLIC_SITE_URL: http://localhost:8081
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:8081}
     depends_on:
       - backend
 
@@ -43,6 +46,7 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     container_name: lycoris-nginx
+    restart: unless-stopped
     ports:
       - "8081:80"
     depends_on:

@@ -38,22 +38,14 @@ func main() {
 
 	// CORS middleware
 	r.Use(func(c *gin.Context) {
-		frontendURL := config.AppConfig.FRONTEND_URL
 		origin := c.Request.Header.Get("Origin")
 
-		if !config.AppConfig.IS_PRODUCTION {
-			// In dev mode, allow localhost explicitly or matched origin
-			if origin == frontendURL || origin == "http://localhost:3000" {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			} else if origin != "" {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			} else {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
-			}
-		} else {
-			// In production, strictly allow only FRONTEND_URL
-			if origin == frontendURL {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", frontendURL)
+		if origin != "" {
+			for _, allowed := range config.AppConfig.ALLOWED_ORIGINS {
+				if origin == allowed {
+					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
 			}
 		}
 

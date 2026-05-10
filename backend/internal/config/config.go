@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 type Config struct {
 	FRONTEND_URL    string
 	BACKEND_URL     string
+	ALLOWED_ORIGINS []string
 	IS_PRODUCTION   bool
 	PORT            string
 	JWT_SECRET      string
@@ -21,6 +23,9 @@ type Config struct {
 	DB_NAME         string
 	DB_RESET        bool
 	TRUSTED_PROXIES []string
+	COOKIE_DOMAIN   string
+	COOKIE_SAMESITE string
+	COOKIE_SECURE   string
 }
 
 var AppConfig Config
@@ -39,6 +44,9 @@ func LoadConfig() {
 		DB_PASSWORD:    getEnv("DB_PASSWORD", ""),
 		DB_NAME:        getEnv("DB_NAME", "animevista"),
 		DB_RESET:       getEnvAsBool("DB_RESET", false),
+		COOKIE_DOMAIN:  strings.TrimSpace(getEnv("COOKIE_DOMAIN", "")),
+		COOKIE_SAMESITE: strings.TrimSpace(getEnv("COOKIE_SAMESITE", "lax")),
+		COOKIE_SECURE:  strings.TrimSpace(getEnv("COOKIE_SECURE", "auto")),
 	}
 
 	if isProd {
@@ -52,22 +60,80 @@ func LoadConfig() {
 		AppConfig.BACKEND_URL = getEnv("BACKEND_URL", "http://localhost:8080")
 	}
 
+	allowedOriginsStr := getEnv("ALLOWED_ORIGINS", "")
+	if allowedOriginsStr != "" {
+		AppConfig.ALLOWED_ORIGINS = splitCSV(allowedOriginsStr)
+	} else {
+		origins := []string{}
+		if strings.TrimSpace(AppConfig.FRONTEND_URL) != "" {
+			origins = append(origins, strings.TrimRight(strings.TrimSpace(AppConfig.FRONTEND_URL), "/"))
+		}
+		if !isProd {
+			origins = append(origins, "http://localhost:3000")
+		}
+		AppConfig.ALLOWED_ORIGINS = uniqueNonEmpty(origins)
+	}
+
 	proxiesStr := getEnv("TRUSTED_PROXIES", "")
 	if proxiesStr != "" {
-		parts := strings.Split(proxiesStr, ",")
-		var proxies []string
-		for _, p := range parts {
-			trimmed := strings.TrimSpace(p)
-			if trimmed != "" {
-				proxies = append(proxies, trimmed)
-			}
-		}
-		AppConfig.TRUSTED_PROXIES = proxies
+		AppConfig.TRUSTED_PROXIES = splitCSV(proxiesStr)
 	} else if !isProd {
 		AppConfig.TRUSTED_PROXIES = []string{"127.0.0.1"}
 	} else {
 		AppConfig.TRUSTED_PROXIES = nil
 	}
+}
+
+func (c Config) CookieSecure() bool {
+	mode := strings.ToLower(strings.TrimSpace(c.COOKIE_SECURE))
+	if mode == "true" || mode == "1" || mode == "yes" {
+		return true
+	}
+	if mode == "false" || mode == "0" || mode == "no" {
+		return false
+	}
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(c.FRONTEND_URL)), "https://")
+}
+
+func (c Config) CookieSameSite() http.SameSite {
+	s := strings.ToLower(strings.TrimSpace(c.COOKIE_SAMESITE))
+	switch s {
+	case "none":
+		return http.SameSiteNoneMode
+	case "strict":
+		return http.SameSiteStrictMode
+	default:
+		return http.SameSiteLaxMode
+	}
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	res := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			res = append(res, trimmed)
+		}
+	}
+	return uniqueNonEmpty(res)
+}
+
+func uniqueNonEmpty(values []string) []string {
+	seen := map[string]struct{}{}
+	res := []string{}
+	for _, v := range values {
+		vv := strings.TrimSpace(v)
+		if vv == "" {
+			continue
+		}
+		if _, ok := seen[vv]; ok {
+			continue
+		}
+		seen[vv] = struct{}{}
+		res = append(res, vv)
+	}
+	return res
 }
 
 func getEnv(key, fallback string) string {
