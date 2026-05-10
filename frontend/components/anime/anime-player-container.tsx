@@ -60,7 +60,7 @@ export function AnimePlayerContainer({
 }) {
   const { user } = useAuth()
   const artRef = useRef<ArtVideoPlayerHandle | null>(null)
-  const [selectedServer, setSelectedServer] = useState("Server 1")
+  const [selectedServer, setSelectedServer] = useState("")
   const [selectedAudio, setSelectedAudio] = useState("Subbed")
   const [resumeAt, setResumeAt] = useState<number>(0)
   const [resumePlay, setResumePlay] = useState(false)
@@ -73,38 +73,52 @@ export function AnimePlayerContainer({
 
   const sources = useMemo<PlayerSource[]>(() => {
     const trailerFallback = "https://www.youtube.com/watch?v=I1Pk4UUJQg4"
-    const episodeUrl =
-      episode?.video_sources?.find((s) => s.is_default && s.is_active)?.url ||
-      episode?.video_sources?.find((s) => s.is_active)?.url ||
-      episode?.video_sources?.[0]?.url ||
-      ""
-    const baseUrl = (episodeUrl || anime.trailer_url || trailerFallback).trim()
+    const list: PlayerSource[] = []
 
-    const s1: PlayerSource = {
-      id: "server1_sub",
-      server: "Server 1",
-      audio: "Subbed",
-      kind: guessKind(baseUrl),
-      url: baseUrl,
+    const vs = (episode?.video_sources || [])
+      .filter((s) => s.is_active)
+      .slice()
+      .sort((a, b) => {
+        if (a.is_default !== b.is_default) return a.is_default ? -1 : 1
+        if ((a.sort_order || 0) !== (b.sort_order || 0)) return (a.sort_order || 0) - (b.sort_order || 0)
+        return a.id - b.id
+      })
+
+    for (const s of vs) {
+      const baseUrl = (s.url || "").trim()
+      if (!baseUrl) continue
+
+      const kind = guessKind(baseUrl)
+      const server = s.label || "Server"
+
+      if (s.is_integrated_player) {
+        list.push({ id: `vs_${s.id}_integrated`, server, audio: "Dub & Sub", kind, url: baseUrl })
+        continue
+      }
+
+      const audio = s.audio === "dub" ? "Dubbed" : "Subbed"
+      list.push({ id: `vs_${s.id}`, server, audio, kind, url: baseUrl })
     }
 
-    const s1Dub: PlayerSource = {
-      id: "server1_dub",
-      server: "Server 1",
-      audio: "Dubbed",
-      kind: guessKind(baseUrl),
-      url: baseUrl,
+    if (list.length === 0) {
+      const baseUrl = ((anime.trailer_url || trailerFallback) + "").trim()
+      list.push({ id: "fallback_sub", server: "Trailer", audio: "Subbed", kind: guessKind(baseUrl), url: baseUrl })
+      list.push({ id: "fallback_dub", server: "Trailer", audio: "Dubbed", kind: guessKind(baseUrl), url: baseUrl })
     }
 
-    const placeholder: PlayerSource = {
-      id: "placeholder",
-      server: "Backup",
-      audio: "Subbed",
-      kind: "placeholder",
-    }
-
-    return [s1, s1Dub, placeholder]
+    return list
   }, [anime.trailer_url, episode?.video_sources])
+
+  useEffect(() => {
+    if (!sources.length) return
+    const servers = Array.from(new Set(sources.map((s) => s.server)))
+    const nextServer = selectedServer && servers.includes(selectedServer) ? selectedServer : servers[0]
+    const audios = Array.from(new Set(sources.filter((s) => s.server === nextServer).map((s) => s.audio)))
+    const nextAudio = audios.includes(selectedAudio) ? selectedAudio : audios[0] || "Subbed"
+
+    if (nextServer !== selectedServer) setSelectedServer(nextServer)
+    if (nextAudio !== selectedAudio) setSelectedAudio(nextAudio)
+  }, [selectedAudio, selectedServer, sources])
 
   const active = useMemo(() => {
     return (

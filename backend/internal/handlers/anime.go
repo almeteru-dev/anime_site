@@ -10,6 +10,7 @@ import (
 	"github.com/seva/animevista/internal/app"
 	"github.com/seva/animevista/internal/models"
 	"github.com/seva/animevista/internal/validation"
+	"gorm.io/gorm"
 )
 
 func splitCSVParam(raw string) []string {
@@ -209,10 +210,11 @@ func GetAnimeByID(c *gin.Context) {
 
 	var episodes []models.Episode
 	_ = app.DB.Where("anime_id = ?", anime.ID).
-		Preload("VoiceGroup").
-		Preload("VideoSources").
+		Preload("VideoSources", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order asc")
+		}).
 		Preload("VideoSources.VideoLabel").
-		Order("group_id asc").
+		Preload("VideoSources.VoiceGroup").
 		Order("number asc").
 		Find(&episodes).Error
 
@@ -223,15 +225,17 @@ func GetAnimeByID(c *gin.Context) {
 	}
 
 	type VideoSourceItem struct {
-		ID         int64                  `json:"id"`
-		LabelID    *int64                 `json:"label_id"`
-		Label      string                 `json:"label"`
-		Type       models.VideoSourceType `json:"type"`
-		URL        string                 `json:"url"`
-		IsDefault  bool                   `json:"is_default"`
-		IsActive   bool                   `json:"is_active"`
-		SortOrder  int64                  `json:"sort_order"`
-		VideoLabel *VideoLabelItem        `json:"video_label,omitempty"`
+		ID                 int64                  `json:"id"`
+		LabelID            *int64                 `json:"label_id"`
+		Label              string                 `json:"label"`
+		Type               models.VideoSourceType `json:"type"`
+		URL                string                 `json:"url"`
+		Audio              *string                `json:"audio,omitempty"`
+		IsIntegratedPlayer bool                   `json:"is_integrated_player"`
+		IsDefault          bool                   `json:"is_default"`
+		IsActive           bool                   `json:"is_active"`
+		SortOrder          int64                  `json:"sort_order"`
+		VideoLabel         *VideoLabelItem        `json:"video_label,omitempty"`
 	}
 
 	type EpisodeItem struct {
@@ -250,54 +254,74 @@ func GetAnimeByID(c *gin.Context) {
 	}
 
 	byGroup := map[int64]*VoiceGroupWithEpisodes{}
-	for _, ep := range episodes {
-		g, ok := byGroup[ep.GroupID]
-		if !ok {
-			vg := VoiceGroupWithEpisodes{
-				ID:       ep.VoiceGroup.ID,
-				Name:     ep.VoiceGroup.Name,
-				Type:     ep.VoiceGroup.Type,
-				Episodes: []EpisodeItem{},
-			}
-			byGroup[ep.GroupID] = &vg
-			g = &vg
-		}
+	const integratedGroupID int64 = 0
+	byGroup[integratedGroupID] = &VoiceGroupWithEpisodes{ID: integratedGroupID, Name: "Integrated", Type: models.VoiceGroupTypeDub, Episodes: []EpisodeItem{}}
 
-		sources := make([]VideoSourceItem, 0)
+	for _, ep := range episodes {
+		integratedSources := make([]VideoSourceItem, 0)
+		perGroup := map[int64][]VideoSourceItem{}
+
 		for _, s := range ep.VideoSources {
 			var vl *VideoLabelItem
 			if s.VideoLabel != nil && s.LabelID != nil {
 				vl = &VideoLabelItem{ID: s.VideoLabel.ID, Name: s.VideoLabel.Name, IsExternalPlayer: s.VideoLabel.IsExternalPlayer}
 			}
-			sources = append(sources, VideoSourceItem{
-				ID:         s.ID,
-				LabelID:    s.LabelID,
-				Label:      s.Label,
-				Type:       s.Type,
-				URL:        s.URL,
-				IsDefault:  s.IsDefault,
-				IsActive:   s.IsActive,
-				SortOrder:  int64(s.SortOrder),
-				VideoLabel: vl,
-			})
-		}
-		// Sort sources by sort_order
-		sort.Slice(sources, func(i, j int) bool {
-			return sources[i].SortOrder < sources[j].SortOrder
-		})
+			item := VideoSourceItem{
+				ID:                 s.ID,
+				LabelID:            s.LabelID,
+				Label:              s.Label,
+				Type:               s.Type,
+				URL:                s.URL,
+				Audio:              s.Audio,
+				IsIntegratedPlayer: s.IsIntegratedPlayer,
+				IsDefault:          s.IsDefault,
+				IsActive:           s.IsActive,
+				SortOrder:          int64(s.SortOrder),
+				VideoLabel:         vl,
+			}
 
-		g.Episodes = append(g.Episodes, EpisodeItem{
-			ID:           ep.ID,
-			Number:       ep.Number,
-			Duration:     ep.Duration,
-			GroupID:      ep.GroupID,
-			VideoSources: sources,
-		})
+			if s.IsIntegratedPlayer {
+				integratedSources = append(integratedSources, item)
+				continue
+			}
+			if s.VoiceGroupID == nil {
+				continue
+			}
+			perGroup[*s.VoiceGroupID] = append(perGroup[*s.VoiceGroupID], item)
+		}
+
+		if len(integratedSources) > 0 {
+			g := byGroup[integratedGroupID]
+			g.Episodes = append(g.Episodes, EpisodeItem{ID: ep.ID, Number: ep.Number, Duration: ep.Duration, GroupID: integratedGroupID, VideoSources: integratedSources})
+		}
+
+		for gid, sources := range perGroup {
+			vg := byGroup[gid]
+			if vg == nil {
+				name := "Team"
+				typeVal := models.VoiceGroupTypeDub
+				for _, s := range ep.VideoSources {
+					if s.VoiceGroupID != nil && *s.VoiceGroupID == gid && s.VoiceGroup != nil {
+						name = s.VoiceGroup.Name
+						typeVal = s.VoiceGroup.Type
+						break
+					}
+				}
+				vg = &VoiceGroupWithEpisodes{ID: gid, Name: name, Type: typeVal, Episodes: []EpisodeItem{}}
+				byGroup[gid] = vg
+			}
+
+			vg.Episodes = append(vg.Episodes, EpisodeItem{ID: ep.ID, Number: ep.Number, Duration: ep.Duration, GroupID: gid, VideoSources: sources})
+		}
 	}
 
 	dub := make([]VoiceGroupWithEpisodes, 0)
 	sub := make([]VoiceGroupWithEpisodes, 0)
 	for _, g := range byGroup {
+		if len(g.Episodes) == 0 {
+			continue
+		}
+		sort.Slice(g.Episodes, func(i, j int) bool { return g.Episodes[i].Number < g.Episodes[j].Number })
 		if g.Type == models.VoiceGroupTypeDub {
 			dub = append(dub, *g)
 		} else {

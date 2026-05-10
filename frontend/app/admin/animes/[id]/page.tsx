@@ -22,6 +22,7 @@ import {
   adminUpdateVideoSource,
   adminDeleteVideoSource,
   adminSetDefaultVideoSource,
+  type AdminCreateEpisodeRequest,
   type AdminUpsertEpisodeInput,
   type AdminUpsertVideoSourceInput,
   type AdminMeta,
@@ -55,7 +56,6 @@ export default function AdminEditAnimePage() {
   const [episodesTab, setEpisodesTab] = useState<"voice_groups" | "episodes">("episodes")
   const [existingGroupsFilter, setExistingGroupsFilter] = useState<"all" | "dub" | "sub">("all")
   const [selectedGroupType, setSelectedGroupType] = useState<"dub" | "sub">("dub")
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [newGroupName, setNewGroupName] = useState("")
 
   const [selectedEpisodeForSources, setSelectedEpisodeForSources] = useState<Episode | null>(null)
@@ -65,15 +65,21 @@ export default function AdminEditAnimePage() {
     label: "",
     type: "iframe",
     url: "",
+		voice_group_id: null,
+		is_integrated_player: false,
     is_default: true,
     is_active: true,
     sort_order: 0,
   })
+	const [initialSourceCategory, setInitialSourceCategory] = useState<"dub" | "sub">("dub")
+	const [editSourceCategory, setEditSourceCategory] = useState<"dub" | "sub">("dub")
   const [sourceForm, setSourceForm] = useState<AdminUpsertVideoSourceInput>({
     label_id: null,
     label: "",
     type: "iframe",
     url: "",
+		voice_group_id: null,
+		is_integrated_player: false,
     is_default: false,
     is_active: true,
     sort_order: 0,
@@ -86,9 +92,9 @@ export default function AdminEditAnimePage() {
   })
   const [editingVoiceGroupId, setEditingVoiceGroupId] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<AdminUpsertEpisodeInput>({
-    group_id: 0,
     number: 1,
     duration: 24,
+		kind: "tv",
   })
 
   const [form, setForm] = useState({
@@ -186,39 +192,11 @@ export default function AdminEditAnimePage() {
     return (voiceGroups || []).filter((g) => g.type === "sub")
   }, [voiceGroups])
 
-  const groupsForType = useMemo(() => {
-    return (voiceGroups || []).filter((g) => g.type === selectedGroupType)
-  }, [selectedGroupType, voiceGroups])
-
-  useEffect(() => {
-    if (!voiceGroups) return
-
-    const current = voiceGroups.find((g) => g.id === selectedGroupId)
-    if (current && current.type === selectedGroupType) return
-
-    const preferred = voiceGroups.find((g) => g.type === selectedGroupType) || voiceGroups[0]
-    if (preferred) {
-      setSelectedGroupType(preferred.type)
-      setSelectedGroupId(preferred.id)
-      setEpisodeForm((p) => ({ ...p, group_id: preferred.id }))
-    } else {
-      setSelectedGroupId(null)
-      setEpisodeForm((p) => ({ ...p, group_id: 0 }))
-    }
-  }, [selectedGroupId, selectedGroupType, voiceGroups])
-
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
-        if (!selectedGroupId) {
-          if (mounted) setEpisodes([])
-          return
-        }
-        const data = await getAnimeEpisodesFiltered({
-          idOrSlug: params.id,
-          group_id: selectedGroupId,
-        })
+        const data = await getAnimeEpisodesFiltered({ idOrSlug: params.id })
         if (mounted) setEpisodes(data)
       } catch (e: any) {
         if (mounted) setEpisodeError(e.message || "Failed to load episodes")
@@ -227,20 +205,23 @@ export default function AdminEditAnimePage() {
     return () => {
       mounted = false
     }
-  }, [params.id, selectedGroupId])
+  }, [params.id])
 
   const resetEpisodeForm = () => {
     setEditingEpisodeId(null)
     setEpisodeForm({
-      group_id: selectedGroupId || 0,
       number: 1,
       duration: 24,
+      kind: "tv",
     })
+    setInitialSourceCategory("dub")
     setEpisodeSourceForm({
       label_id: null,
       label: "",
       type: "iframe",
       url: "",
+		voice_group_id: null,
+		is_integrated_player: false,
       is_default: true,
       is_active: true,
       sort_order: 0,
@@ -248,13 +229,11 @@ export default function AdminEditAnimePage() {
   }
 
   const startEditEpisode = (ep: Episode) => {
-    if (ep.voice_group?.type) setSelectedGroupType(ep.voice_group.type)
-    setSelectedGroupId(ep.group_id)
     setEditingEpisodeId(ep.id)
     setEpisodeForm({
-      group_id: ep.group_id,
       number: ep.number,
       duration: ep.duration || 0,
+      kind: ep.kind || "tv",
     })
   }
 
@@ -272,8 +251,6 @@ export default function AdminEditAnimePage() {
         input: { name, type: selectedGroupType },
       })
       setVoiceGroups((prev) => ([...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name))))
-      setSelectedGroupId(created.id)
-      setEpisodeForm((p) => ({ ...p, group_id: created.id }))
       setNewGroupName("")
     } catch (e: any) {
       setEpisodeError(e.message || "Failed to create voice group")
@@ -333,10 +310,6 @@ export default function AdminEditAnimePage() {
     try {
       await adminDeleteVoiceGroup({ id: String(g.id) })
       setVoiceGroups((prev) => (prev ? prev.filter((x) => x.id !== g.id) : prev))
-      if (selectedGroupId === g.id) {
-        setSelectedGroupId(null)
-        setEpisodeForm((p) => ({ ...p, group_id: 0 }))
-      }
       setEditingVoiceGroupId((prev) => (prev === g.id ? null : prev))
     } catch (e: any) {
       setEpisodeError(e.message || "Failed to delete voice group")
@@ -346,10 +319,6 @@ export default function AdminEditAnimePage() {
   }
 
   const saveEpisode = async () => {
-    if (!selectedGroupId) {
-      setEpisodeError("Select a voice group first")
-      return
-    }
     if (form.episodes <= 0) {
       setEpisodeError("Set total episodes on the anime first")
       return
@@ -359,10 +328,7 @@ export default function AdminEditAnimePage() {
       return
     }
 
-    const input: AdminUpsertEpisodeInput = {
-      ...episodeForm,
-      group_id: selectedGroupId,
-    }
+    const input: AdminUpsertEpisodeInput = { ...episodeForm }
 
     setEpisodeSaving(true)
     setEpisodeError(null)
@@ -374,23 +340,38 @@ export default function AdminEditAnimePage() {
         })
         setEpisodes((prev) => (prev ? prev.map((e) => (e.id === updated.id ? updated : e)).sort((a, b) => a.number - b.number) : prev))
       } else {
+        const hasLabel = !!episodeSourceForm.label_id || !!episodeSourceForm.label?.trim()
+        const hasUrl = !!episodeSourceForm.url?.trim()
+        if (!hasLabel || !hasUrl) {
+          setEpisodeError("Label and URL are required")
+          setEpisodeSaving(false)
+          return
+        }
+        if (!episodeSourceForm.is_integrated_player && !episodeSourceForm.voice_group_id) {
+          setEpisodeError("Select Category and Voice group for non-integrated sources")
+          setEpisodeSaving(false)
+          return
+        }
+
+        const payload: AdminCreateEpisodeRequest = {
+          episode: input,
+          initial_source: {
+            label_id: episodeSourceForm.label_id,
+            label: episodeSourceForm.label,
+            type: episodeSourceForm.type,
+            url: episodeSourceForm.url,
+            voice_group_id: episodeSourceForm.voice_group_id,
+            is_integrated_player: episodeSourceForm.is_integrated_player,
+            is_default: episodeSourceForm.is_default,
+            is_active: episodeSourceForm.is_active,
+            sort_order: episodeSourceForm.sort_order,
+          },
+        }
+
         const created = await adminCreateEpisode({
           animeId: params.id,
-          input,
+          input: payload,
         })
-        const shouldCreateSource = !!episodeSourceForm.url?.trim() && (!!episodeSourceForm.label_id || !!episodeSourceForm.label?.trim())
-        if (shouldCreateSource) {
-          try {
-            const initialSource = await adminCreateVideoSource({
-              episodeId: String(created.id),
-              input: episodeSourceForm,
-            })
-            created.video_sources = [initialSource]
-          } catch (e: any) {
-            const msg = typeof e === "string" ? e : e?.message
-            setEpisodeError(`Episode created, but failed to add source: ${msg || "Unknown error"}`)
-          }
-        }
         setEpisodes((prev) => ([...(prev || []), created].sort((a, b) => a.number - b.number)))
       }
       resetEpisodeForm()
@@ -463,6 +444,8 @@ export default function AdminEditAnimePage() {
         label: "",
         type: "iframe",
         url: "",
+		voice_group_id: null,
+		is_integrated_player: false,
         is_default: false,
         is_active: true,
         sort_order: 0,
@@ -1228,89 +1211,6 @@ export default function AdminEditAnimePage() {
           </div>
         ) : (
           <>
-            <div className="mt-5 rounded-2xl border border-border/60 bg-background p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-foreground-muted">Category</div>
-              <div className="flex items-center gap-2">
-                {([
-                  { key: "dub" as const, label: "Dubbed" },
-                  { key: "sub" as const, label: "Subbed" },
-                ] as const).map((t) => (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => {
-                      setSelectedGroupType(t.key)
-                      setEditingEpisodeId(null)
-                      const first = (voiceGroups || []).find((g) => g.type === t.key)
-                      setSelectedGroupId(first ? first.id : null)
-                      setEpisodeForm((p) => ({ ...p, group_id: first ? first.id : 0 }))
-                    }}
-                    className={cn(
-                      "rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
-                      selectedGroupType === t.key
-                        ? "border-primary/40 bg-primary/10 text-foreground"
-                        : "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
-                    )}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-foreground-muted">Voice group</label>
-              <select
-                value={selectedGroupId ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value ? Number(e.target.value) : null
-                  setSelectedGroupId(v)
-                  setEditingEpisodeId(null)
-                  setEpisodeForm((p) => ({ ...p, group_id: v || 0 }))
-                }}
-                className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
-              >
-                <option value="">Select…</option>
-                {groupsForType.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              {groupsForType.length === 0 && (
-                <div className="text-xs text-foreground-muted">No groups yet for this category.</div>
-              )}
-            </div>
-
-            <div className="space-y-2 lg:col-span-2">
-              <label className="text-xs font-semibold text-foreground-muted">Quick add group</label>
-              <div className="flex items-center gap-2">
-                <input
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder={selectedGroupType === "dub" ? "e.g., Anilibria" : "e.g., Crunchyroll"}
-                  className="w-full h-11 rounded-xl bg-background border border-border/60 px-4 text-sm text-foreground outline-none focus:border-primary/50"
-                />
-                <button
-                  type="button"
-                  onClick={quickAddGroup}
-                  disabled={!newGroupName.trim() || episodeSaving}
-                  className={cn(
-                    "shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold",
-                    !newGroupName.trim() || episodeSaving
-                      ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-2xl border border-border/60 bg-background p-5">
             <h3 className="text-sm font-semibold text-foreground mb-4">
@@ -1338,12 +1238,51 @@ export default function AdminEditAnimePage() {
                   className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
                 />
               </div>
+			  <div className="space-y-2 sm:col-span-2">
+				<label className="text-xs font-semibold text-foreground-muted">Type</label>
+				<select
+					value={episodeForm.kind || "tv"}
+					onChange={(e) => setEpisodeForm((p) => ({ ...p, kind: e.target.value }))}
+					className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+				>
+					{(["tv", "ova", "ona", "special", "movie"] as const).map((k) => (
+						<option key={k} value={k}>
+							{k.toUpperCase()}
+						</option>
+					))}
+				</select>
+			  </div>
             </div>
 
             {!editingEpisodeId && (
               <div className="mt-5 rounded-xl border border-border/60 bg-background-secondary/20 p-4">
-                <div className="text-xs font-semibold text-foreground-muted mb-3">Initial Source (optional)</div>
+                <div className="text-xs font-semibold text-foreground-muted mb-3">Source (required)</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div className="space-y-2 sm:col-span-2">
+						<label className="flex items-center gap-2 cursor-pointer group">
+							<input
+								type="checkbox"
+								checked={!!episodeSourceForm.is_integrated_player}
+								onChange={(e) =>
+									setEpisodeSourceForm((p) => ({
+										...p,
+										is_integrated_player: e.target.checked,
+										voice_group_id: e.target.checked ? null : p.voice_group_id,
+									}))
+								}
+								className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+							/>
+							<span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">
+								Dub & Sub integrated in player
+							</span>
+						</label>
+						<div className="text-[11px] text-foreground-subtle">
+							{episodeSourceForm.is_integrated_player
+								? "If enabled, Category/Team is not required and Dub/Sub selection is hidden on the watch page."
+								: "If disabled, Category and Voice group are required for this source."}
+						</div>
+					</div>
+
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-foreground-muted">Label</label>
                     <select
@@ -1388,6 +1327,55 @@ export default function AdminEditAnimePage() {
                       <option value="direct">Direct (Artplayer)</option>
                     </select>
                   </div>
+					{episodeSourceForm.is_integrated_player ? null : (
+						<div className="space-y-2">
+							<label className="text-xs font-semibold text-foreground-muted">Category</label>
+							<div className="flex items-center gap-2">
+								{([
+									{ key: "dub" as const, label: "Dubbed" },
+									{ key: "sub" as const, label: "Subbed" },
+								] as const).map((t) => (
+									<button
+										key={t.key}
+										type="button"
+										onClick={() => {
+											setInitialSourceCategory(t.key)
+											const list = (voiceGroups || []).filter((g) => g.type === t.key)
+											setEpisodeSourceForm((p) => ({ ...p, voice_group_id: list[0]?.id || null }))
+										}}
+										className={cn(
+											"rounded-xl border px-3 py-2 text-sm font-semibold transition-colors",
+											initialSourceCategory === t.key
+												? "border-primary/40 bg-primary/10 text-foreground"
+												: "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
+										)}
+									>
+										{t.label}
+									</button>
+								))}
+							</div>
+							<label className="text-xs font-semibold text-foreground-muted">Voice group</label>
+							<select
+								value={episodeSourceForm.voice_group_id ? String(episodeSourceForm.voice_group_id) : ""}
+								onChange={(e) =>
+									setEpisodeSourceForm((p) => ({
+										...p,
+										voice_group_id: e.target.value ? Number(e.target.value) : null,
+									}))
+								}
+								className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+							>
+								<option value="">Select…</option>
+								{(voiceGroups || [])
+									.filter((g) => g.type === initialSourceCategory)
+									.map((g) => (
+										<option key={g.id} value={String(g.id)}>
+											{g.name}
+										</option>
+									))}
+							</select>
+						</div>
+					)}
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-xs font-semibold text-foreground-muted">URL</label>
                     <input
@@ -1425,10 +1413,10 @@ export default function AdminEditAnimePage() {
               <button
                 type="button"
                 onClick={saveEpisode}
-                disabled={episodeSaving || !selectedGroupId}
+                disabled={episodeSaving}
                 className={cn(
                   "inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold",
-                  episodeSaving || !selectedGroupId
+                  episodeSaving
                     ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
@@ -1456,7 +1444,10 @@ export default function AdminEditAnimePage() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setSelectedEpisodeForSources(ep)}
+                          onClick={() => {
+							setSelectedEpisodeForSources(ep)
+							setEditingSourceId(null)
+						}}
                           className={cn(
                             "rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
                             selectedEpisodeForSources?.id === ep.id
@@ -1498,7 +1489,10 @@ export default function AdminEditAnimePage() {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedEpisodeForSources(null)}
+                onClick={() => {
+					setSelectedEpisodeForSources(null)
+					setEditingSourceId(null)
+				}}
                 className="text-foreground-muted hover:text-foreground text-sm font-semibold"
               >
                 Close
@@ -1536,6 +1530,7 @@ export default function AdminEditAnimePage() {
                           ...p,
                           label: e.target.value,
                           label_id: e.target.value.trim() ? null : p.label_id,
+							is_integrated_player: e.target.value.trim() ? false : p.is_integrated_player,
                         }))
                       }
                       placeholder="Or type a new label (e.g., Kodik)"
@@ -1554,6 +1549,73 @@ export default function AdminEditAnimePage() {
                       </div>
                     ) : null}
                   </div>
+                  <div className="space-y-2">
+						<label className="flex items-center gap-2 cursor-pointer group">
+							<input
+								type="checkbox"
+								checked={!!sourceForm.is_integrated_player}
+								onChange={(e) => {
+									const next = e.target.checked
+									setSourceForm((p) => ({
+										...p,
+										is_integrated_player: next,
+										voice_group_id: next ? null : p.voice_group_id,
+									}))
+								}}
+								className="w-4 h-4 rounded border-border/60 text-primary focus:ring-primary/20"
+							/>
+							<span className="text-xs font-semibold text-foreground-muted group-hover:text-foreground">
+								Dub & Sub integrated in player
+							</span>
+						</label>
+						{sourceForm.is_integrated_player ? (
+							<div className="text-[11px] text-foreground-subtle">Category/Team is not required for integrated sources.</div>
+						) : (
+							<div className="space-y-2">
+								<label className="text-xs font-semibold text-foreground-muted">Category</label>
+								<div className="flex items-center gap-2">
+									{([
+										{ key: "dub" as const, label: "Dubbed" },
+										{ key: "sub" as const, label: "Subbed" },
+									] as const).map((t) => (
+										<button
+											key={t.key}
+											type="button"
+											onClick={() => {
+												setEditSourceCategory(t.key)
+												const list = (voiceGroups || []).filter((g) => g.type === t.key)
+												setSourceForm((p) => ({ ...p, voice_group_id: list[0]?.id || null }))
+											}}
+											className={cn(
+												"rounded-xl border px-3 py-2 text-sm font-semibold transition-colors",
+												editSourceCategory === t.key
+													? "border-primary/40 bg-primary/10 text-foreground"
+													: "border-border/60 bg-background text-foreground-muted hover:text-foreground hover:bg-background-tertiary/30"
+											)}
+										>
+											{t.label}
+										</button>
+									))}
+								</div>
+								<label className="text-xs font-semibold text-foreground-muted">Voice group</label>
+								<select
+									value={sourceForm.voice_group_id ? String(sourceForm.voice_group_id) : ""}
+									onChange={(e) => setSourceForm((p) => ({ ...p, voice_group_id: e.target.value ? Number(e.target.value) : null }))}
+									className="w-full h-10 rounded-xl bg-background border border-border/60 px-3 text-sm text-foreground outline-none focus:border-primary/50"
+								>
+									<option value="">Select…</option>
+									{(voiceGroups || [])
+										.filter((g) => g.type === editSourceCategory)
+										.map((g) => (
+											<option key={g.id} value={String(g.id)}>
+												{g.name}
+											</option>
+										))}
+								</select>
+							</div>
+						)}
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-foreground-muted">Type</label>
                     <select
@@ -1610,7 +1672,8 @@ export default function AdminEditAnimePage() {
                       type="button"
                       onClick={() => {
                         setEditingSourceId(null)
-                        setSourceForm({ label_id: null, label: "", type: "iframe", url: "", is_default: false, is_active: true, sort_order: 0 })
+						setEditSourceCategory("dub")
+						setSourceForm({ label_id: null, label: "", type: "iframe", url: "", voice_group_id: null, is_integrated_player: false, is_default: false, is_active: true, sort_order: 0 })
                       }}
                       className="px-4 py-2 text-xs font-semibold text-foreground-muted hover:text-foreground"
                     >
@@ -1620,10 +1683,18 @@ export default function AdminEditAnimePage() {
                   <button
                     type="button"
                     onClick={saveSource}
-                    disabled={(!sourceForm.label_id && !sourceForm.label?.trim()) || !sourceForm.url.trim() || episodeSaving}
+                    disabled={
+						  (!sourceForm.label_id && !sourceForm.label?.trim()) ||
+						  !sourceForm.url.trim() ||
+						  (!sourceForm.is_integrated_player && !sourceForm.voice_group_id) ||
+						  episodeSaving
+						}
                     className={cn(
                       "rounded-xl px-5 py-2.5 text-sm font-semibold",
-                      (!sourceForm.label_id && !sourceForm.label?.trim()) || !sourceForm.url.trim() || episodeSaving
+                      (!sourceForm.label_id && !sourceForm.label?.trim()) ||
+						  !sourceForm.url.trim() ||
+						  (!sourceForm.is_integrated_player && !sourceForm.voice_group_id) ||
+						  episodeSaving
                         ? "bg-primary/40 text-primary-foreground/70 cursor-not-allowed"
                         : "bg-primary text-primary-foreground hover:bg-primary/90"
                     )}
@@ -1648,6 +1719,9 @@ export default function AdminEditAnimePage() {
                           {!s.is_active && <span className="text-[10px] font-bold uppercase bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Inactive</span>}
                         </div>
                         <div className="text-xs text-foreground-muted truncate mt-1">{s.type} • {s.url}</div>
+					<div className="text-[11px] text-foreground-subtle mt-1">
+						{s.is_integrated_player ? "Dub & Sub integrated" : s.audio === "dub" ? "Dubbed" : "Subbed"}
+					</div>
                       </div>
                       <div className="flex items-center gap-2">
                         {!s.is_default && (
@@ -1670,10 +1744,13 @@ export default function AdminEditAnimePage() {
                               label: s.label_id || guessed ? "" : s.label,
                               type: s.type,
                               url: s.url,
+							  voice_group_id: s.voice_group_id || s.voice_group?.id || null,
+							  is_integrated_player: !!s.is_integrated_player,
                               is_default: s.is_default,
                               is_active: s.is_active,
                               sort_order: s.sort_order,
                             })
+							setEditSourceCategory((s.voice_group?.type || (s.audio === "sub" ? "sub" : "dub")) as "dub" | "sub")
                           }}
                           className="p-2 text-foreground-muted hover:text-foreground transition-colors"
                         >

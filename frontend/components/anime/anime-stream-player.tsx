@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { ArtVideoPlayer, type ArtVideoPlayerHandle } from "@/components/anime/art-video-player"
 import { AddToUserList } from "@/components/anime/add-to-user-list"
@@ -71,8 +71,9 @@ export function AnimeStreamPlayer({
   const artRef = useRef<ArtVideoPlayerHandle | null>(null)
 
   const [selectedType, setSelectedType] = useState<StreamType>("dubbed")
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [selectedEpisodeNumber, setSelectedEpisodeNumber] = useState<number | null>(null)
+  const [selectedVoiceGroupId, setSelectedVoiceGroupId] = useState<number | null>(null)
+  const [selectedServerLabel, setSelectedServerLabel] = useState<string>("")
   const [selectedSourceId, setSelectedSourceId] = useState<number | null>(null)
   const [resumeAt, setResumeAt] = useState(0)
   const [resumePlay, setResumePlay] = useState(false)
@@ -90,53 +91,164 @@ export function AnimeStreamPlayer({
   }, [anime.id, user])
 
   const currentData = useMemo(() => episodesByServer["default"] || null, [episodesByServer])
-  const dubbedGroups = currentData?.dub || []
-  const subbedGroups = currentData?.sub || []
+
+  const integratedGroup = useMemo(() => {
+    return (currentData?.dub || []).find((g) => g.id === 0) || null
+  }, [currentData])
+
+  const voiceGroupsForType = useMemo(() => {
+    const groups = selectedType === "dubbed" ? (currentData?.dub || []) : (currentData?.sub || [])
+    return groups.filter((g) => g.id !== 0)
+  }, [currentData, selectedType])
+
+  const episodeByGroupId = useMemo(() => {
+    const map = new Map<number, Map<number, { id: number; number: number; duration: number; video_sources: VideoSource[] }>>()
+    const addGroup = (g: any) => {
+      const perEp = new Map<number, any>()
+      for (const ep of g.episodes || []) {
+        perEp.set(ep.number, ep)
+      }
+      map.set(g.id, perEp)
+    }
+
+    for (const g of currentData?.dub || []) addGroup(g)
+    for (const g of currentData?.sub || []) addGroup(g)
+
+    return map
+  }, [currentData])
+
+  const sourcesFor = useCallback(
+    (groupId: number, epNumber: number): VideoSource[] => {
+      const ep = episodeByGroupId.get(groupId)?.get(epNumber)
+      return (ep?.video_sources || []).filter((s: any) => s.is_active)
+    },
+    [episodeByGroupId]
+  )
+
+  const mergedEpisodes = useMemo(() => {
+    const byNum = new Map<number, { id: number; number: number; duration: number; video_sources: VideoSource[] }>()
+    const add = (ep: { id: number; number: number; duration: number; video_sources: VideoSource[] }) => {
+      const existing = byNum.get(ep.number)
+      if (!existing) {
+        byNum.set(ep.number, { id: ep.id, number: ep.number, duration: ep.duration || 0, video_sources: [...(ep.video_sources || [])] })
+        return
+      }
+      const seen = new Set<number>(existing.video_sources.map((s) => s.id))
+      for (const s of ep.video_sources || []) {
+        if (!seen.has(s.id)) existing.video_sources.push(s)
+      }
+      if ((ep.duration || 0) > (existing.duration || 0)) existing.duration = ep.duration || 0
+    }
+
+    for (const g of currentData?.dub || []) {
+      for (const ep of g.episodes || []) add(ep)
+    }
+    for (const g of currentData?.sub || []) {
+      for (const ep of g.episodes || []) add(ep)
+    }
+
+    return Array.from(byNum.values()).sort((a, b) => a.number - b.number)
+  }, [currentData])
 
   useEffect(() => {
-    if (!currentData) return
-    if (selectedType === "dubbed" && dubbedGroups.length === 0 && subbedGroups.length > 0) {
-      setSelectedType("subbed")
-      setSelectedGroupId(null)
-      setSelectedEpisodeNumber(null)
-      return
-    }
-    if (selectedType === "subbed" && subbedGroups.length === 0 && dubbedGroups.length > 0) {
-      setSelectedType("dubbed")
-      setSelectedGroupId(null)
-      setSelectedEpisodeNumber(null)
-    }
-  }, [currentData, dubbedGroups.length, selectedType, subbedGroups.length])
-
-  const groupsForType = useMemo(() => {
-    return selectedType === "dubbed" ? dubbedGroups : subbedGroups
-  }, [dubbedGroups, selectedType, subbedGroups])
-
-  const selectedGroup = useMemo(() => {
-    if (!selectedGroupId) return null
-    return groupsForType.find((g) => g.id === selectedGroupId) || null
-  }, [groupsForType, selectedGroupId])
-
-  const episodeList = useMemo(() => {
-    const eps = selectedGroup?.episodes || []
-    return eps.slice().sort((a, b) => a.number - b.number)
-  }, [selectedGroup])
+    if (!mergedEpisodes.length) return
+    if (selectedEpisodeNumber === null) setSelectedEpisodeNumber(mergedEpisodes[0].number)
+  }, [mergedEpisodes, selectedEpisodeNumber])
 
   const selectedEpisode = useMemo(() => {
-    if (!selectedEpisodeNumber) return null
-    return episodeList.find((e) => e.number === selectedEpisodeNumber) || null
-  }, [episodeList, selectedEpisodeNumber])
+    if (selectedEpisodeNumber === null) return null
+    return mergedEpisodes.find((e) => e.number === selectedEpisodeNumber) || null
+  }, [mergedEpisodes, selectedEpisodeNumber])
 
-  const sources = useMemo(() => {
-    return (selectedEpisode?.video_sources || []).filter(s => s.is_active)
-  }, [selectedEpisode])
+  const integratedSources = useMemo(() => {
+    if (!selectedEpisodeNumber || !integratedGroup) return []
+    return sourcesFor(integratedGroup.id, selectedEpisodeNumber).filter((s) => !!s.is_integrated_player)
+  }, [integratedGroup, selectedEpisodeNumber, episodeByGroupId])
+
+  const hasAnyDub = useMemo(() => {
+    if (!selectedEpisodeNumber) return false
+    for (const g of (currentData?.dub || []) as any[]) {
+      if (g.id === 0) continue
+      const any = sourcesFor(g.id, selectedEpisodeNumber).some((s) => !s.is_integrated_player && s.audio === "dub")
+      if (any) return true
+    }
+    return false
+  }, [currentData, selectedEpisodeNumber, sourcesFor])
+
+  const hasAnySub = useMemo(() => {
+    if (!selectedEpisodeNumber) return false
+    for (const g of (currentData?.sub || []) as any[]) {
+      if (g.id === 0) continue
+      const any = sourcesFor(g.id, selectedEpisodeNumber).some((s) => !s.is_integrated_player && s.audio === "sub")
+      if (any) return true
+    }
+    return false
+  }, [currentData, selectedEpisodeNumber, sourcesFor])
+
+  const typedSourcesAllTeams = useMemo(() => {
+    if (!selectedEpisodeNumber) return []
+    const desired = selectedType === "dubbed" ? "dub" : "sub"
+    const out: VideoSource[] = []
+    for (const g of voiceGroupsForType as any[]) {
+      const srcs = sourcesFor(g.id, selectedEpisodeNumber)
+        .filter((s) => !s.is_integrated_player)
+        .filter((s) => s.audio === desired)
+      out.push(...srcs)
+    }
+    return out
+  }, [selectedEpisodeNumber, selectedType, sourcesFor, voiceGroupsForType])
+
+  const availableVoiceGroups = useMemo(() => {
+    if (!selectedEpisodeNumber) return []
+    const desired = selectedType === "dubbed" ? "dub" : "sub"
+    return voiceGroupsForType.filter((g: any) => {
+      const srcs = sourcesFor(g.id, selectedEpisodeNumber)
+        .filter((s) => !s.is_integrated_player)
+        .filter((s) => s.audio === desired)
+        .filter((s) => !selectedServerLabel || s.label === selectedServerLabel)
+      return srcs.length > 0
+    })
+  }, [selectedEpisodeNumber, selectedServerLabel, selectedType, sourcesFor, voiceGroupsForType])
+
+  const sourcesForSelectedTeam = useMemo(() => {
+    if (!selectedEpisodeNumber) return []
+    if (!selectedVoiceGroupId) return []
+    return sourcesFor(selectedVoiceGroupId, selectedEpisodeNumber).filter((s) => !s.is_integrated_player)
+  }, [selectedEpisodeNumber, selectedVoiceGroupId, episodeByGroupId])
+
+  const dubSources = useMemo(() => sourcesForSelectedTeam.filter((s) => s.audio === "dub"), [sourcesForSelectedTeam])
+  const subSources = useMemo(() => sourcesForSelectedTeam.filter((s) => s.audio === "sub"), [sourcesForSelectedTeam])
+
+  useEffect(() => {
+    if (!selectedEpisode) return
+
+    if (availableVoiceGroups.length > 0 && (!selectedVoiceGroupId || !availableVoiceGroups.some((g: any) => g.id === selectedVoiceGroupId))) {
+      setSelectedVoiceGroupId(availableVoiceGroups[0].id)
+    }
+
+    const currentSources = [...integratedSources, ...(selectedType === "dubbed" ? dubSources : subSources)]
+    if (selectedSourceId && currentSources.some((s) => s.id === selectedSourceId)) return
+
+    const pickIntegrated = integratedSources.find((s) => s.is_default) || integratedSources[0]
+    if (pickIntegrated) {
+      setSelectedSourceId(pickIntegrated.id)
+      setSelectedServerLabel(pickIntegrated.label)
+      return
+    }
+
+    const typed = selectedType === "dubbed" ? dubSources : subSources
+    const pick = typed.find((s) => s.is_default) || typed[0] || null
+    setSelectedSourceId(pick?.id || null)
+    setSelectedServerLabel(pick?.label || "")
+  }, [availableVoiceGroups, dubSources, integratedSources, selectedEpisode, selectedSourceId, selectedType, subSources, selectedVoiceGroupId])
 
   const selectedSource = useMemo(() => {
-    if (!selectedSourceId) return sources.find(s => s.is_default) || sources[0] || null
-    return sources.find(s => s.id === selectedSourceId) || sources.find(s => s.is_default) || sources[0] || null
-  }, [selectedSourceId, sources])
+    const pool = [...integratedSources, ...dubSources, ...subSources]
+    if (!selectedSourceId) return pool.find((s) => s.is_default) || pool[0] || null
+    return pool.find((s) => s.id === selectedSourceId) || pool.find((s) => s.is_default) || pool[0] || null
+  }, [dubSources, integratedSources, selectedSourceId, subSources])
 
-  const hideLanguageSelector = !!selectedSource?.video_label?.is_external_player
+  const hideLanguageSelector = !!selectedSource?.is_integrated_player
 
   const fallbackTrailer = "https://www.youtube.com/watch?v=I1Pk4UUJQg4."
   const trailerUrl = anime.trailer_url || fallbackTrailer
@@ -156,46 +268,51 @@ export function AnimeStreamPlayer({
   }
 
   const chooseFirstPlayable = () => {
-    if (!currentData || ((currentData.dub?.length || 0) + (currentData.sub?.length || 0) === 0)) {
+    if (!mergedEpisodes.length) {
       setAutoplayTrailer(true)
       return
     }
+    const firstEpisode = mergedEpisodes[0]
+    setSelectedEpisodeNumber(firstEpisode.number)
 
-    const preferredType: StreamType = (currentData.dub?.length || 0) > 0 ? "dubbed" : "subbed"
-    setSelectedType(preferredType)
+    const integrated = integratedGroup ? sourcesFor(integratedGroup.id, firstEpisode.number).filter((s) => !!s.is_integrated_player) : []
+    const pickIntegrated = integrated.find((s) => s.is_default) || integrated[0]
+    if (pickIntegrated) {
+      setSelectedSourceId(pickIntegrated.id)
+      setSelectedServerLabel(pickIntegrated.label)
+      return
+    }
 
-    const firstGroup = (preferredType === "dubbed" ? currentData.dub : currentData.sub)[0]
+    const dubGroups = (currentData?.dub || []).filter((g: any) => g.id !== 0)
+    const subGroups = (currentData?.sub || []).filter((g: any) => g.id !== 0)
+    const nextType: StreamType = dubGroups.length > 0 ? "dubbed" : "subbed"
+    setSelectedType(nextType)
+
+    const groups = nextType === "dubbed" ? dubGroups : subGroups
+    const firstGroup = groups.find((g: any) => sourcesFor(g.id, firstEpisode.number).length > 0) || null
     if (!firstGroup) {
-      setAutoplayTrailer(true)
+      setSelectedSourceId(null)
+      setSelectedVoiceGroupId(null)
+      setSelectedServerLabel("")
       return
     }
-    setSelectedGroupId(firstGroup.id)
-    const firstEpisode = firstGroup.episodes.slice().sort((a, b) => a.number - b.number)[0]
-    setSelectedEpisodeNumber(firstEpisode?.number || null)
-    
-    const defaultSource = firstEpisode?.video_sources.find(s => s.is_default && s.is_active) || firstEpisode?.video_sources.find(s => s.is_active)
-    setSelectedSourceId(defaultSource?.id || null)
+
+    setSelectedVoiceGroupId(firstGroup.id)
+    const teamSources = sourcesFor(firstGroup.id, firstEpisode.number).filter((s) => !s.is_integrated_player)
+    const typed = nextType === "dubbed" ? teamSources.filter((s) => s.audio === "dub") : teamSources.filter((s) => s.audio === "sub")
+    const pick = typed.find((s) => s.is_default) || typed[0] || null
+    setSelectedSourceId(pick?.id || null)
+    setSelectedServerLabel(pick?.label || "")
   }
 
   useEffect(() => {
-    if (!selectedGroupId) {
-      const first = groupsForType[0]
-      if (first) setSelectedGroupId(first.id)
-      return
-    }
-    if (groupsForType.length > 0 && !groupsForType.some((g) => g.id === selectedGroupId)) {
-      setSelectedGroupId(groupsForType[0].id)
-    }
-  }, [groupsForType, selectedGroupId])
-
-  useEffect(() => {
-    if (episodeList.length === 0) {
+    if (!mergedEpisodes.length) {
       if (selectedEpisodeNumber !== null) setSelectedEpisodeNumber(null)
       return
     }
     if (selectedEpisodeNumber === null) return
-    if (!episodeList.some((e) => e.number === selectedEpisodeNumber)) setSelectedEpisodeNumber(null)
-  }, [episodeList, selectedEpisodeNumber])
+    if (!mergedEpisodes.some((e) => e.number === selectedEpisodeNumber)) setSelectedEpisodeNumber(null)
+  }, [mergedEpisodes, selectedEpisodeNumber])
 
   useEffect(() => {
     if (!startWatchingNonce) return
@@ -217,13 +334,92 @@ export function AnimeStreamPlayer({
     if (nextSource) setSelectedSourceId(nextSource.id)
   }
 
+  const pickSourceForLabel = useCallback(
+    (label: string) => {
+    if (!selectedEpisodeNumber) return
+
+    const integrated = integratedSources.filter((s) => s.label === label)
+    const pickIntegrated = integrated.find((s) => s.is_default) || integrated[0]
+    if (pickIntegrated) {
+      setSelectedSourceId(pickIntegrated.id)
+      setSelectedServerLabel(label)
+      return
+    }
+
+    const typed = selectedType === "dubbed" ? dubSources : subSources
+    const inCurrentTeam = typed.filter((s) => s.label === label)
+    const pickCurrent = inCurrentTeam.find((s) => s.is_default) || inCurrentTeam[0]
+    if (pickCurrent) {
+      setSelectedSourceId(pickCurrent.id)
+      setSelectedServerLabel(label)
+      return
+    }
+
+    for (const g of availableVoiceGroups as any[]) {
+      const groupSources = sourcesFor(g.id, selectedEpisodeNumber).filter((s) => !s.is_integrated_player)
+      const typedGroup =
+        selectedType === "dubbed"
+          ? groupSources.filter((s) => s.audio === "dub")
+          : groupSources.filter((s) => s.audio === "sub")
+      const matches = typedGroup.filter((s) => s.label === label)
+      const pick = matches.find((s) => s.is_default) || matches[0]
+      if (pick) {
+        setSelectedVoiceGroupId(g.id)
+        setSelectedSourceId(pick.id)
+        setSelectedServerLabel(label)
+        return
+      }
+    }
+    },
+    [
+      availableVoiceGroups,
+      dubSources,
+      integratedSources,
+      selectedEpisodeNumber,
+      selectedType,
+      sourcesFor,
+      subSources,
+    ]
+  )
+
+  useEffect(() => {
+    if (!selectedServerLabel) return
+    pickSourceForLabel(selectedServerLabel)
+  }, [pickSourceForLabel, selectedServerLabel])
+
+  const visibleSources = useMemo(() => {
+    const list = [...integratedSources, ...typedSourcesAllTeams]
+    list.sort((a, b) => {
+      if (!!a.is_integrated_player !== !!b.is_integrated_player) return a.is_integrated_player ? -1 : 1
+      if (!!a.is_default !== !!b.is_default) return a.is_default ? -1 : 1
+      return a.id - b.id
+    })
+    const seen = new Set<string>()
+    const deduped: VideoSource[] = []
+    for (const s of list) {
+      const key = s.label || String(s.id)
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push(s)
+    }
+    return deduped
+  }, [integratedSources, typedSourcesAllTeams])
+
+  useEffect(() => {
+    if (!selectedEpisodeNumber) return
+    if (selectedServerLabel && visibleSources.some((s) => s.label === selectedServerLabel)) return
+    const first = visibleSources[0]
+    if (!first) return
+    setSelectedServerLabel(first.label)
+  }, [selectedEpisodeNumber, selectedServerLabel, visibleSources])
+
   return (
     <section className="py-6 px-4" ref={wrapperRef}>
       <div className="container mx-auto max-w-5xl">
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-border bg-background-secondary">
           {kind === "iframe" ? (
             <iframe
-              key={`${selectedType}:${selectedGroupId}:${selectedEpisodeNumber}:${selectedSourceId}:${iframeSrc}`}
+			  key={`${selectedType}:${selectedEpisodeNumber}:${selectedSourceId}:${iframeSrc}`}
               src={iframeSrc}
               className="absolute inset-0 w-full h-full"
               allow="autoplay; encrypted-media; picture-in-picture"
@@ -231,7 +427,7 @@ export function AnimeStreamPlayer({
             />
           ) : (
             <ArtVideoPlayer
-              key={`${selectedType}:${selectedGroupId}:${selectedEpisodeNumber}:${selectedSourceId}:${activeUrl}`}
+			  key={`${selectedType}:${selectedEpisodeNumber}:${selectedSourceId}:${activeUrl}`}
               ref={artRef}
               url={activeUrl}
               initialTime={resumeAt}
@@ -242,15 +438,15 @@ export function AnimeStreamPlayer({
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            {sources.length > 0 && (
+            {visibleSources.length > 0 && (
               <div className="flex items-center gap-2 rounded-xl border border-border bg-background-secondary p-1">
-                {sources.map((s) => (
+                {visibleSources.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => switchTo(s)}
+                    onClick={() => setSelectedServerLabel(s.label)}
                     className={cn(
                       "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-                      selectedSource?.id === s.id
+                      selectedServerLabel === s.label
                         ? "bg-primary text-primary-foreground"
                         : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
                     )}
@@ -270,71 +466,79 @@ export function AnimeStreamPlayer({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4">
-          {!hideLanguageSelector && (dubbedGroups.length > 0 || subbedGroups.length > 0) ? (
-            <>
-              {dubbedGroups.length > 0 ? (
-                <div>
-                  <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Озвучка" : "Dubbed"}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {dubbedGroups.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          setSelectedType("dubbed")
-                          setSelectedGroupId(g.id)
-                          setSelectedEpisodeNumber(null)
-                          setSelectedSourceId(null)
-                        }}
-                        className={cn(
-                          "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
-                          selectedType === "dubbed" && selectedGroupId === g.id
-                            ? "bg-primary/10 border-primary/40 text-primary"
-                            : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-                        )}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {subbedGroups.length > 0 ? (
-                <div>
-                  <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Субтитры" : "Subbed"}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {subbedGroups.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          setSelectedType("subbed")
-                          setSelectedGroupId(g.id)
-                          setSelectedEpisodeNumber(null)
-                          setSelectedSourceId(null)
-                        }}
-                        className={cn(
-                          "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
-                          selectedType === "subbed" && selectedGroupId === g.id
-                            ? "bg-primary/10 border-primary/40 text-primary"
-                            : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-                        )}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </>
-          ) : !hideLanguageSelector ? (
-            <div className="text-sm text-foreground-subtle">No episodes yet. Trailer is available.</div>
+          {!hideLanguageSelector && (hasAnyDub || hasAnySub) ? (
+            <div>
+              <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Язык" : "Language"}</div>
+              <div className="flex flex-wrap gap-2">
+                {hasAnyDub ? (
+                  <button
+                    onClick={() => {
+                      setSelectedType("dubbed")
+                      setSelectedSourceId(null)
+                      setSelectedVoiceGroupId(null)
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
+                      selectedType === "dubbed"
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                    )}
+                  >
+                    {locale === "ru" ? "Озвучка" : "Dubbed"}
+                  </button>
+                ) : null}
+                {hasAnySub ? (
+                  <button
+                    onClick={() => {
+                      setSelectedType("subbed")
+                      setSelectedSourceId(null)
+                      setSelectedVoiceGroupId(null)
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
+                      selectedType === "subbed"
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                    )}
+                  >
+                    {locale === "ru" ? "Субтитры" : "Subbed"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
 
-          {selectedGroupId && episodeList.length > 0 ? (
+          {!hideLanguageSelector && availableVoiceGroups.length > 0 ? (
+            <div>
+              <div className="text-sm font-semibold text-foreground mb-2">
+					{locale === "ru" ? (selectedType === "dubbed" ? "Озвучка" : "Субтитры") : "Voice group"}
+				</div>
+              <div className="flex flex-wrap gap-2">
+                {availableVoiceGroups.map((g: any) => (
+                  <button
+                    key={g.id}
+                    onClick={() => {
+                      setSelectedVoiceGroupId(g.id)
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
+                      selectedVoiceGroupId === g.id
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : "bg-background-secondary border-border text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                    )}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {mergedEpisodes.length > 0 ? (
             <div>
               <div className="text-sm font-semibold text-foreground mb-2">{locale === "ru" ? "Серии" : "Episodes"}</div>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                {episodeList.map((ep) => (
+                {mergedEpisodes.map((ep) => (
                   <button
                     key={ep.id}
                     onClick={() => {
@@ -357,6 +561,8 @@ export function AnimeStreamPlayer({
 					<AnimeRating animeId={anime.id} />
 				</div>
             </div>
+          ) : !hideLanguageSelector ? (
+            <div className="text-sm text-foreground-subtle">No episodes yet. Trailer is available.</div>
           ) : null}
         </div>
       </div>

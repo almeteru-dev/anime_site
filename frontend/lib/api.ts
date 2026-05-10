@@ -77,11 +77,15 @@ export interface FAQItem {
 export interface VideoSource {
   id: number
   episode_id: number
+	voice_group_id?: number | null
+  voice_group?: VoiceGroup | null
   label_id?: number | null
   label: string
   video_label?: VideoLabel | null
   type: "iframe" | "direct"
   url: string
+  audio?: "dub" | "sub" | null
+  is_integrated_player?: boolean
   is_default: boolean
   is_active: boolean
   sort_order: number
@@ -91,11 +95,10 @@ export interface VideoSource {
 export interface Episode {
   id: number
   anime_id: number
-  group_id: number
   number: number
+	kind?: string
   duration: number
   created_at: string
-  voice_group: VoiceGroup
   video_sources?: VideoSource[]
 }
 
@@ -1138,14 +1141,31 @@ export interface AdminMeta {
 }
 
 export interface AdminUpsertEpisodeInput {
-  group_id: number
   number: number
   duration?: number
+	kind?: string
+}
+
+export type AdminCreateEpisodeInitialSource = {
+  label_id?: number | null
+  label?: string
+  type: "iframe" | "direct"
+  url: string
+	voice_group_id?: number | null
+	is_integrated_player?: boolean
+  is_default?: boolean
+  is_active?: boolean
+  sort_order?: number
+}
+
+export type AdminCreateEpisodeRequest = {
+  episode: AdminUpsertEpisodeInput
+  initial_source?: AdminCreateEpisodeInitialSource
 }
 
 export async function adminCreateEpisode(params: {
   animeId: string
-  input: AdminUpsertEpisodeInput
+  input: AdminUpsertEpisodeInput | AdminCreateEpisodeRequest
 }): Promise<Episode> {
   const res = await fetch(`${API_URL}/admin/animes/${params.animeId}/episodes`, {
     method: "POST",
@@ -1220,6 +1240,8 @@ export interface AdminUpsertVideoSourceInput {
   label?: string
   type: "iframe" | "direct"
   url: string
+	voice_group_id?: number | null
+	is_integrated_player?: boolean
   is_default?: boolean
   is_active?: boolean
   sort_order?: number

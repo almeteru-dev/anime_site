@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -12,56 +13,6 @@ import (
 	"github.com/seva/animevista/internal/models"
 	"gorm.io/gorm"
 )
-
-func isMissingRelationErr(err error, relation string) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), "relation \""+relation+"\" does not exist")
-}
-
-func isMissingColumnErr(err error, column string) bool {
-	if err == nil {
-		return false
-	}
-	s := err.Error()
-	return strings.Contains(s, "column \""+column+"\" does not exist") ||
-		strings.Contains(s, "column \""+column+"\" of relation")
-}
-
-func hasEpisodesColumn(tx *gorm.DB, column string) bool {
-	var count int64
-	err := tx.Raw(
-		`SELECT COUNT(1)
-		 FROM information_schema.columns
-		 WHERE table_schema = 'public' AND table_name = 'episodes' AND column_name = ?`,
-		column,
-	).Scan(&count).Error
-	return err == nil && count > 0
-}
-
-func episodesHasLegacyColumns(tx *gorm.DB) bool {
-	return hasEpisodesColumn(tx, "server_number") && hasEpisodesColumn(tx, "video_url")
-}
-
-func createEpisodeCompat(tx *gorm.DB, ep *models.Episode) error {
-	if episodesHasLegacyColumns(tx) {
-		var id int64
-		err := tx.Raw(
-			"INSERT INTO episodes (anime_id, group_id, number, duration, server_number, video_url) VALUES (?, ?, ?, ?, 1, '') RETURNING id",
-			ep.AnimeID,
-			ep.GroupID,
-			ep.Number,
-			ep.Duration,
-		).Scan(&id).Error
-		if err != nil {
-			return err
-		}
-		ep.ID = id
-		return nil
-	}
-	return tx.Create(ep).Error
-}
 
 func getOrCreateVideoLabelByName(tx *gorm.DB, name string) (*models.VideoLabel, error) {
 	trimmed := strings.TrimSpace(name)
@@ -89,23 +40,9 @@ func GetAnimeEpisodes(c *gin.Context) {
 		animeID = anime.ID
 	}
 
-	groupID := int64(0)
-	if v := strings.TrimSpace(c.Query("group_id")); v != "" {
-		n, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group_id"})
-			return
-		}
-		groupID = n
-	}
-
-	q := app.DB.Where("anime_id = ?", animeID).Preload("VoiceGroup").Preload("VideoSources", func(db *gorm.DB) *gorm.DB {
+	q := app.DB.Where("anime_id = ?", animeID).Preload("VideoSources", func(db *gorm.DB) *gorm.DB {
 		return db.Order("sort_order asc")
-	}).Preload("VideoSources.VideoLabel").Order("number asc")
-
-	if groupID != 0 {
-		q = q.Where("group_id = ?", groupID)
-	}
+	}).Preload("VideoSources.VideoLabel").Preload("VideoSources.VoiceGroup").Order("number asc")
 
 	var episodes []models.Episode
 	if err := q.Find(&episodes).Error; err != nil {
@@ -117,9 +54,26 @@ func GetAnimeEpisodes(c *gin.Context) {
 }
 
 type AdminUpsertEpisodeInput struct {
-	GroupID  int64 `json:"group_id" binding:"required"`
 	Number   int   `json:"number" binding:"required"`
 	Duration int   `json:"duration"`
+	Kind     string `json:"kind"`
+}
+
+type AdminCreateEpisodeSourceInput struct {
+	LabelID   *int64                 `json:"label_id"`
+	Label     string                 `json:"label"`
+	Type      models.VideoSourceType `json:"type"`
+	URL       string                 `json:"url"`
+	VoiceGroupID *int64              `json:"voice_group_id"`
+	IsIntegratedPlayer bool          `json:"is_integrated_player"`
+	IsDefault bool                   `json:"is_default"`
+	IsActive  bool                   `json:"is_active"`
+	SortOrder int                    `json:"sort_order"`
+}
+
+type AdminCreateEpisodeRequest struct {
+	Episode       AdminUpsertEpisodeInput        `json:"episode"`
+	InitialSource *AdminCreateEpisodeSourceInput `json:"initial_source"`
 }
 
 func AdminCreateEpisode(c *gin.Context) {
@@ -130,10 +84,19 @@ func AdminCreateEpisode(c *gin.Context) {
 		return
 	}
 
+	body, _ := c.GetRawData()
+
 	var input AdminUpsertEpisodeInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	var initial *AdminCreateEpisodeSourceInput
+	var wrapped AdminCreateEpisodeRequest
+	if err := json.Unmarshal(body, &wrapped); err == nil && wrapped.Episode.Number != 0 {
+		input = wrapped.Episode
+		initial = wrapped.InitialSource
+	} else {
+		if err := json.Unmarshal(body, &input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid json"})
+			return
+		}
 	}
 
 	var anime models.Anime
@@ -151,34 +114,111 @@ func AdminCreateEpisode(c *gin.Context) {
 		return
 	}
 
-	var group models.VoiceGroup
-	if err := app.DB.First(&group, input.GroupID).Error; err != nil {
-		log.Printf("AdminCreateEpisode: unknown voice group (anime_id=%d group_id=%d): %v", animeID, input.GroupID, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown voice group"})
-		return
+	kind := strings.ToLower(strings.TrimSpace(input.Kind))
+	if kind == "" {
+		kind = "tv"
 	}
 
 	ep := models.Episode{
 		AnimeID:  animeID,
-		GroupID:  input.GroupID,
 		Number:   input.Number,
+		Kind:     kind,
 		Duration: input.Duration,
 	}
 
-	err = app.DB.Transaction(func(tx *gorm.DB) error {
-		if err := createEpisodeCompat(tx, &ep); err != nil {
+		err = app.DB.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&ep).Error; err != nil {
 			return err
 		}
+
+		if initial == nil {
+			return nil
+		}
+
+		src := models.VideoSource{
+			EpisodeID: ep.ID,
+			Label:     strings.TrimSpace(initial.Label),
+			Type:      initial.Type,
+			URL:       initial.URL,
+			IsIntegratedPlayer: initial.IsIntegratedPlayer,
+			IsDefault:          initial.IsDefault,
+			IsActive:           initial.IsActive,
+			SortOrder:          initial.SortOrder,
+		}
+
+		if src.Type != models.VideoSourceTypeIframe && src.Type != models.VideoSourceTypeDirect {
+			return errors.New("invalid source type")
+		}
+		if strings.TrimSpace(src.URL) == "" {
+			return errors.New("url is required")
+		}
+
+		var resolvedLabel *models.VideoLabel
+		if initial.LabelID != nil {
+			var vl models.VideoLabel
+			if err := tx.First(&vl, *initial.LabelID).Error; err != nil {
+				return errors.New("unknown video label")
+			}
+			resolvedLabel = &vl
+		}
+
+		if resolvedLabel != nil {
+			src.LabelID = &resolvedLabel.ID
+			src.Label = resolvedLabel.Name
+		} else if strings.TrimSpace(initial.Label) != "" {
+			vl, err := getOrCreateVideoLabelByName(tx, initial.Label)
+			if err != nil {
+				return err
+			}
+			src.LabelID = &vl.ID
+			src.Label = vl.Name
+		} else {
+			return errors.New("label_id or label is required")
+		}
+
+		if src.IsIntegratedPlayer {
+			src.Audio = nil
+			src.VoiceGroupID = nil
+		} else {
+			if initial.VoiceGroupID == nil {
+				return errors.New("voice_group_id is required when not integrated")
+			}
+			var vg models.VoiceGroup
+			if err := tx.First(&vg, *initial.VoiceGroupID).Error; err != nil {
+				return errors.New("unknown voice group")
+			}
+			src.VoiceGroupID = &vg.ID
+			v := strings.ToLower(strings.TrimSpace(string(vg.Type)))
+			if v != "dub" && v != "sub" {
+				return errors.New("invalid voice group type")
+			}
+			src.Audio = &v
+		}
+
+		if !src.IsActive {
+			src.IsDefault = false
+		}
+
+		if src.IsDefault {
+			if err := tx.Model(&models.VideoSource{}).Where("episode_id = ?", ep.ID).Update("is_default", false).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Create(&src).Error; err != nil {
+			return err
+		}
+
 		return nil
 	})
 
 	if err != nil {
-		log.Printf("AdminCreateEpisode: create failed (anime_id=%d group_id=%d number=%d): %v", animeID, input.GroupID, input.Number, err)
+		log.Printf("AdminCreateEpisode: create failed (anime_id=%d number=%d): %v", animeID, input.Number, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": mapEpisodeDBError(err)})
 		return
 	}
 
-	_ = app.DB.Preload("VoiceGroup").Preload("VideoSources").First(&ep, ep.ID).Error
+	_ = app.DB.Preload("VideoSources").Preload("VideoSources.VideoLabel").Preload("VideoSources.VoiceGroup").First(&ep, ep.ID).Error
 	c.JSON(http.StatusCreated, ep)
 }
 
@@ -210,24 +250,24 @@ func AdminUpdateEpisode(c *gin.Context) {
 		}
 	}
 
-	var group models.VoiceGroup
-	if err := app.DB.First(&group, input.GroupID).Error; err != nil {
-		log.Printf("AdminUpdateEpisode: unknown voice group (episode_id=%s group_id=%d): %v", epID, input.GroupID, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown voice group"})
-		return
-	}
-
-	ep.GroupID = input.GroupID
 	ep.Number = input.Number
 	ep.Duration = input.Duration
+	k := strings.ToLower(strings.TrimSpace(input.Kind))
+	if k == "" {
+		k = ep.Kind
+		if k == "" {
+			k = "tv"
+		}
+	}
+	ep.Kind = k
 
 	if err := app.DB.Save(&ep).Error; err != nil {
-		log.Printf("AdminUpdateEpisode: save failed (episode_id=%s anime_id=%d group_id=%d number=%d): %v", epID, ep.AnimeID, input.GroupID, input.Number, err)
+	log.Printf("AdminUpdateEpisode: save failed (episode_id=%s anime_id=%d number=%d): %v", epID, ep.AnimeID, input.Number, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": mapEpisodeDBError(err)})
 		return
 	}
 
-	_ = app.DB.Preload("VoiceGroup").Preload("VideoSources").First(&ep, ep.ID).Error
+	_ = app.DB.Preload("VideoSources").Preload("VideoSources.VideoLabel").Preload("VideoSources.VoiceGroup").First(&ep, ep.ID).Error
 	c.JSON(http.StatusOK, ep)
 }
 
@@ -254,6 +294,8 @@ type AdminUpsertVideoSourceInput struct {
 	Label     string                 `json:"label"`
 	Type      models.VideoSourceType `json:"type" binding:"required"`
 	URL       string                 `json:"url" binding:"required"`
+	VoiceGroupID *int64              `json:"voice_group_id"`
+	IsIntegratedPlayer bool          `json:"is_integrated_player"`
 	IsDefault bool                   `json:"is_default"`
 	IsActive  bool                   `json:"is_active"`
 	SortOrder int                    `json:"sort_order"`
@@ -278,9 +320,28 @@ func AdminCreateVideoSource(c *gin.Context) {
 		Label:     strings.TrimSpace(input.Label),
 		Type:      input.Type,
 		URL:       input.URL,
+		IsIntegratedPlayer: input.IsIntegratedPlayer,
 		IsDefault: input.IsDefault,
 		IsActive:  input.IsActive,
 		SortOrder: input.SortOrder,
+	}
+
+	if source.IsIntegratedPlayer {
+		source.Audio = nil
+		source.VoiceGroupID = nil
+	} else {
+		if input.VoiceGroupID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "voice_group_id is required when not integrated"})
+			return
+		}
+		var vg models.VoiceGroup
+		if err := app.DB.First(&vg, *input.VoiceGroupID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown voice group"})
+			return
+		}
+		source.VoiceGroupID = &vg.ID
+		v := strings.ToLower(strings.TrimSpace(string(vg.Type)))
+		source.Audio = &v
 	}
 
 	if input.LabelID == nil && strings.TrimSpace(input.Label) == "" {
@@ -318,7 +379,7 @@ func AdminCreateVideoSource(c *gin.Context) {
 		return
 	}
 
-	_ = app.DB.Preload("VideoLabel").First(&source, source.ID).Error
+	_ = app.DB.Preload("VideoLabel").Preload("VoiceGroup").First(&source, source.ID).Error
 	c.JSON(http.StatusCreated, source)
 }
 
@@ -362,6 +423,24 @@ func AdminUpdateVideoSource(c *gin.Context) {
 	source.Label = resolvedLabel.Name
 	source.Type = input.Type
 	source.URL = input.URL
+	source.IsIntegratedPlayer = input.IsIntegratedPlayer
+	if source.IsIntegratedPlayer {
+		source.Audio = nil
+		source.VoiceGroupID = nil
+	} else {
+		if input.VoiceGroupID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "voice_group_id is required when not integrated"})
+			return
+		}
+		var vg models.VoiceGroup
+		if err := app.DB.First(&vg, *input.VoiceGroupID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown voice group"})
+			return
+		}
+		source.VoiceGroupID = &vg.ID
+		v := strings.ToLower(strings.TrimSpace(string(vg.Type)))
+		source.Audio = &v
+	}
 	source.IsDefault = input.IsDefault
 	source.IsActive = input.IsActive
 	source.SortOrder = input.SortOrder
