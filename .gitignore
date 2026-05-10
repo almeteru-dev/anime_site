@@ -38,6 +38,7 @@ pgdata/
 data/
 *.log
 *.sql.gz
+backup/
 
 # === Environment & Secrets ===
 # Ignore all .env files for security

@@ -1,8 +1,10 @@
 FRONTEND_DIR=./frontend
 BACKEND_DIR=./backend
 COMPOSE=docker compose
+BACKUP_DIR=./backup
+DB_DEFAULT=animevista
 
-.PHONY: install up up80 down build logs ps restart clean docker-check setup-env port80-free
+.PHONY: install up up80 down build logs ps restart clean docker-check setup-env port80-free backup-db restore-db
 
 .PHONY: docker-ubuntu docker-ubintu
 
@@ -117,3 +119,41 @@ port80-free:
 	@sudo systemctl stop nginx >/dev/null 2>&1 || true
 	@sudo service nginx stop >/dev/null 2>&1 || true
 	@echo "Stopped apache2/nginx if they were running. Port 80 should be free now."
+
+backup-db:
+	@set -e; \
+	DB="$$(echo "$(filter-out $@,$(MAKECMDGOALS))" | xargs)"; \
+	if [ -z "$$DB" ]; then \
+		echo "Usage: make backup-db <db_name>"; \
+		exit 1; \
+	fi; \
+	SAFE_DB=$$(echo "$$DB" | tr '/\\' '__'); \
+	TS=$$(date +%Y-%m-%d_%H-%M-%S); \
+	DIR="$(BACKUP_DIR)/$$SAFE_DB/$$TS"; \
+	mkdir -p "$$DIR"; \
+	echo "Writing backup of $$DB to $$DIR"; \
+	$(COMPOSE) exec -T db pg_dump -U postgres -d "$$DB" -Fc > "$$DIR/$$SAFE_DB.dump"; \
+	$(COMPOSE) exec -T db pg_dump -U postgres -d "$$DB" --no-owner --no-privileges > "$$DIR/$$SAFE_DB.sql"; \
+	echo "Done: $$DIR/$$SAFE_DB.dump and $$DIR/$$SAFE_DB.sql"
+
+restore-db:
+	@set -e; \
+	DB="$$(echo "$(filter-out $@,$(MAKECMDGOALS))" | xargs)"; \
+	if [ -z "$$DB" ]; then DB="$(DB_DEFAULT)"; fi; \
+	if [ -z "$(BACKUP)" ]; then \
+		echo "Usage: make restore-db [db_name] BACKUP=$(BACKUP_DIR)/db_name/YYYY-MM-DD_HH-MM-SS"; \
+		exit 1; \
+	fi; \
+	DUMP_FILE=$$(ls -1 "$(BACKUP)"/*.dump 2>/dev/null | head -n 1 || true); \
+	if [ -z "$$DUMP_FILE" ]; then \
+		echo "Missing file: $(BACKUP)/*.dump"; \
+		exit 1; \
+	fi; \
+	echo "Restoring into $$DB from $$DUMP_FILE"; \
+	$(COMPOSE) exec -T db pg_restore -U postgres -d "$$DB" --clean --if-exists < "$$DUMP_FILE"; \
+	echo "Restore complete"
+
+ifneq (,$(filter backup-db restore-db,$(MAKECMDGOALS)))
+$(filter-out backup-db restore-db,$(MAKECMDGOALS)):
+	@:
+endif

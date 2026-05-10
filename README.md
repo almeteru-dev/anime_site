@@ -295,3 +295,42 @@ make restart
 make build
 make clean
 ```
+
+## Backup базы (в самом конце)
+
+Бэкапы хранятся в `backup/<db_name>/<backup_date>/` в корне репозитория. Это удобно, если в будущем появится несколько баз.
+
+Сделать бэкап:
+
+```bash
+make backup-db <db_name>
+```
+
+Пример:
+
+```bash
+make backup-db animevista
+```
+
+Результат:
+
+- `backup/animevista/YYYY-MM-DD_HH-MM-SS/animevista.dump` (custom format, для восстановления)
+- `backup/animevista/YYYY-MM-DD_HH-MM-SS/animevista.sql` (plain SQL, удобно посмотреть)
+
+Восстановить в Postgres внутри Docker:
+
+```bash
+make restore-db <db_name> BACKUP=backup/<db_name>/YYYY-MM-DD_HH-MM-SS
+```
+
+Пример:
+
+```bash
+make restore-db animevista BACKUP=backup/animevista/2026-05-10_12-34-56
+```
+
+Переезд на другой VPS:
+
+- Скопируй нужную папку `backup/<db_name>/YYYY-MM-DD_HH-MM-SS` на новый сервер.
+- Подними проект `make up` (чтобы Postgres контейнер был запущен).
+- Выполни `make restore-db <db_name> BACKUP=...`.
