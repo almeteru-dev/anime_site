@@ -50,9 +50,17 @@ NEXT_PUBLIC_SITE_URL=https://your-domain
 
 ```bash
 make up  # Запуск на порту 8081 (рекомендуется)
-# или
-make up80 # Запуск напрямую на 80 порту (если хост пустой)
+```
 
+Важно:
+
+- Для VPS + домена + HTTPS (Cloudflare / host nginx/caddy) используй `make up` и проксируй на `http://127.0.0.1:8081`.
+- `make up80` публикует Docker-nginx прямо на `80:80` и конфликтует с host nginx/caddy на `80/443`.
+
+Если тебе нужен вариант без host proxy (обычно для локалки/простого HTTP), и порт 80 свободен:
+
+```bash
+make up80
 ```
 
 ---
@@ -146,6 +154,37 @@ make dev
 
 ## 💾 5. Обслуживание и Бэкапы
 
+### Команды Docker (чтобы не перепутать)
+
+Запуск:
+
+- `make up` — поднять проект в фоне (порт `8081`).
+- `make up80` — поднять проект на порту `80` (только если не используешь host nginx/caddy и порт свободен).
+
+Остановка:
+
+- `make down` — остановить и удалить контейнеры/сеть (данные Postgres сохраняются в volume).
+- `docker compose stop` — просто остановить контейнеры (можно потом `docker compose start`).
+
+Остановка + удаление данных (осторожно):
+
+- `make clean` — остановить и удалить всё, включая volume Postgres (данные БД пропадут).
+
+### Автоперезапуск после перезагрузки VPS
+
+В проекте уже включено `restart: unless-stopped` для сервисов в `docker-compose.yml`, поэтому после рестарта Docker контейнеры поднимутся автоматически.
+
+Чтобы Docker сам стартовал после ребута:
+
+```bash
+sudo systemctl enable --now docker
+```
+
+Если контейнеры не должны подниматься автоматически, останови их вручную:
+
+- `docker compose stop` (не поднимутся, пока не сделаешь `docker compose start`)
+- `make down` (контейнеры будут удалены)
+
 ### Полезные команды
 
 * `make ps` — статус контейнеров.
@@ -166,8 +205,5 @@ make backup-db lycoris_db
 * **Восстановить из бэкапа**:
 
 ```bash
-  make restore-db lycoris_db BACKUP=backup/lycoris_db/YYYY-MM-DD_HH-MM-SS
-
-```
-
+make restore-db lycoris_db BACKUP=backup/lycoris_db/YYYY-MM-DD_HH-MM-SS
 ```
