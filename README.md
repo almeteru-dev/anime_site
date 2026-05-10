@@ -1,131 +1,99 @@
-# LycorisLib
+# LycorisLib (Docker)
 
-LycorisLib is a full-stack web app with a Go (Gin) backend and a Next.js frontend.
+Полный запуск проекта через Docker Compose: отдельные контейнеры для **PostgreSQL**, **Go backend**, **Next.js frontend** и **nginx**.
 
-## Important Note
+## Нужно ли ставить Docker самому?
 
-You must create the PostgreSQL database specified by `DB_NAME` (for example, `animevista`) in your DBMS before starting the backend. The application runs migrations automatically, but it will not create the database itself.
+Да. На машине должны быть установлены:
 
-## Prerequisites
+- Docker Engine
+- Docker Compose (plugin `docker compose`)
 
-- Go (1.21+ recommended)
-- Node.js (18+ recommended)
-- npm
-- make
-- PostgreSQL
-
-## Project Structure
-
-- `backend/` — Go API server
-- `frontend/` — Next.js app
-
-## Quick Start (Local)
-
-### 1) Configure the backend environment
-
-The backend loads environment variables from `backend/.env` (if present).
-
-1. Copy the example file:
+На Ubuntu можно поставить одной командой:
 
 ```bash
-cp backend/.env.example backend/.env
+make docker-ubuntu
 ```
 
-2. Edit `backend/.env` as needed (Postgres credentials, `JWT_SECRET`, etc.).
+## Быстрый старт (пошагово)
 
-If you prefer, `make install` will create `backend/.env` automatically (it copies from `backend/.env.example` if the file does not exist).
-
-### 2) Create the PostgreSQL database
-
-Create the database that matches `DB_NAME` in `backend/.env` (default example is `animevista`).
-
-```bash
-createdb animevista
-```
-
-### 3) Install dependencies
-
-This downloads Go modules, creates `backend/vendor/`, and installs frontend packages.
+### 1) Подготовить env для Docker
 
 ```bash
 make install
 ```
 
-### 4) Run in development (backend + frontend)
+Команда проверит наличие Docker и создаст `backend/.env.docker` из примера, если файла ещё нет.
+
+### 2) Настроить `backend/.env.docker`
+
+Открой `backend/.env.docker` и обязательно поменяй:
+
+- `JWT_SECRET`
+- при необходимости `POSTGRES_PASSWORD` (см. `docker-compose.yml`) и `DB_PASSWORD`
+
+Минимальный ориентир по переменным:
+
+- `DB_HOST=db` (в Docker это имя сервиса Postgres)
+- `DB_PASSWORD` должен совпадать с `POSTGRES_PASSWORD` в `docker-compose.yml`
+- `DB_RESET=false` (не включать, иначе можешь потерять данные)
+
+Про URL'ы:
+
+- Если запускаешь по умолчанию (`make up`, порт **8081**), то:
+  - `FRONTEND_URL=http://localhost:8081`
+  - `BACKEND_URL=http://localhost:8081`
+- Если запускаешь на порту 80 (`make up80`), то:
+  - `FRONTEND_URL=http://localhost`
+  - `BACKEND_URL=http://localhost`
+
+### 3) Запуск
 
 ```bash
-make dev
+make up
 ```
 
-Or run them separately:
+После запуска:
+
+- Сайт: `http://localhost:8081/`
+- API: `http://localhost:8081/api/`
+
+Если хочешь именно порт 80 (без `:8081`):
 
 ```bash
-make dev-back
-make dev-front
+make port80-free
+make up80
 ```
 
-Default URLs:
-
-- Backend: `http://localhost:8080` (API under `/api`)
-- Frontend: `http://localhost:3000`
-
-The frontend uses `NEXT_PUBLIC_API_URL` if set; otherwise it defaults to `http://localhost:8080/api`.
-
-## Production Build
-
-Builds the Go binary using vendored modules (`-mod=vendor`) and builds the Next.js app.
+### 4) Логи / остановка
 
 ```bash
+make logs
+make down
+```
+
+## nginx конфиг
+
+Docker nginx конфиг лежит в `nginx/nginx.conf` и уже проксирует:
+
+- `/api/` → `backend:8080`
+- `/` → `frontend:3000`
+
+Тебе не нужно отдельно настраивать системный nginx на хосте — nginx работает внутри Docker.
+Конфликт с Apache/nginx на хосте возможен только из-за порта 80 (см. `make up80`).
+
+## Проверка после запуска
+
+- Открой сайт: `http://localhost:8081/`
+- Проверь API: `http://localhost:8081/api/ping`
+
+Если используешь порт 80 (через `make up80`), убери `:8081`.
+
+## Полезные команды
+
+```bash
+make ps
+make restart
 make build
-```
-
-Outputs:
-
-- Backend binary: `./lycoris_server`
-- Frontend build artifacts: `frontend/.next/`
-
-## Clean
-
-Removes build artifacts and the backend binary.
-
-```bash
-make clean
-```
-
-
-## Production
-
-To run the application in production mode, you need to build the project first and then start the optimized services. This mode is faster and hides development tools (like the Next.js Dev Overlay).
-
-### 1) Build the project
-This command builds the Go binary using vendored modules (`-mod=vendor`) and creates an optimized Next.js production build.
-
-```bash
-make build
-```
-
-Outputs:
-- Backend binary: `./lycoris_server`
-- Frontend build artifacts: `frontend/.next/`
-
-### 2) Run in production
-After a successful build, you can start both services simultaneously or separately.
-
-**Run both (Backend + Frontend):**
-```bash
-make prod
-```
-
-**Run separately:**
-```bash
-make server   # Starts the compiled Go binary
-make client   # Starts the Next.js production server (npm run start)
-```
-
-## Clean
-
-Removes build artifacts and the backend binary.
-
-```bash
 make clean
 ```

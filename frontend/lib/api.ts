@@ -184,6 +184,8 @@ function resolveSiteOrigin(): string {
 
 const API_URL = (() => {
 	if (typeof window !== "undefined") return "/api"
+	const internal = (process.env.INTERNAL_API_URL || "").trim()
+	if (internal) return internal.replace(/\/$/, "")
 	return `${resolveSiteOrigin()}/api`
 })()
 

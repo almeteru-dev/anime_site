@@ -1,0 +1,9 @@
+services:
+  frontend:
+    environment:
+      NEXT_PUBLIC_SITE_URL: http://localhost
+
+  nginx:
+    ports:
+      - "80:80"
+

@@ -1,20 +1,61 @@
-BINARY_NAME=lycoris_server
 FRONTEND_DIR=./frontend
 BACKEND_DIR=./backend
+COMPOSE=docker compose
 
-# Добавил новые команды в .PHONY
-.PHONY: all install dev dev-back dev-front dev-all build build-back build-front client-build client server prod clean setup-env nginx
+.PHONY: install up up80 down build logs ps restart clean docker-check setup-env port80-free
+
+.PHONY: docker-ubuntu docker-ubintu
 
 all: install build
 
-install: setup-env
-	cd $(BACKEND_DIR) && go mod download && go mod tidy && go mod vendor
-	cd $(FRONTEND_DIR) && npm install
+install: docker-check setup-env
+
+docker-check:
+	@command -v docker >/dev/null 2>&1 || (echo "Docker is not installed. Install Docker Engine + Docker Compose first." && exit 1)
+	@docker compose version >/dev/null 2>&1 || (echo "Docker Compose plugin is missing. Install docker compose plugin." && exit 1)
+
+docker-ubuntu:
+	@command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1 && (echo "Docker Engine + Docker Compose already installed." && exit 0) || true
+	sudo apt-get update
+	sudo apt-get install -y ca-certificates curl gnupg
+	sudo install -m 0755 -d /etc/apt/keyrings
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	sudo chmod a+r /etc/apt/keyrings/docker.gpg
+	echo "deb [arch=$$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $$(. /etc/os-release && echo $$VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+	sudo apt-get update
+	sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+	sudo systemctl enable --now docker
+	sudo usermod -aG docker $$USER || true
+	@echo "Docker installed. Re-login (or run: newgrp docker) to use docker without sudo."
+
+docker-ubintu: docker-ubuntu
 
 setup-env:
-	@if [ ! -f $(BACKEND_DIR)/.env ]; then \
-		cp $(BACKEND_DIR)/.env.example $(BACKEND_DIR)/.env; \
+	@if [ ! -f $(BACKEND_DIR)/.env.docker ]; then \
+		cp $(BACKEND_DIR)/.env.docker.example $(BACKEND_DIR)/.env.docker; \
+		echo "Created $(BACKEND_DIR)/.env.docker from example."; \
 	fi
+
+up:
+	$(COMPOSE) up -d --build
+
+up80:
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.port80.yml up -d --build
+
+down:
+	$(COMPOSE) down
+
+build:
+	$(COMPOSE) build
+
+restart:
+	$(COMPOSE) restart
+
+logs:
+	$(COMPOSE) logs -f --tail=200
+
+ps:
+	$(COMPOSE) ps
 
 # --- DEVELOPMENT (Режим разработки) ---
 dev-back:
@@ -67,6 +108,11 @@ prod: build
 
 # --- CLEAN ---
 clean:
-	rm -f $(BINARY_NAME)
-	rm -rf $(FRONTEND_DIR)/.next
-	rm -rf $(FRONTEND_DIR)/out
+	$(COMPOSE) down -v
+
+port80-free:
+	@sudo systemctl stop apache2 >/dev/null 2>&1 || true
+	@sudo service apache2 stop >/dev/null 2>&1 || true
+	@sudo systemctl stop nginx >/dev/null 2>&1 || true
+	@sudo service nginx stop >/dev/null 2>&1 || true
+	@echo "Stopped apache2/nginx if they were running. Port 80 should be free now."
