@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS build
+FROM golang:1.24-alpine AS build
 
 WORKDIR /src
 
@@ -26,4 +26,3 @@ ENV PORT=8080
 EXPOSE 8080
 
 CMD ["/app/lycoris_server"]
-

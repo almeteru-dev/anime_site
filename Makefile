@@ -26,7 +26,8 @@ docker-ubuntu:
 	sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 	sudo systemctl enable --now docker
 	sudo usermod -aG docker $$USER || true
-	@echo "Docker installed. Re-login (or run: newgrp docker) to use docker without sudo."
+	@echo "Docker installed. IMPORTANT: group changes do not apply to the current terminal."
+	@echo "Re-login, or run: newgrp docker (then re-run make up)."
 
 docker-ubintu: docker-ubuntu
 
