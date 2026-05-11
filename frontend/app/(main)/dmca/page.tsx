@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: legalDocuments.dmca.description,
 }
 
+export const dynamic = "force-dynamic"
+
 export default function DmcaPage() {
   return (
     <LegalDocumentPage
@@ -15,4 +17,3 @@ export default function DmcaPage() {
     />
   )
 }
-

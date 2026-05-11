@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: legalDocuments.cookies.description,
 }
 
+export const dynamic = "force-dynamic"
+
 export default function CookiesPage() {
   return (
     <LegalDocumentPage
@@ -15,4 +17,3 @@ export default function CookiesPage() {
     />
   )
 }
-

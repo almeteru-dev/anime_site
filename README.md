@@ -106,6 +106,12 @@ server {
     }
 }
 
+server {
+    listen 80;
+    server_name lycorislib.moe;
+    return 301 https://$host$request_uri;
+}
+
 ```
 
 #### Шаг 3: Активация сайта
@@ -153,6 +159,33 @@ make dev
 ---
 
 ## 💾 5. Обслуживание и Бэкапы
+
+### Юридические страницы (Privacy/Terms/Cookies/DMCA)
+
+Эти страницы берут текст из `.docx` файлов в папке `docs/` в корне репозитория.
+
+Что редактировать:
+
+- [docs/COOKIE POLICY.docx](file:///home/seva/Program/anime_site/docs/COOKIE%20POLICY.docx)
+- [docs/DMCA _ COPYRIGHT POLICY.docx](file:///home/seva/Program/anime_site/docs/DMCA%20_%20COPYRIGHT%20POLICY.docx)
+- [docs/PRIVACY POLICY.docx](file:///home/seva/Program/anime_site/docs/PRIVACY%20POLICY.docx)
+- [docs/TERMS OF SERVICE.docx](file:///home/seva/Program/anime_site/docs/TERMS%20OF%20SERVICE.docx)
+
+Важно:
+
+- Имена файлов должны совпадать 1:1 с тем, что указано в [legal-documents.ts](file:///home/seva/Program/anime_site/frontend/lib/legal-documents.ts).
+- На проде эти файлы должны быть на сервере. По умолчанию compose монтирует `./docs` (папка рядом с `docker-compose.yml`) в контейнер как `/docs`.
+- Если у тебя `docker-compose.yml` лежит не рядом с папкой `docs/` (например ты запускаешь compose из другой директории), задай абсолютный путь:
+
+```bash
+export DOCS_DIR=/var/www/lycorislib/docs
+docker compose up -d
+```
+
+Если видишь "Unable to load the document content":
+
+- проверь, что папка `docs/` есть на сервере и в ней лежат `.docx` файлы;
+- перезапусти фронт: `docker compose restart frontend`.
 
 ### Команды Docker (чтобы не перепутать)
 

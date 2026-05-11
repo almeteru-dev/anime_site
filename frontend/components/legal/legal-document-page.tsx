@@ -10,7 +10,8 @@ export async function LegalDocumentPage({ title, filename }: LegalDocumentPagePr
 
   try {
     html = await loadDocxAsHtml(filename)
-  } catch {
+  } catch (err) {
+    console.error("LegalDocumentPage failed to load doc", { title, filename, err })
     html = null
   }
 
@@ -35,4 +36,3 @@ export async function LegalDocumentPage({ title, filename }: LegalDocumentPagePr
     </main>
   )
 }
-

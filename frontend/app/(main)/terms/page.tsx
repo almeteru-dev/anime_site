@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: legalDocuments.terms.description,
 }
 
+export const dynamic = "force-dynamic"
+
 export default function TermsPage() {
   return (
     <LegalDocumentPage
@@ -15,4 +17,3 @@ export default function TermsPage() {
     />
   )
 }
-

@@ -33,6 +33,8 @@ services:
       dockerfile: Dockerfile
     container_name: lycoris-frontend
     restart: unless-stopped
+    volumes:
+      - ${DOCS_DIR:-./docs}:/docs:ro
     environment:
       NODE_ENV: production
       PORT: 3000

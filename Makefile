@@ -4,13 +4,20 @@ COMPOSE=docker compose
 BACKUP_DIR=./backup
 DB_DEFAULT=animevista
 
-.PHONY: install up up80 down build logs ps restart clean docker-check setup-env port80-free backup-db restore-db
+# Вытаскиваем DB_USER из .env.docker. Если файла нет или юзер не найден, ставим postgres по умолчанию.
+DB_USER=$(shell grep DB_USER $(BACKEND_DIR)/.env.docker 2>/dev/null | cut -d '=' -f2 | xargs)
+DB_USER:=$(if $(DB_USER),$(DB_USER),postgres)
+
+.PHONY: install up up80 down build logs ps restart clean docker-check setup-env port80-free backup-db restore-db docker-disable-ipv6
 
 .PHONY: docker-ubuntu docker-ubintu
 
 all: install build
 
 install: docker-check setup-env
+	@if [ "$${DOCKER_DISABLE_IPV6:-}" = "1" ]; then \
+		$(MAKE) docker-disable-ipv6; \
+	fi
 
 docker-check:
 	@command -v docker >/dev/null 2>&1 || (echo "Docker is not installed. Install Docker Engine + Docker Compose first." && exit 1)
@@ -32,6 +39,18 @@ docker-ubuntu:
 	@echo "Re-login, or run: newgrp docker (then re-run make up)."
 
 docker-ubintu: docker-ubuntu
+
+docker-disable-ipv6:
+	@set -e; \
+	if [ -f /etc/docker/daemon.json ]; then \
+		TS=$$(date +%Y-%m-%d_%H-%M-%S); \
+		sudo cp /etc/docker/daemon.json "/etc/docker/daemon.json.bak.$$TS"; \
+		echo "Backed up /etc/docker/daemon.json to /etc/docker/daemon.json.bak.$$TS"; \
+	fi; \
+	sudo mkdir -p /etc/docker; \
+	sudo sh -c 'cat > /etc/docker/daemon.json <<EOF\n{\n  "ipv6": false\n}\nEOF'; \
+	sudo systemctl restart docker; \
+	echo "Docker restarted. IPv6 disabled in /etc/docker/daemon.json"
 
 setup-env:
 	@if [ ! -f $(BACKEND_DIR)/.env.docker ]; then \
@@ -131,10 +150,10 @@ backup-db:
 	TS=$$(date +%Y-%m-%d_%H-%M-%S); \
 	DIR="$(BACKUP_DIR)/$$SAFE_DB/$$TS"; \
 	mkdir -p "$$DIR"; \
-	echo "Writing backup of $$DB to $$DIR"; \
-	$(COMPOSE) exec -T db pg_dump -U postgres -d "$$DB" -Fc > "$$DIR/$$SAFE_DB.dump"; \
-	$(COMPOSE) exec -T db pg_dump -U postgres -d "$$DB" --no-owner --no-privileges > "$$DIR/$$SAFE_DB.sql"; \
-	echo "Done: $$DIR/$$SAFE_DB.dump and $$DIR/$$SAFE_DB.sql"
+	echo "Writing backup of $$DB to $$DIR using user: $(DB_USER)"; \
+	$(COMPOSE) exec -T db pg_dump -h localhost -U $(DB_USER) -d "$$DB" -Fc > "$$DIR/$$SAFE_DB.dump"; \
+	$(COMPOSE) exec -T db pg_dump -h localhost -U $(DB_USER) -d "$$DB" --no-owner --no-privileges > "$$DIR/$$SAFE_DB.sql"; \
+	echo "Done: $$DIR/$$SAFE_DB.dump"
 
 restore-db:
 	@set -e; \
@@ -149,10 +168,11 @@ restore-db:
 		echo "Missing file: $(BACKUP)/*.dump"; \
 		exit 1; \
 	fi; \
-	echo "Restoring into $$DB from $$DUMP_FILE"; \
-	$(COMPOSE) exec -T db pg_restore -U postgres -d "$$DB" --clean --if-exists < "$$DUMP_FILE"; \
+	echo "Restoring into $$DB from $$DUMP_FILE using user: $(DB_USER)"; \
+	$(COMPOSE) exec -T db pg_restore -U $(DB_USER) -d "$$DB" --clean --if-exists < "$$DUMP_FILE"; \
 	echo "Restore complete"
 
+# Заглушка, чтобы аргументы команд не считались целями
 ifneq (,$(filter backup-db restore-db,$(MAKECMDGOALS)))
 $(filter-out backup-db restore-db,$(MAKECMDGOALS)):
 	@:
